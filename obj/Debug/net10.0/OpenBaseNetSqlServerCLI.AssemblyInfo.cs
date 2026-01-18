@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyDescriptionAttribute("CLI para o template OpenBaseNET SQL Server")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.2.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.2")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.2+1bf7ab6aad4352092f95a32f9fc4c8bed2084502")]
 [assembly: System.Reflection.AssemblyProductAttribute("OpenBaseNetSqlServerCLI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("OpenBaseNetSqlServerCLI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.2.0")]
