@@ -5,9 +5,13 @@ using Spectre.Console.Cli;
 
 namespace OpenBaseNetSqlServerCLI.Commands;
 
-public class VersionCommand : AsyncCommand<EmptySettings>
+public class VersionSettings : CommandSettings
 {
-    public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] EmptySettings settings, CancellationToken cancellationToken)
+}
+
+public class VersionCommand : AsyncCommand<VersionSettings>
+{
+    public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] VersionSettings settings, CancellationToken cancellationToken)
     {
         var toolVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "--";
         AnsiConsole.Write(new FigletText("OpenBaseNET").Color(Color.Blue));

@@ -4,9 +4,14 @@ using Spectre.Console.Cli;
 
 namespace OpenBaseNetSqlServerCLI.Commands;
 
-public class HelpCommand : AsyncCommand<EmptySettings>
+
+public class HelpSettings : CommandSettings
 {
-    public override Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] EmptySettings settings, CancellationToken cancellationToken)
+}
+
+public class HelpCommand : AsyncCommand<HelpSettings>
+{
+    public override Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] HelpSettings settings, CancellationToken cancellationToken)
     {
         // Cabeçalho estilizado
         AnsiConsole.Write(new FigletText("OpenBaseNET").Color(Color.Blue));
@@ -19,9 +24,20 @@ public class HelpCommand : AsyncCommand<EmptySettings>
         table.AddColumn("[bold yellow]Descrição[/]");
         table.AddColumn("[bold yellow]Exemplo de Uso[/]");
 
-        table.AddRow("install", "Instala o template NuGet oficial", "[blue]openbase install[/]");
-        table.AddRow("new", "Cria um novo projeto estruturado", "[blue]openbase new[/] [green]MinhaApi[/]");
-        table.AddRow("update", "Atualiza a CLI e o Template", "[blue]openbase update[/]");
+        table.AddRow(
+            "[blue]install[/]",
+            "Instala todos os pacotes de templates oficiais OpenBaseNET",
+            "openbase [green]install[/]"
+        );
+
+        table.AddRow(
+                    "[blue]new[/]",
+                    "Cria um novo projeto estruturado",
+                    "openbase new [green]--type api --template sqlserver --name ProjetoExemplo[/]"
+                );
+
+        table.AddRow("update", "Sincroniza e atualiza todos os Templates", "[blue]openbase update[/]");
+
         table.AddRow("version", "Mostra versões instaladas", "[blue]openbase version[/]");
 
         AnsiConsole.Write(table);

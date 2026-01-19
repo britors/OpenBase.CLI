@@ -8,13 +8,15 @@ app.Configure(config =>
     config.SetApplicationName("openbase");
 
     config.AddCommand<InstallCommand>("install")
-        .WithDescription("Instala o template do OpenBaseNET");
+        .WithDescription("Instala o ecossistema de templates OpenBaseNET.")
+        .WithExample("install");
 
     config.AddCommand<UpdateCommand>("update")
-        .WithDescription("Atualiza o template e a CLI do OpenBaseNET");
+        .WithDescription("Sincroniza e atualiza todos os templates OpenBaseNET.");
 
     config.AddCommand<NewCommand>("new")
-        .WithDescription("Cria um novo projeto baseado no OpenBaseNET");
+            .WithDescription("Cria um novo projeto baseado em um template.")
+            .WithExample("new", "--type", "api", "--template", "sqlserver", "--name", "MeuProjeto");
 
     config.AddCommand<HelpCommand>("help")
         .WithDescription("Exibe a ajuda para os comandos do OpenBaseNET");

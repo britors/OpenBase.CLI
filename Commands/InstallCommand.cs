@@ -5,33 +5,41 @@ using Spectre.Console.Cli;
 
 namespace OpenBaseNetSqlServerCLI.Commands;
 
-public class InstallCommand : AsyncCommand<EmptySettings>
+
+public class InstallSettings : CommandSettings
 {
-    public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] EmptySettings settings, CancellationToken cancellationToken)
+}
+
+
+public class InstallCommand : AsyncCommand<InstallSettings>
+{
+    public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] InstallSettings settings, CancellationToken cancellationToken)
     {
-        await AnsiConsole.Status()
-            .Spinner(Spinner.Known.Dots)
-            .StartAsync("Instalando template OpenBaseNET do NuGet.org...", async ctx =>
-            {
-                var processInfo = new ProcessStartInfo
-                {
-                    FileName = "dotnet",
-                    // Instala a última versão do seu template
-                    Arguments = "new install w3ti.OpenBaseNET.SQLServer.Template",
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
+        var packages = new[] 
+        { 
+            "w3ti.OpenBaseNET.SQLServer.Template",
+            // Adicione aqui outros pacotes quando existirem
+        };
 
-                using var process = Process.Start(processInfo);
-                if (process != null)
-                {
-                    await process.WaitForExitAsync(cancellationToken);
-                }
-            });
+        AnsiConsole.MarkupLine("[blue]Iniciando a instalação dos pacotes OpenBaseNET...[/]");
 
-        AnsiConsole.MarkupLine("[bold green]✔[/] Template instalado com sucesso!");
-        AnsiConsole.MarkupLine("[grey]Agora você pode usar:[/] [blue]openbase new NomeDoProjeto[/]");
+        foreach (var packageId in packages)
+        {
+            await AnsiConsole.Status()
+                .StartAsync($"Instalando {packageId}...", async ctx =>
+                {
+                    var psi = new ProcessStartInfo("dotnet", $"new install {packageId}")
+                    {
+                        CreateNoWindow = true,
+                        UseShellExecute = false
+                    };
+                    
+                    var process = Process.Start(psi);
+                    if (process != null) await process.WaitForExitAsync(cancellationToken);
+                });
+        }
+
+        AnsiConsole.MarkupLine("[green]Sucesso:[/] Todos os templates foram instalados e estão prontos para uso!");
         return 0;
     }
 }
