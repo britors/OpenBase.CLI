@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.InteropServices;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -31,17 +30,11 @@ public class InstallCommand : AsyncCommand<InstallSettings>
                     {
                         var psi = new ProcessStartInfo
                         {
-                            FileName = "dotnet",
+                            FileName = Helpers.DotNet.GetDotnetPath(),
                             Arguments = $"new install {packageId}",
                             CreateNoWindow = true,
                             UseShellExecute = false
                         };
-
-                        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                        {
-                            // Caminhos padrão e seguros para sistemas Unix/Linux
-                            psi.Environment["PATH"] = "/usr/bin:/usr/local/bin:/bin:/usr/share/dotnet";
-                        }
 
                         using var process = Process.Start(psi);
                         if (process != null)

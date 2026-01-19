@@ -3,7 +3,6 @@ using System.Diagnostics.CodeAnalysis;
 using Spectre.Console;
 using Spectre.Console.Cli;
 using System.ComponentModel;
-using System.Runtime.InteropServices;
 
 namespace OpenBaseNetSqlServerCLI.Commands;
 
@@ -62,7 +61,8 @@ public class NewCommand : AsyncCommand<NewSettings>
             .StartAsync($"Criando projeto [blue]{settings.Name}[/]...", async ctx =>
             {
                 // dotnet new <shortname> -n <nome> -o <nome>
-                var psi = new ProcessStartInfo("dotnet", $"new {shortName} -n {settings.Name} -o {settings.Name}")
+
+                var psi = new ProcessStartInfo(Helpers.DotNet.GetDotnetPath(), $"new {shortName} -n {settings.Name} -o {settings.Name}")
                 {
                     CreateNoWindow = true,
                     UseShellExecute = false,
@@ -70,11 +70,7 @@ public class NewCommand : AsyncCommand<NewSettings>
                     RedirectStandardError = true
                 };
 
-                if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    // Caminhos padrão e seguros para sistemas Unix/Linux
-                    psi.Environment["PATH"] = "/usr/bin:/usr/local/bin:/bin:/usr/share/dotnet";
-                }
+
 
                 using var process = Process.Start(psi);
                 if (process != null)

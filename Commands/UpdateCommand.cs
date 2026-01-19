@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.InteropServices;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -31,17 +30,13 @@ public class UpdateCommand : AsyncCommand<UpdateSettings>
                     // O comando 'install' do dotnet já lida com atualização 
                     // se o pacote já existir, ou instalação se for novo.
 
-                    var psi = new ProcessStartInfo("dotnet", $"new install {packageId}")
+                    var psi = new ProcessStartInfo(Helpers.DotNet.GetDotnetPath(), $"new install {packageId}")
                     {
                         CreateNoWindow = true,
                         UseShellExecute = false,
                         RedirectStandardOutput = true
                     };
-                    if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                    {
-                        // Caminhos padrão e seguros para sistemas Unix/Linux
-                        psi.Environment["PATH"] = "/usr/bin:/usr/local/bin:/bin:/usr/share/dotnet";
-                    }
+
                     var process = Process.Start(psi);
                     if (process != null) await process.WaitForExitAsync(cancellationToken);
                 });
