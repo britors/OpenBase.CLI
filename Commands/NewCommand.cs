@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using Spectre.Console;
 using Spectre.Console.Cli;
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 
 namespace OpenBaseNetSqlServerCLI.Commands;
 
@@ -69,7 +70,11 @@ public class NewCommand : AsyncCommand<NewSettings>
                     RedirectStandardError = true
                 };
 
-                psi.EnvironmentVariables.Remove("PATH");
+                if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    // Caminhos padrão e seguros para sistemas Unix/Linux
+                    psi.Environment["PATH"] = "/usr/bin:/usr/local/bin:/bin:/usr/share/dotnet";
+                }
 
                 using var process = Process.Start(psi);
                 if (process != null)

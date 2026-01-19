@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -13,8 +14,8 @@ public class UpdateCommand : AsyncCommand<UpdateSettings>
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] UpdateSettings settings, CancellationToken cancellationToken)
     {
         // 1. Lista de pacotes oficiais que compõem o ecossistema OpenBase
-        var officialPackages = new[] 
-        { 
+        var officialPackages = new[]
+        {
             "w3ti.OpenBaseNET.SQLServer.Template",
             "w3ti.OpenBaseNET.MongoDB.Template" // Exemplo de pacote futuro
         };
@@ -29,14 +30,18 @@ public class UpdateCommand : AsyncCommand<UpdateSettings>
                 {
                     // O comando 'install' do dotnet já lida com atualização 
                     // se o pacote já existir, ou instalação se for novo.
-                    
+
                     var psi = new ProcessStartInfo("dotnet", $"new install {packageId}")
                     {
                         CreateNoWindow = true,
                         UseShellExecute = false,
                         RedirectStandardOutput = true
                     };
-                    psi.EnvironmentVariables.Remove("PATH");
+                    if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    {
+                        // Caminhos padrão e seguros para sistemas Unix/Linux
+                        psi.Environment["PATH"] = "/usr/bin:/usr/local/bin:/bin:/usr/share/dotnet";
+                    }
                     var process = Process.Start(psi);
                     if (process != null) await process.WaitForExitAsync(cancellationToken);
                 });
