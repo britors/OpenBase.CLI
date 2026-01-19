@@ -46,7 +46,8 @@ public class HelpCommand : AsyncCommand<HelpSettings>
         var panel = new Panel(
             new Rows(
                 new Markup("[bold white]Dica:[/] Utilize o sufixo [blue]--help[/] em qualquer comando para ver detalhes técnicos."),
-                new Markup("[bold white]Repo:[/] [link]https://github.com/britors/OpenBaseNETSQLServer[/]")
+                new Markup("[bold white]Repo:[/] [link]https://github.com/britors/OpenBaseNET.CLI[/]"),
+                new Markup("[bold white]Email:[/] [link]mailto:rodrigo@w3ti.com.br[/]")
             )
         );
         panel.Header = new PanelHeader(" Suporte ");

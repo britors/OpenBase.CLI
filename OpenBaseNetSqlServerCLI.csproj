@@ -8,8 +8,8 @@
 
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>openbase</ToolCommandName>
-    <PackageId>w3ti.OpenBaseNETSqlServer.Cli</PackageId>
-    <Version>10.0.2</Version>
+    <PackageId>w3ti.OpenBaseNET.CLI</PackageId>
+    <Version>10.0.4</Version>
     <Authors>w3ti</Authors>
     <Description>CLI para o template OpenBaseNET SQL Server</Description>
   </PropertyGroup>
@@ -17,8 +17,8 @@
   <PropertyGroup>
     <Title>OpenBaseNET CLI</Title>
     <PackageTags>dotnet;cli;template;sqlserver;clean-architecture</PackageTags>
-    <PackageProjectUrl>https://github.com/britors/OpenBaseNETSQLServer</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/britors/OpenBaseNETSQLServer</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/britors/OpenBaseNET.CLI</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/britors/OpenBaseNET.CLI</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageIcon>icon.png</PackageIcon> 
     <PackageReadmeFile>README.md</PackageReadmeFile>
