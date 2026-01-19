@@ -4,7 +4,7 @@ using Spectre.Console;
 using Spectre.Console.Cli;
 using System.ComponentModel;
 
-namespace OpenBaseNetSqlServerCLI.Commands;
+namespace OpenBaseSqlServerCLI.Commands;
 
 public class NewSettings : CommandSettings
 {
@@ -43,8 +43,8 @@ public class NewCommand : AsyncCommand<NewSettings>
         // 1. Mapeamento de combinações para os Short Names dos templates instalados
         var templateMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            { "api:sqlserver", "openbasenet-sql" }
-            // Espaço para novos mapeamentos: { "api:mongodb", "openbasenet-mongo" }
+            { "api:sqlserver", "OpenBase-sql" }
+            // Espaço para novos mapeamentos: { "api:mongodb", "OpenBase-mongo" }
         };
 
         var key = $"{settings.Type}:{settings.TemplateName}";

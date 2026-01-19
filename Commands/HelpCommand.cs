@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-namespace OpenBaseNetSqlServerCLI.Commands;
+namespace OpenBaseSqlServerCLI.Commands;
 
 
 public class HelpSettings : CommandSettings
@@ -14,7 +14,7 @@ public class HelpCommand : AsyncCommand<HelpSettings>
     public override Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] HelpSettings settings, CancellationToken cancellationToken)
     {
         // Cabeçalho estilizado
-        AnsiConsole.Write(new FigletText("OpenBaseNET").Color(Color.Blue));
+        AnsiConsole.Write(new FigletText("OpenBase").Color(Color.Blue));
         AnsiConsole.MarkupLine("[grey]CLI de produtividade para Arquitetura Limpa e SQL Server[/]");
         AnsiConsole.WriteLine();
 
@@ -26,7 +26,7 @@ public class HelpCommand : AsyncCommand<HelpSettings>
 
         table.AddRow(
             "[blue]install[/]",
-            "Instala todos os pacotes de templates oficiais OpenBaseNET",
+            "Instala todos os pacotes de templates oficiais OpenBase",
             "openbase [green]install[/]"
         );
 
@@ -46,7 +46,7 @@ public class HelpCommand : AsyncCommand<HelpSettings>
         var panel = new Panel(
             new Rows(
                 new Markup("[bold white]Dica:[/] Utilize o sufixo [blue]--help[/] em qualquer comando para ver detalhes técnicos."),
-                new Markup("[bold white]Repo:[/] [link]https://github.com/britors/OpenBaseNET.CLI[/]"),
+                new Markup("[bold white]Repo:[/] [link]https://github.com/britors/OpenBase.CLI[/]"),
                 new Markup("[bold white]Email:[/] [link]mailto:rodrigo@w3ti.com.br[/]")
             )
         );

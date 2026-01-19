@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-namespace OpenBaseNetSqlServerCLI.Commands;
+namespace OpenBaseSqlServerCLI.Commands;
 
 public class VersionSettings : CommandSettings
 {
@@ -24,7 +24,7 @@ public class VersionCommand : AsyncCommand<VersionSettings>
         var osDescription = RuntimeInformation.OSDescription; // Ex: "Fedora Linux 40", "Windows 11"
         var architecture = RuntimeInformation.OSArchitecture.ToString().ToLower(); // Ex: "x64", "arm64"
 
-        AnsiConsole.Write(new FigletText("OpenBaseNET").Color(Color.Blue));
+        AnsiConsole.Write(new FigletText("OpenBase").Color(Color.Blue));
 
         var table = new Table().Border(TableBorder.Rounded);
         table.AddColumn("[bold]Componente[/]");

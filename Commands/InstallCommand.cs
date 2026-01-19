@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-namespace OpenBaseNetSqlServerCLI.Commands;
+namespace OpenBaseSqlServerCLI.Commands;
 
 
 public class InstallSettings : CommandSettings
@@ -17,11 +17,11 @@ public class InstallCommand : AsyncCommand<InstallSettings>
     {
         var packages = new[]
         {
-            "w3ti.OpenBaseNET.SQLServer.Template",
+            "w3ti.OpenBase.SQLServer.Template",
             // Adicione aqui outros pacotes quando existirem
         };
 
-        AnsiConsole.MarkupLine("[blue]Iniciando a instalação dos pacotes OpenBaseNET...[/]");
+        AnsiConsole.MarkupLine("[blue]Iniciando a instalação dos pacotes OpenBase...[/]");
 
         foreach (var packageId in packages)
         {

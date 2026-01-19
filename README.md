@@ -1,17 +1,17 @@
-# OpenBaseNET SQL Server CLI 🚀
+# OpenBase SQL Server CLI 🚀
 
-[![NuGet Version](https://img.shields.io/nuget/v/w3ti.OpenBaseNETSqlServer.Cli.svg)](https://www.nuget.org/packages/w3ti.OpenBaseNETSqlServer.Cli/)
+[![NuGet Version](https://img.shields.io/nuget/v/w3ti.OpenBaseSqlServer.Cli.svg)](https://www.nuget.org/packages/w3ti.OpenBaseSqlServer.Cli/)
 
-A interface de linha de comando oficial para o ecossistema **OpenBaseNET**. Projetada para acelerar a criação de projetos baseados em **Clean Architecture**, **.NET 10** e **SQL Server**.
+A interface de linha de comando oficial para o ecossistema **OpenBase**. Projetada para acelerar a criação de projetos baseados em **Clean Architecture**, **.NET 10** e **SQL Server**.
 
 ---
 
 ## 🛠️ Instalação
 
-A OpenBaseNET CLI é distribuída como uma ferramenta global do .NET. Para instalar, execute:
+A OpenBase CLI é distribuída como uma ferramenta global do .NET. Para instalar, execute:
 
 ```bash
-dotnet tool install -g w3ti.OpenBaseNETSqlServer.Cli
+dotnet tool install -g w3ti.OpenBaseSqlServer.Cli
 
 🚀 Como usar
 1. Preparar o ambiente

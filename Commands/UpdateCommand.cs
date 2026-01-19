@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-namespace OpenBaseNetSqlServerCLI.Commands;
+namespace OpenBaseSqlServerCLI.Commands;
 
 public class UpdateSettings : CommandSettings
 {
@@ -15,10 +15,10 @@ public class UpdateCommand : AsyncCommand<UpdateSettings>
         // 1. Lista de pacotes oficiais que compõem o ecossistema OpenBase
         var officialPackages = new[]
         {
-            "w3ti.OpenBaseNET.SQLServer.Template",
+            "w3ti.OpenBase.SQLServer.Template",
         };
 
-        AnsiConsole.MarkupLine("[blue]Sincronizando ecossistema OpenBaseNET...[/]");
+        AnsiConsole.MarkupLine("[blue]Sincronizando ecossistema OpenBase...[/]");
 
         foreach (var packageId in officialPackages)
         {
@@ -44,7 +44,7 @@ public class UpdateCommand : AsyncCommand<UpdateSettings>
         AnsiConsole.MarkupLine("\n[green]Sucesso:[/] Todos os templates estão sincronizados e atualizados!");
 
         // 2. Atualizar a própria CLI (Auto-update sugerido)
-        var psiTool = new ProcessStartInfo(Helpers.DotNet.GetDotnetPath(), "tool update -g w3ti.OpenBaseNETSqlServer.Cli")
+        var psiTool = new ProcessStartInfo(Helpers.DotNet.GetDotnetPath(), "tool update -g w3ti.OpenBase.CLI")
         {
             CreateNoWindow = true,
             UseShellExecute = false,
@@ -54,7 +54,7 @@ public class UpdateCommand : AsyncCommand<UpdateSettings>
         var tool = Process.Start(psiTool);
         if (tool != null) await tool.WaitForExitAsync(cancellationToken);
 
-        AnsiConsole.MarkupLine("\n[green]Sucesso:[/] OpenBaseNET CLI está atualizada!");
+        AnsiConsole.MarkupLine("\n[green]Sucesso:[/] OpenBase CLI está atualizada!");
         return 0;
     }
 }
