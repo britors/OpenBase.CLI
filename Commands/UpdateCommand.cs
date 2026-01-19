@@ -15,7 +15,7 @@ public class UpdateCommand : AsyncCommand<UpdateSettings>
         // 1. Lista de pacotes oficiais que compõem o ecossistema OpenBase
         var officialPackages = new[]
         {
-            "w3ti.OpenBase.SQLServer.Template",
+            "w3ti.OpenBaseNET.SQLServer.Template",
         };
 
         AnsiConsole.MarkupLine("[blue]Sincronizando ecossistema OpenBase...[/]");
