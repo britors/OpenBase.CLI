@@ -33,7 +33,7 @@ public class InstallCommand : AsyncCommand<InstallSettings>
                         CreateNoWindow = true,
                         UseShellExecute = false
                     };
-                    
+                    psi.EnvironmentVariables.Remove("PATH");
                     var process = Process.Start(psi);
                     if (process != null) await process.WaitForExitAsync(cancellationToken);
                 });

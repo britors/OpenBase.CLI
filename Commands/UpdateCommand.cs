@@ -29,13 +29,14 @@ public class UpdateCommand : AsyncCommand<UpdateSettings>
                 {
                     // O comando 'install' do dotnet já lida com atualização 
                     // se o pacote já existir, ou instalação se for novo.
+                    
                     var psi = new ProcessStartInfo("dotnet", $"new install {packageId}")
                     {
                         CreateNoWindow = true,
                         UseShellExecute = false,
                         RedirectStandardOutput = true
                     };
-                    
+                    psi.EnvironmentVariables.Remove("PATH");
                     var process = Process.Start(psi);
                     if (process != null) await process.WaitForExitAsync(cancellationToken);
                 });

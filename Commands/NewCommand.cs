@@ -69,6 +69,8 @@ public class NewCommand : AsyncCommand<NewSettings>
                     RedirectStandardError = true
                 };
 
+                psi.EnvironmentVariables.Remove("PATH");
+
                 using var process = Process.Start(psi);
                 if (process != null)
                 {
