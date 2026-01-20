@@ -20,7 +20,9 @@ jobs:
 
       # O passo de pack agora cuidará do restore e build
       - name: Empacotar e preparar para publicação
-        run: dotnet pack OpenBase.CLI.csproj --configuration Release -o ./packages
+        # Remova o nome do arquivo .csproj do comando se ele for o único na pasta, 
+        # ou garanta que o nome está correto.
+        run: dotnet pack -c Release -o ./packages
 
       - name: Publicar no NuGet
         env:
