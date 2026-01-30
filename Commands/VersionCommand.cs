@@ -31,7 +31,7 @@ public class VersionCommand : AsyncCommand<VersionSettings>
         table.AddColumn("[bold]Versão / Detalhes[/]");
 
         table.AddRow("OS", $"[green]{osDescription} ({architecture})[/]");
-        table.AddRow(".NET", $"[green]{dotnetVersion}[/]");
+        table.AddRow("DotNet", $"[green]{dotnetVersion}[/]");
         table.AddRow("OpenBase CLI", $"[green]{toolVersion}[/]");
         table.AddRow("Angular CLI", $"[green]{angular}[/]");
         
