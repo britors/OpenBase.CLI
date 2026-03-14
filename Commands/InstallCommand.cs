@@ -17,7 +17,7 @@ public class InstallCommand : AsyncCommand<InstallSettings>
     {
         var packages = new[]
         {
-            "w3ti.OpenBase.SQLServer.Template",
+            "w3ti.OpenBaseNET.SQLServer.Template",
             // Adicione aqui outros pacotes quando existirem
         };
 
