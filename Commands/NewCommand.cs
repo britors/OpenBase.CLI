@@ -1,10 +1,10 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Spectre.Console;
 using Spectre.Console.Cli;
-using System.ComponentModel;
 
-namespace OpenBase.Commands;
+namespace OpenBase.CLI.Commands;
 
 public class NewSettings : CommandSettings
 {

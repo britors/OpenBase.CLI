@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-namespace OpenBase.Commands;
+namespace OpenBase.CLI.Commands;
 
 public class VersionSettings : CommandSettings
 {

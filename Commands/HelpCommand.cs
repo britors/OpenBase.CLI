@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-namespace OpenBase.Commands;
+namespace OpenBase.CLI.Commands;
 
 
 public class HelpSettings : CommandSettings

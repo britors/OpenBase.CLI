@@ -1,4 +1,4 @@
-﻿using OpenBase.Commands;
+﻿using OpenBase.CLI.Commands;
 using Spectre.Console.Cli;
 
 var app = new CommandApp();
