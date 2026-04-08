@@ -13,7 +13,7 @@ public class VersionSettings : CommandSettings
 
 public class VersionCommand : AsyncCommand<VersionSettings>
 {
-    public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] VersionSettings settings, CancellationToken cancellationToken)
+    protected override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] VersionSettings settings, CancellationToken cancellationToken)
     {
         // Coleta de dados
         var dotnetVersion = Helpers.DotNet.GetDotnetVersion();

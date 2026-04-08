@@ -38,7 +38,7 @@ public class NewSettings : CommandSettings
 
 public class NewCommand : AsyncCommand<NewSettings>
 {
-    public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] NewSettings settings, CancellationToken cancellationToken)
+    protected override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] NewSettings settings, CancellationToken cancellationToken)
     {
         // 1. Mapeamento de combinações para os Short Names dos templates instalados
         var templateMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)

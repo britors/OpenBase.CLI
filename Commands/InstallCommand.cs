@@ -13,7 +13,7 @@ public class InstallSettings : CommandSettings
 
 public class InstallCommand : AsyncCommand<InstallSettings>
 {
-    public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] InstallSettings settings, CancellationToken cancellationToken)
+    protected override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] InstallSettings settings, CancellationToken cancellationToken)
     {
         var packages = new[]
         {

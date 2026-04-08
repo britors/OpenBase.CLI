@@ -11,7 +11,7 @@ public class HelpSettings : CommandSettings
 
 public class HelpCommand : AsyncCommand<HelpSettings>
 {
-    public override Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] HelpSettings settings, CancellationToken cancellationToken)
+    protected override Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] HelpSettings settings, CancellationToken cancellationToken)
     {
         // Cabeçalho estilizado
         AnsiConsole.Write(new FigletText("OpenBase").Color(Color.Blue));

@@ -10,7 +10,7 @@ public class UpdateSettings : CommandSettings
 }
 public class UpdateCommand : AsyncCommand<UpdateSettings>
 {
-    public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] UpdateSettings settings, CancellationToken cancellationToken)
+    protected override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] UpdateSettings settings, CancellationToken cancellationToken)
     {
         // 1. Lista de pacotes oficiais que compõem o ecossistema OpenBase
         var officialPackages = new[]
