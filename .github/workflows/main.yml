@@ -7,15 +7,10 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:
 
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: OpenBase.CLI
 
     steps:
       - name: Checkout do código
@@ -26,33 +21,12 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
-      - name: Restaurar dependências
-        run: dotnet restore
-
-      - name: Build
-        run: dotnet build --configuration Release --no-restore
-
-      - name: Executar testes
-        run: dotnet test --configuration Release --no-build || true
-
-      - name: Empacotar
-        run: dotnet pack OpenBase.CLI.csproj --configuration Release --no-build -o ./packages
-
-      - name: Publicar .nupkg no NuGet
+      - name: Empacotar e preparar para publicação
+        # Voltamos a apontar para o .csproj explicitamente, mas SEM o NoDefaultExcludes
+        run: dotnet pack OpenBase.CLI.csproj --configuration Release -o ./packages
+      
+      - name: Publicar no NuGet
         env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          NUGET_API_KEY: "${{ secrets.NUGET_API_KEY }}"
         run: |
-          dotnet nuget push "./packages/*.nupkg" \
-            --api-key "$NUGET_API_KEY" \
-            --source https://api.nuget.org/v3/index.json \
-            --skip-duplicate
-
-      - name: Publicar .snupkg (símbolos) no NuGet
-        env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
-        run: |
-          dotnet nuget push "./packages/*.snupkg" \
-            --api-key "$NUGET_API_KEY" \
-            --source https://api.nuget.org/v3/index.json \
-            --skip-duplicate
-        continue-on-error: true
+          dotnet nuget push "./packages/*.nupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json
