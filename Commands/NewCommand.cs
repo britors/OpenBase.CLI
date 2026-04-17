@@ -61,10 +61,9 @@ public class NewCommand : AsyncCommand<NewSettings>
             AnsiConsole.MarkupLine("Combinações disponíveis: [blue]--type api --template sqlserver[/]");
             return 1;
         }
-
-        var exitCode = 0;
+        
         string? stdErr = null;
-
+        var errorProcess = false;
         await AnsiConsole.Status()
             .Spinner(Spinner.Known.Dots)
             .StartAsync($"Criando projeto [blue]{settings.Name}[/]...", async ctx =>
@@ -84,12 +83,12 @@ public class NewCommand : AsyncCommand<NewSettings>
                 {
                     var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
                     await process.WaitForExitAsync(cancellationToken);
-                    exitCode = process.ExitCode;
+                    errorProcess = (process.ExitCode !=0);
                     stdErr = await errorTask;
                 }
             });
 
-        if (exitCode != 0)
+        if (errorProcess)
         {
             AnsiConsole.MarkupLine("[red]Erro:[/] Falha ao criar o projeto. Verifique se o template está instalado com [blue]openbase install[/].");
             if (!string.IsNullOrWhiteSpace(stdErr))

@@ -27,7 +27,6 @@ public class InstallCommand : AsyncCommand<InstallSettings>
 
         foreach (var packageId in packages)
         {
-            var exitCode = 0;
 
             await AnsiConsole.Status()
                 .Spinner(Spinner.Known.Dots)
@@ -43,31 +42,24 @@ public class InstallCommand : AsyncCommand<InstallSettings>
                         RedirectStandardError = true
                     };
 
-                    // CORRIGIDO: 'using' garante que o processo é liberado após o uso
                     using var process = Process.Start(psi);
                     if (process != null)
                     {
                         await process.WaitForExitAsync(cancellationToken);
-                        exitCode = process.ExitCode; // CORRIGIDO: exit code era ignorado
+                        hasError = (process.ExitCode != 0);
                     }
                 });
 
-            if (exitCode != 0)
+            if (hasError)
             {
-                AnsiConsole.MarkupLine($"[red]Erro:[/] Falha ao instalar [yellow]{packageId}[/] (código {exitCode}).");
-                hasError = true;
+                AnsiConsole.MarkupLine($"[red]Erro:[/] Falha ao instalar [yellow]{packageId}[/].");
+                AnsiConsole.MarkupLine("[red]Atenção:[/] Um ou mais pacotes falharam na instalação.");
+                return 1;
             }
-            else
-            {
-                AnsiConsole.MarkupLine($"[green]✓[/] {packageId} instalado.");
-            }
+
+            AnsiConsole.MarkupLine($"[green]✓[/] {packageId} instalado.");
         }
 
-        if (hasError)
-        {
-            AnsiConsole.MarkupLine("[red]Atenção:[/] Um ou mais pacotes falharam na instalação.");
-            return 1;
-        }
 
         AnsiConsole.MarkupLine("[green]Sucesso:[/] Todos os templates foram instalados e estão prontos para uso!");
         return 0;

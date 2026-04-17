@@ -61,7 +61,6 @@ public class UpdateCommand : AsyncCommand<UpdateSettings>
         }
 
         AnsiConsole.WriteLine();
-        var cliExitCode = 0;
 
         await AnsiConsole.Status()
             .Spinner(Spinner.Known.Dots)
@@ -81,27 +80,18 @@ public class UpdateCommand : AsyncCommand<UpdateSettings>
                 if (tool != null)
                 {
                     await tool.WaitForExitAsync(cancellationToken);
-                    cliExitCode = tool.ExitCode;
+                    hasError = (tool.ExitCode != 0);
                 }
             });
 
-        if (cliExitCode != 0)
-        {
-            AnsiConsole.MarkupLine("[red]Erro:[/] Falha ao atualizar a OpenBase CLI.");
-            hasError = true;
-        }
-        else
-        {
-            AnsiConsole.MarkupLine("[green]✓[/] OpenBase CLI atualizada.");
-        }
-
-        AnsiConsole.WriteLine();
-
         if (hasError)
         {
+            AnsiConsole.MarkupLine("[red]Erro:[/] Falha ao atualizar a OpenBase CLI.");
             AnsiConsole.MarkupLine("[yellow]Aviso:[/] Alguns componentes não puderam ser atualizados.");
             return 1;
         }
+
+        AnsiConsole.MarkupLine("[green]✓[/] OpenBase CLI atualizada.");
 
         AnsiConsole.MarkupLine("[green]Sucesso:[/] Todos os componentes estão na versão mais recente!");
         return 0;
