@@ -1,90 +1,94 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace OpenBase.Helpers;
+namespace OpenBase.CLI.Helpers;
 
 public static class Angular
 {
-  public static string GetAngularVersion()
-  {
-    try
+    public static string GetAngularVersion()
     {
-      var processStartInfo = new ProcessStartInfo
-      {
-        FileName = GetAngularPath(),
-        Arguments = "--version",
-        RedirectStandardOutput = true,
-        RedirectStandardError = true,
-        UseShellExecute = false,
-        CreateNoWindow = true
-      };
+        try
+        {
+            var processStartInfo = new ProcessStartInfo
+            {
+                FileName = GetAngularPath(),
+                Arguments = "--version",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
 
-      using var process = Process.Start(processStartInfo);
-      if (process == null) return "--";
+            using var process = Process.Start(processStartInfo);
+            if (process == null) return "--";
 
-      string output = process.StandardOutput.ReadToEnd();
-      process.WaitForExit();
+            var outputTask = process.StandardOutput.ReadToEndAsync();
+            _ = process.StandardError.ReadToEndAsync();
+            process.WaitForExit();
 
-      var lines = output.Split(["\r\n", "\n"], StringSplitOptions.RemoveEmptyEntries);
-      return lines.FirstOrDefault()?.Trim() ?? "--";
+            var output = outputTask.Result;
+            var lines = output.Split(["\r\n", "\n"], StringSplitOptions.RemoveEmptyEntries);
+            return lines.FirstOrDefault()?.Trim() ?? "--";
+        }
+        catch
+        {
+            return "--";
+        }
     }
-    catch
+
+    private static string GetAngularPath()
     {
-      return "--";
+        var isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+        var binaryName = isWindows ? "ng.cmd" : "ng";
+        return ResolveBinaryPath(binaryName);
     }
-  }
 
-  public static string GetAngularPath()
-  {
-    var isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-    var binaryName = isWindows ? "ng.cmd" : "ng";
-    return ResolveBinaryPath(binaryName);
-  }
+    private static string ResolveBinaryPath(string binary)
+    {
+        var isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
-  private static string ResolveBinaryPath(string binary)
-  {
-    var isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-    string[] windows = [@"C:\Program Files\nodejs", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "npm")];
-    string[] linux = ["/usr/bin",
-        "/usr/local/bin",
-        "/usr/share/npm/bin",
-        "/usr/lib/node_modules/npm/bin",
-        "/usr/local/lib/node_modules/npm/bin",
-        "/usr/bin/npm",
-        "/usr/local/bin/npm"
+        string[] windowsPaths =
+        [
+            @"C:\Program Files\nodejs",
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "npm")
         ];
 
-    string[] paths;
-    if (isWindows)
-    {
+        string[] linuxPaths =
+        [
+            "/usr/bin",
+            "/usr/local/bin",
+            "/usr/share/npm/bin",
+            "/usr/lib/node_modules/.bin",
+            "/usr/local/lib/node_modules/.bin"
+        ];
 
-      paths = windows;
-      foreach (var path in paths)
-      {
-        var fullPath = Path.Combine(path, binary);
-        if (File.Exists(fullPath)) return fullPath;
-      }
+        List<string> searchPaths = [];
 
+        if (!isWindows)
+        {
+            // NVM tem prioridade sobre caminhos fixos no Linux/macOS
+            var nvmBin = Environment.GetEnvironmentVariable("NVM_BIN");
+            if (!string.IsNullOrEmpty(nvmBin))
+                searchPaths.Add(nvmBin);
+
+            // também verifica PATH do sistema antes dos fixos
+            var envPath = Environment.GetEnvironmentVariable("PATH");
+            if (!string.IsNullOrEmpty(envPath))
+                searchPaths.AddRange(envPath.Split(':'));
+
+            searchPaths.AddRange(linuxPaths);
+        }
+        else
+        {
+            searchPaths.AddRange(windowsPaths);
+        }
+
+        foreach (var path in searchPaths)
+        {
+            var fullPath = Path.Combine(path, binary);
+            if (File.Exists(fullPath)) return fullPath;
+        }
+
+        return binary;
     }
-    else
-    {
-      var nvmBin = Environment.GetEnvironmentVariable("NVM_BIN");
-
-      paths = [];
-      if (!string.IsNullOrEmpty(nvmBin))
-        paths = [.. paths, nvmBin];
-
-
-      paths = [.. paths, .. linux];
-
-    }
-
-    foreach (var path in paths)
-    {
-      var fullPath = Path.Combine(path, binary);
-      if (File.Exists(fullPath)) return fullPath;
-    }
-
-    return binary;
-  }
 }
