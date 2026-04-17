@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Spectre.Console;
@@ -11,9 +10,9 @@ public class VersionSettings : CommandSettings
 }
 
 
-public class VersionCommand : AsyncCommand<VersionSettings>
+public class VersionCommand : Command<VersionSettings>
 {
-    protected override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] VersionSettings settings, CancellationToken cancellationToken)
+    protected override int Execute(CommandContext context, VersionSettings settings, CancellationToken cancellationToken)
     {
         // Coleta de dados
         var dotnetVersion = Helpers.DotNet.GetDotnetVersion();

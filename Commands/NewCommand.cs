@@ -62,8 +62,6 @@ public class NewCommand : AsyncCommand<NewSettings>
             return 1;
         }
         
-        string? stdErr = null;
-        var errorProcess = false;
         await AnsiConsole.Status()
             .Spinner(Spinner.Known.Dots)
             .StartAsync($"Criando projeto [blue]{settings.Name}[/]...", async ctx =>
@@ -83,22 +81,18 @@ public class NewCommand : AsyncCommand<NewSettings>
                 {
                     var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
                     await process.WaitForExitAsync(cancellationToken);
-                    errorProcess = (process.ExitCode !=0);
-                    stdErr = await errorTask;
+                    if (process.ExitCode != 0)
+                    {
+                        AnsiConsole.MarkupLine("[red]Erro:[/] Falha ao criar o projeto. Verifique se o template está instalado com [blue]openbase install[/].");
+                    }
+                    else
+                    {
+                        AnsiConsole.MarkupLine($"[grey]  cd {settings.Name}[/]");
+                        AnsiConsole.MarkupLine("[grey]  dotnet run --project src/...[/]");
+                    }                    
                 }
             });
-
-        if (errorProcess)
-        {
-            AnsiConsole.MarkupLine("[red]Erro:[/] Falha ao criar o projeto. Verifique se o template está instalado com [blue]openbase install[/].");
-            if (!string.IsNullOrWhiteSpace(stdErr))
-                AnsiConsole.MarkupLine($"[grey]Detalhe: {stdErr.Trim()}[/]");
-            return 1;
-        }
-
-        AnsiConsole.MarkupLine($"[green]Sucesso:[/] Projeto [blue]{settings.Name}[/] criado com sucesso!");
-        AnsiConsole.MarkupLine($"[grey]  cd {settings.Name}[/]");
-        AnsiConsole.MarkupLine("[grey]  dotnet run --project src/...[/]");
+        
         return 0;
     }
 }

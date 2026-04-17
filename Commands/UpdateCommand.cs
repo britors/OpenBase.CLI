@@ -23,12 +23,8 @@ public class UpdateCommand : AsyncCommand<UpdateSettings>
 
         AnsiConsole.MarkupLine("[blue]Sincronizando templates OpenBase...[/]");
 
-        var hasError = false;
-
         foreach (var packageId in officialPackages)
         {
-            var exitCode = 0;
-
             await AnsiConsole.Status()
                 .Spinner(Spinner.Known.Dots)
                 .StartAsync($"Atualizando {packageId}...", async ctx =>
@@ -45,19 +41,12 @@ public class UpdateCommand : AsyncCommand<UpdateSettings>
                     if (process != null)
                     {
                         await process.WaitForExitAsync(cancellationToken);
-                        exitCode = process.ExitCode; // CORRIGIDO: exit code era ignorado
+                        AnsiConsole.MarkupLine(process.ExitCode != 0
+                            ? $"[red]Erro:[/] Falha ao atualizar [yellow]{packageId}[/]."
+                            : $"[green]✓[/] {packageId} atualizado.");
                     }
                 });
 
-            if (exitCode != 0)
-            {
-                AnsiConsole.MarkupLine($"[red]Erro:[/] Falha ao atualizar [yellow]{packageId}[/].");
-                hasError = true;
-            }
-            else
-            {
-                AnsiConsole.MarkupLine($"[green]✓[/] {packageId} atualizado.");
-            }
         }
 
         AnsiConsole.WriteLine();
@@ -80,20 +69,18 @@ public class UpdateCommand : AsyncCommand<UpdateSettings>
                 if (tool != null)
                 {
                     await tool.WaitForExitAsync(cancellationToken);
-                    hasError = (tool.ExitCode != 0);
+                    if (tool.ExitCode != 0)
+                    {
+                        AnsiConsole.MarkupLine("[red]Erro:[/] Falha ao atualizar a OpenBase CLI.");
+                        AnsiConsole.MarkupLine("[yellow]Aviso:[/] Alguns componentes não puderam ser atualizados.");
+                    }
+                    else
+                    {
+                        AnsiConsole.MarkupLine("[green]✓[/] OpenBase CLI atualizada.");
+                    }
                 }
             });
 
-        if (hasError)
-        {
-            AnsiConsole.MarkupLine("[red]Erro:[/] Falha ao atualizar a OpenBase CLI.");
-            AnsiConsole.MarkupLine("[yellow]Aviso:[/] Alguns componentes não puderam ser atualizados.");
-            return 1;
-        }
-
-        AnsiConsole.MarkupLine("[green]✓[/] OpenBase CLI atualizada.");
-
-        AnsiConsole.MarkupLine("[green]Sucesso:[/] Todos os componentes estão na versão mais recente!");
         return 0;
     }
 }

@@ -22,9 +22,7 @@ public class InstallCommand : AsyncCommand<InstallSettings>
         };
 
         AnsiConsole.MarkupLine("[blue]Iniciando a instalação dos pacotes OpenBase...[/]");
-
-        var hasError = false;
-
+        
         foreach (var packageId in packages)
         {
 
@@ -46,22 +44,12 @@ public class InstallCommand : AsyncCommand<InstallSettings>
                     if (process != null)
                     {
                         await process.WaitForExitAsync(cancellationToken);
-                        hasError = (process.ExitCode != 0);
+                        AnsiConsole.MarkupLine(process.ExitCode != 0
+                            ? $"[red]Erro:[/] Falha ao instalar [yellow]{packageId}[/]."
+                            : $"[green]✓[/] {packageId} instalado.");
                     }
                 });
-
-            if (hasError)
-            {
-                AnsiConsole.MarkupLine($"[red]Erro:[/] Falha ao instalar [yellow]{packageId}[/].");
-                AnsiConsole.MarkupLine("[red]Atenção:[/] Um ou mais pacotes falharam na instalação.");
-                return 1;
-            }
-
-            AnsiConsole.MarkupLine($"[green]✓[/] {packageId} instalado.");
         }
-
-
-        AnsiConsole.MarkupLine("[green]Sucesso:[/] Todos os templates foram instalados e estão prontos para uso!");
         return 0;
     }
 }
