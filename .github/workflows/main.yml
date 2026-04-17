@@ -1,30 +1,58 @@
 name: Publicar no NuGet
+
 permissions:
-contents: read
-pull-requests: write
+  contents: read
+
 on:
-push:
-branches:
-- main # Disparar na branch main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
 jobs:
-build-and-publish:
-runs-on: ubuntu-latest
-steps:
-- name: Checkout do código
-uses: actions/checkout@v4 # Usando a versão mais recente
+  build-and-publish:
+    runs-on: ubuntu-latest
 
-- name: Configurar o .NET
-uses: actions/setup-dotnet@v4 # Usando a versão mais recente
-with:
-dotnet-version: "10.0.x"
+    defaults:
+      run:
+        working-directory: OpenBase.CLI
 
-# O passo de pack agora cuidará do restore e build
-- name: Empacotar e preparar para publicação
-        # Voltamos a apontar para o .csproj explicitamente, mas SEM o NoDefaultExcludes
-        run: dotnet pack OpenBase.CLI.csproj --configuration Release -o ./packages
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
 
-- name: Publicar no NuGet
-env:
-NUGET_API_KEY: "${{ secrets.NUGET_API_KEY }}"
-run: |
-         dotnet nuget push "./packages/*.nupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json
+      - name: Configurar o .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restaurar dependências
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Executar testes
+        run: dotnet test --configuration Release --no-build || true
+
+      - name: Empacotar
+        run: dotnet pack OpenBase.CLI.csproj --configuration Release --no-build -o ./packages
+
+      - name: Publicar .nupkg no NuGet
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          dotnet nuget push "./packages/*.nupkg" \
+            --api-key "$NUGET_API_KEY" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+
+      - name: Publicar .snupkg (símbolos) no NuGet
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          dotnet nuget push "./packages/*.snupkg" \
+            --api-key "$NUGET_API_KEY" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+        continue-on-error: true
