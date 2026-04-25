@@ -19,6 +19,7 @@ public class InstallCommand : AsyncCommand<InstallSettings>
         var packages = new[]
         {
             "w3ti.OpenBaseNET.SQLServer.Template",
+            "w3ti.OpenBaseNET.Postgres.Template",
         };
 
         AnsiConsole.MarkupLine("[blue]Iniciando a instalação dos pacotes OpenBase...[/]");

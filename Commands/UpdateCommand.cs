@@ -19,6 +19,7 @@ public class UpdateCommand : AsyncCommand<UpdateSettings>
         var officialPackages = new[]
         {
             "w3ti.OpenBaseNET.SQLServer.Template",
+            "w3ti.OpenBaseNET.Postgres.Template",
         };
 
         AnsiConsole.MarkupLine("[blue]Sincronizando templates OpenBase...[/]");
