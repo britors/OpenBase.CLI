@@ -49,7 +49,8 @@ public class NewCommand : AsyncCommand<NewSettings>
     {
         var templateMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            { "api:sqlserver", "OpenBase-sql" }
+            { "api:sqlserver", "openbasenet-sql" },
+            { "api:pqsql", "openbasenet-pgsql" },
         };
 
         var key = $"{settings.Type}:{settings.TemplateName}";
