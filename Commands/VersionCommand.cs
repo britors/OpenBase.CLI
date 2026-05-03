@@ -32,7 +32,10 @@ public class VersionCommand : Command<VersionSettings>
         table.AddRow("OS", $"[green]{osDescription} ({architecture})[/]");
         table.AddRow("DotNet", $"[green]{dotnetVersion}[/]");
         table.AddRow("OpenBase CLI", $"[green]{toolVersion}[/]");
-        table.AddRow("Angular CLI", $"[green]{angular}[/]");
+        if (!string.IsNullOrEmpty(angular))
+        {
+            table.AddRow("Angular", $"[green]{angular}[/]");
+        }
         
         AnsiConsole.Write(table);
         
