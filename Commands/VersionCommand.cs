@@ -17,7 +17,6 @@ public class VersionCommand : Command<VersionSettings>
         // Coleta de dados
         var dotnetVersion = Helpers.DotNet.GetDotnetVersion();
         var toolVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "--";
-        var angular = Helpers.Angular.GetAngularVersion();
         
         // Informações do Sistema Operacional e Arquitetura
         var osDescription = RuntimeInformation.OSDescription; // Ex: "Fedora Linux 40", "Windows 11"
@@ -32,10 +31,6 @@ public class VersionCommand : Command<VersionSettings>
         table.AddRow("OS", $"[green]{osDescription} ({architecture})[/]");
         table.AddRow("DotNet", $"[green]{dotnetVersion}[/]");
         table.AddRow("OpenBase CLI", $"[green]{toolVersion}[/]");
-        if (!string.IsNullOrEmpty(angular))
-        {
-            table.AddRow("Angular", $"[green]{angular}[/]");
-        }
         
         AnsiConsole.Write(table);
         
