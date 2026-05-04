@@ -9,13 +9,13 @@ namespace OpenBase.CLI.Commands;
 public class NewSettings : CommandSettings
 {
     [CommandOption("-t|--type <TIPO>")]
-    [Description("O tipo do template (ex: api)")]
+    [Description("O tipo do template [api]")]
     [DefaultValue("api")]
     public string Type { get; set; } = "api";
 
     [CommandOption("-s|--template <TEMPLATE>")]
-    [Description("O nome do template (ex: sqlserver)")]
-    public string TemplateName { get; set; } = string.Empty;
+    [Description("O nome do template [sqlserver|pgsql]")]
+    public string TemplateName { get; set; } = "sqlserver";
 
     [CommandOption("-n|--name <NOME>")]
     [Description("O nome do projeto a ser criado")]
@@ -50,7 +50,7 @@ public class NewCommand : AsyncCommand<NewSettings>
         var templateMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             { "api:sqlserver", "openbasenet-sql" },
-            { "api:pqsql", "openbasenet-pgsql" },
+            { "api:pgsql", "openbasenet-pgsql" },
         };
 
         var key = $"{settings.Type}:{settings.TemplateName}";
