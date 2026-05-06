@@ -11,21 +11,38 @@ public static class DotNet
         "w3ti.OpenBaseNET.Postgres.Template",
     ];
 
+    private static readonly string[] WindowsKnownPaths =
+    [
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "dotnet"),
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "dotnet"),
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Microsoft", "dotnet"),
+    ];
+
+    private static readonly string[] MacOsKnownPaths =
+    [
+        Path.Combine(Path.DirectorySeparatorChar.ToString(), "usr", "local", "share", "dotnet"),
+        Path.Combine(Path.DirectorySeparatorChar.ToString(), "opt", "homebrew", "bin"),
+        Path.Combine(Path.DirectorySeparatorChar.ToString(), "usr", "local", "bin"),
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".dotnet"),
+    ];
+
+    private static readonly string[] LinuxKnownPaths =
+    [
+        Path.Combine(Path.DirectorySeparatorChar.ToString(), "usr", "bin"),
+        Path.Combine(Path.DirectorySeparatorChar.ToString(), "usr", "local", "bin"),
+        Path.Combine(Path.DirectorySeparatorChar.ToString(), "usr", "share", "dotnet"),
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".dotnet"),
+    ];
+
     public static string GetDotnetPath()
     {
         var isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
         var isMacOs = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
         var fileName = isWindows ? "dotnet.exe" : "dotnet";
 
-        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var knownPaths = isWindows ? WindowsKnownPaths : isMacOs ? MacOsKnownPaths : LinuxKnownPaths;
 
-        string[] trustedPaths = isWindows
-            ? [@"C:\Program Files\dotnet", @"C:\Program Files (x86)\dotnet", Path.Combine(home, @"AppData\Local\Microsoft\dotnet")]
-            : isMacOs
-                ? ["/usr/local/share/dotnet", "/opt/homebrew/bin", "/usr/local/bin", Path.Combine(home, ".dotnet")]
-                : ["/usr/bin", "/usr/local/bin", "/usr/share/dotnet", Path.Combine(home, ".dotnet")];
-
-        foreach (var p in trustedPaths)
+        foreach (var p in knownPaths)
         {
             var fullPath = Path.Combine(p, fileName);
             if (File.Exists(fullPath)) return fullPath;
@@ -37,6 +54,25 @@ public static class DotNet
             .FirstOrDefault(File.Exists);
 
         return envPath ?? fileName;
+    }
+
+    public static async Task<(bool Success, string Error)> RunAsync(string arguments, CancellationToken cancellationToken)
+    {
+        var psi = new ProcessStartInfo(GetDotnetPath(), arguments)
+        {
+            CreateNoWindow = true,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
+        };
+
+        using var process = Process.Start(psi);
+        if (process == null)
+            return (false, "Não foi possível iniciar o processo dotnet.");
+
+        var errorOutput = process.StandardError.ReadToEndAsync(cancellationToken);
+        await process.WaitForExitAsync(cancellationToken);
+        return (process.ExitCode == 0, (await errorOutput).Trim());
     }
 
     public static string GetDotnetVersion()

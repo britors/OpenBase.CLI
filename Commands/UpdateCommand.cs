@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -26,31 +25,17 @@ public class UpdateCommand : AsyncCommand<UpdateSettings>
                 .Spinner(Spinner.Known.Dots)
                 .StartAsync($"Atualizando {packageId}...", async _ =>
                 {
-                    var psi = new ProcessStartInfo(Helpers.DotNet.GetDotnetPath(), $"new install {packageId}")
+                    var (success, error) = await Helpers.DotNet.RunAsync($"new install {packageId}", cancellationToken);
+                    if (!success)
                     {
-                        CreateNoWindow = true,
-                        UseShellExecute = false,
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true
-                    };
-
-                    using var process = Process.Start(psi);
-                    if (process != null)
+                        failed = true;
+                        AnsiConsole.MarkupLine($"[red]Erro:[/] Falha ao atualizar [yellow]{packageId}[/].");
+                        if (!string.IsNullOrWhiteSpace(error))
+                            AnsiConsole.MarkupLine($"[grey]{Markup.Escape(error)}[/]");
+                    }
+                    else
                     {
-                        var errorOutput = process.StandardError.ReadToEndAsync(cancellationToken);
-                        await process.WaitForExitAsync(cancellationToken);
-                        if (process.ExitCode != 0)
-                        {
-                            failed = true;
-                            var error = await errorOutput;
-                            AnsiConsole.MarkupLine($"[red]Erro:[/] Falha ao atualizar [yellow]{packageId}[/].");
-                            if (!string.IsNullOrWhiteSpace(error))
-                                AnsiConsole.MarkupLine($"[grey]{Markup.Escape(error.Trim())}[/]");
-                        }
-                        else
-                        {
-                            AnsiConsole.MarkupLine($"[green]✓[/] {packageId} atualizado.");
-                        }
+                        AnsiConsole.MarkupLine($"[green]✓[/] {packageId} atualizado.");
                     }
                 });
         }
@@ -61,34 +46,18 @@ public class UpdateCommand : AsyncCommand<UpdateSettings>
             .Spinner(Spinner.Known.Dots)
             .StartAsync("Atualizando OpenBase CLI...", async _ =>
             {
-                var psi = new ProcessStartInfo(
-                    Helpers.DotNet.GetDotnetPath(),
-                    "tool update -g w3ti.OpenBase.CLI")
+                var (success, error) = await Helpers.DotNet.RunAsync("tool update -g w3ti.OpenBase.CLI", cancellationToken);
+                if (!success)
                 {
-                    CreateNoWindow = true,
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true
-                };
-
-                using var tool = Process.Start(psi);
-                if (tool != null)
+                    failed = true;
+                    AnsiConsole.MarkupLine("[red]Erro:[/] Falha ao atualizar a OpenBase CLI.");
+                    if (!string.IsNullOrWhiteSpace(error))
+                        AnsiConsole.MarkupLine($"[grey]{Markup.Escape(error)}[/]");
+                    AnsiConsole.MarkupLine("[yellow]Aviso:[/] Alguns componentes não puderam ser atualizados.");
+                }
+                else
                 {
-                    var errorOutput = tool.StandardError.ReadToEndAsync(cancellationToken);
-                    await tool.WaitForExitAsync(cancellationToken);
-                    if (tool.ExitCode != 0)
-                    {
-                        failed = true;
-                        var error = await errorOutput;
-                        AnsiConsole.MarkupLine("[red]Erro:[/] Falha ao atualizar a OpenBase CLI.");
-                        if (!string.IsNullOrWhiteSpace(error))
-                            AnsiConsole.MarkupLine($"[grey]{Markup.Escape(error.Trim())}[/]");
-                        AnsiConsole.MarkupLine("[yellow]Aviso:[/] Alguns componentes não puderam ser atualizados.");
-                    }
-                    else
-                    {
-                        AnsiConsole.MarkupLine("[green]✓[/] OpenBase CLI atualizada.");
-                    }
+                    AnsiConsole.MarkupLine("[green]✓[/] OpenBase CLI atualizada.");
                 }
             });
 

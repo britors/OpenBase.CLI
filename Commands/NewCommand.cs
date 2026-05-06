@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -33,7 +32,9 @@ public class NewSettings : CommandSettings
             .Concat([' ', '&', '|', ';', '`', '$', '(', ')'])
             .ToArray();
 
-        return Name.IndexOfAny(invalidChars) >= 0 ? ValidationResult.Error("O nome do projeto contém caracteres inválidos. Use apenas letras, números, '-' e '_'.") : ValidationResult.Success();
+        return Name.IndexOfAny(invalidChars) >= 0
+            ? ValidationResult.Error("O nome do projeto contém caracteres inválidos. Use apenas letras, números, '-' e '_'.")
+            : ValidationResult.Success();
     }
 }
 
@@ -66,34 +67,20 @@ public class NewCommand : AsyncCommand<NewSettings>
             .Spinner(Spinner.Known.Dots)
             .StartAsync($"Criando projeto [blue]{settings.Name}[/]...", async _ =>
             {
-                var psi = new ProcessStartInfo(
-                    Helpers.DotNet.GetDotnetPath(),
-                    $"new {shortName} -n {settings.Name} -o {settings.Name}")
-                {
-                    CreateNoWindow = true,
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true
-                };
+                var (success, error) = await Helpers.DotNet.RunAsync(
+                    $"new {shortName} -n {settings.Name} -o {settings.Name}", cancellationToken);
 
-                using var process = Process.Start(psi);
-                if (process != null)
+                if (!success)
                 {
-                    var errorOutput = process.StandardError.ReadToEndAsync(cancellationToken);
-                    await process.WaitForExitAsync(cancellationToken);
-                    if (process.ExitCode != 0)
-                    {
-                        exitCode = 1;
-                        var error = await errorOutput;
-                        AnsiConsole.MarkupLine("[red]Erro:[/] Falha ao criar o projeto. Verifique se o template está instalado com [blue]openbase install[/].");
-                        if (!string.IsNullOrWhiteSpace(error))
-                            AnsiConsole.MarkupLine($"[grey]{Markup.Escape(error.Trim())}[/]");
-                    }
-                    else
-                    {
-                        AnsiConsole.MarkupLine($"[grey]  cd {settings.Name}[/]");
-                        AnsiConsole.MarkupLine("[grey]  dotnet run --project src/...[/]");
-                    }
+                    exitCode = 1;
+                    AnsiConsole.MarkupLine("[red]Erro:[/] Falha ao criar o projeto. Verifique se o template está instalado com [blue]openbase install[/].");
+                    if (!string.IsNullOrWhiteSpace(error))
+                        AnsiConsole.MarkupLine($"[grey]{Markup.Escape(error)}[/]");
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[grey]  cd {settings.Name}[/]");
+                    AnsiConsole.MarkupLine("[grey]  dotnet run --project src/...[/]");
                 }
             });
 
