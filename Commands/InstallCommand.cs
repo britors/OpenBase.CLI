@@ -17,28 +17,8 @@ public class InstallCommand : AsyncCommand<InstallSettings>
     {
         AnsiConsole.MarkupLine("[blue]Iniciando a instalação dos pacotes OpenBase...[/]");
 
-        var failed = false;
-
-        foreach (var packageId in Helpers.DotNet.TemplatePackages)
-        {
-            await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots)
-                .StartAsync($"Instalando {packageId}...", async _ =>
-                {
-                    var (success, error) = await Helpers.DotNet.RunAsync($"new install {packageId}", cancellationToken);
-                    if (!success)
-                    {
-                        failed = true;
-                        AnsiConsole.MarkupLine($"[red]Erro:[/] Falha ao instalar [yellow]{packageId}[/].");
-                        if (!string.IsNullOrWhiteSpace(error))
-                            AnsiConsole.MarkupLine($"[grey]{Markup.Escape(error)}[/]");
-                    }
-                    else
-                    {
-                        AnsiConsole.MarkupLine($"[green]✓[/] {packageId} instalado.");
-                    }
-                });
-        }
+        var failed = await Helpers.TemplateRunner.RunPackagesAsync(
+            "Instalando", "instalado", "instalar", cancellationToken);
 
         return failed ? 1 : 0;
     }
