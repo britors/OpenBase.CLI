@@ -44,7 +44,6 @@ public class HelpCommand : Command<HelpSettings>
             "openbase [green]version[/]"
         );
 
-        // CORRIGIDO: linhas "update" e "version" estavam sem markup azul, inconsistente com as demais
         AnsiConsole.Write(table);
 
         var panel = new Panel(

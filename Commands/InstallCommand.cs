@@ -16,20 +16,15 @@ public class InstallCommand : AsyncCommand<InstallSettings>
         [NotNull] InstallSettings settings,
         CancellationToken cancellationToken)
     {
-        var packages = new[]
-        {
-            "w3ti.OpenBaseNET.SQLServer.Template",
-            "w3ti.OpenBaseNET.Postgres.Template",
-        };
-
         AnsiConsole.MarkupLine("[blue]Iniciando a instalação dos pacotes OpenBase...[/]");
-        
-        foreach (var packageId in packages)
-        {
 
+        var failed = false;
+
+        foreach (var packageId in Helpers.DotNet.TemplatePackages)
+        {
             await AnsiConsole.Status()
                 .Spinner(Spinner.Known.Dots)
-                .StartAsync($"Instalando {packageId}...", async ctx =>
+                .StartAsync($"Instalando {packageId}...", async _ =>
                 {
                     var psi = new ProcessStartInfo
                     {
@@ -44,13 +39,24 @@ public class InstallCommand : AsyncCommand<InstallSettings>
                     using var process = Process.Start(psi);
                     if (process != null)
                     {
+                        var errorOutput = process.StandardError.ReadToEndAsync(cancellationToken);
                         await process.WaitForExitAsync(cancellationToken);
-                        AnsiConsole.MarkupLine(process.ExitCode != 0
-                            ? $"[red]Erro:[/] Falha ao instalar [yellow]{packageId}[/]."
-                            : $"[green]✓[/] {packageId} instalado.");
+                        if (process.ExitCode != 0)
+                        {
+                            failed = true;
+                            var error = await errorOutput;
+                            AnsiConsole.MarkupLine($"[red]Erro:[/] Falha ao instalar [yellow]{packageId}[/].");
+                            if (!string.IsNullOrWhiteSpace(error))
+                                AnsiConsole.MarkupLine($"[grey]{Markup.Escape(error.Trim())}[/]");
+                        }
+                        else
+                        {
+                            AnsiConsole.MarkupLine($"[green]✓[/] {packageId} instalado.");
+                        }
                     }
                 });
         }
-        return 0;
+
+        return failed ? 1 : 0;
     }
 }

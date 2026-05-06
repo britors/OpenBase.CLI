@@ -5,14 +5,25 @@ namespace OpenBase.CLI.Helpers;
 
 public static class DotNet
 {
+    public static readonly string[] TemplatePackages =
+    [
+        "w3ti.OpenBaseNET.SQLServer.Template",
+        "w3ti.OpenBaseNET.Postgres.Template",
+    ];
+
     public static string GetDotnetPath()
     {
         var isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+        var isMacOs = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
         var fileName = isWindows ? "dotnet.exe" : "dotnet";
 
-        string[] linux = ["/usr/bin", "/usr/local/bin", "/usr/share/dotnet"];
-        string[] windows = [@"C:\Program Files\dotnet", @"C:\Program Files (x86)\dotnet"];
-        var trustedPaths = isWindows ? windows : linux;
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+        string[] trustedPaths = isWindows
+            ? [@"C:\Program Files\dotnet", @"C:\Program Files (x86)\dotnet", Path.Combine(home, @"AppData\Local\Microsoft\dotnet")]
+            : isMacOs
+                ? ["/usr/local/share/dotnet", "/opt/homebrew/bin", "/usr/local/bin", Path.Combine(home, ".dotnet")]
+                : ["/usr/bin", "/usr/local/bin", "/usr/share/dotnet", Path.Combine(home, ".dotnet")];
 
         foreach (var p in trustedPaths)
         {

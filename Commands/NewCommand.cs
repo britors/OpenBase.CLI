@@ -33,39 +33,38 @@ public class NewSettings : CommandSettings
             .Concat([' ', '&', '|', ';', '`', '$', '(', ')'])
             .ToArray();
 
-        if (Name.IndexOfAny(invalidChars) >= 0)
-            return ValidationResult.Error("O nome do projeto contém caracteres inválidos. Use apenas letras, números, '-' e '_'.");
-
-        return ValidationResult.Success();
+        return Name.IndexOfAny(invalidChars) >= 0 ? ValidationResult.Error("O nome do projeto contém caracteres inválidos. Use apenas letras, números, '-' e '_'.") : ValidationResult.Success();
     }
 }
 
 public class NewCommand : AsyncCommand<NewSettings>
 {
+    private static readonly Dictionary<string, string> TemplateMap = new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "api:sqlserver", "openbasenet-sql" },
+        { "api:pgsql", "openbasenet-pgsql" },
+    };
+
     protected override async Task<int> ExecuteAsync(
         [NotNull] CommandContext context,
         [NotNull] NewSettings settings,
         CancellationToken cancellationToken)
     {
-        var templateMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            { "api:sqlserver", "openbasenet-sql" },
-            { "api:pgsql", "openbasenet-pgsql" },
-        };
-
         var key = $"{settings.Type}:{settings.TemplateName}";
 
-        if (!templateMap.TryGetValue(key, out var shortName))
+        if (!TemplateMap.TryGetValue(key, out var shortName))
         {
             AnsiConsole.MarkupLine(
                 $"[red]Erro:[/] A combinação Tipo '[yellow]{settings.Type}[/]' + Template '[yellow]{settings.TemplateName}[/]' não é válida.");
             AnsiConsole.MarkupLine("Combinações disponíveis: [blue]--type api --template sqlserver[/]");
             return 1;
         }
-        
+
+        var exitCode = 0;
+
         await AnsiConsole.Status()
             .Spinner(Spinner.Known.Dots)
-            .StartAsync($"Criando projeto [blue]{settings.Name}[/]...", async ctx =>
+            .StartAsync($"Criando projeto [blue]{settings.Name}[/]...", async _ =>
             {
                 var psi = new ProcessStartInfo(
                     Helpers.DotNet.GetDotnetPath(),
@@ -80,20 +79,24 @@ public class NewCommand : AsyncCommand<NewSettings>
                 using var process = Process.Start(psi);
                 if (process != null)
                 {
-                    var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
+                    var errorOutput = process.StandardError.ReadToEndAsync(cancellationToken);
                     await process.WaitForExitAsync(cancellationToken);
                     if (process.ExitCode != 0)
                     {
+                        exitCode = 1;
+                        var error = await errorOutput;
                         AnsiConsole.MarkupLine("[red]Erro:[/] Falha ao criar o projeto. Verifique se o template está instalado com [blue]openbase install[/].");
+                        if (!string.IsNullOrWhiteSpace(error))
+                            AnsiConsole.MarkupLine($"[grey]{Markup.Escape(error.Trim())}[/]");
                     }
                     else
                     {
                         AnsiConsole.MarkupLine($"[grey]  cd {settings.Name}[/]");
                         AnsiConsole.MarkupLine("[grey]  dotnet run --project src/...[/]");
-                    }                    
+                    }
                 }
             });
-        
-        return 0;
+
+        return exitCode;
     }
 }
