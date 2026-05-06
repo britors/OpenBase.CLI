@@ -5,6 +5,8 @@ namespace OpenBase.CLI.Helpers;
 
 public static class DotNet
 {
+    private const string DotnetExecutable = "dotnet";
+
     public static readonly string[] TemplatePackages =
     [
         "w3ti.OpenBaseNET.SQLServer.Template",
@@ -13,14 +15,14 @@ public static class DotNet
 
     private static readonly string[] WindowsKnownPaths =
     [
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "dotnet"),
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "dotnet"),
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Microsoft", "dotnet"),
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), DotnetExecutable),
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), DotnetExecutable),
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Microsoft", DotnetExecutable),
     ];
 
     private static readonly string[] MacOsKnownPaths =
     [
-        Path.Combine(Path.DirectorySeparatorChar.ToString(), "usr", "local", "share", "dotnet"),
+        Path.Combine(Path.DirectorySeparatorChar.ToString(), "usr", "local", "share", DotnetExecutable),
         Path.Combine(Path.DirectorySeparatorChar.ToString(), "opt", "homebrew", "bin"),
         Path.Combine(Path.DirectorySeparatorChar.ToString(), "usr", "local", "bin"),
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".dotnet"),
@@ -30,7 +32,7 @@ public static class DotNet
     [
         Path.Combine(Path.DirectorySeparatorChar.ToString(), "usr", "bin"),
         Path.Combine(Path.DirectorySeparatorChar.ToString(), "usr", "local", "bin"),
-        Path.Combine(Path.DirectorySeparatorChar.ToString(), "usr", "share", "dotnet"),
+        Path.Combine(Path.DirectorySeparatorChar.ToString(), "usr", "share", DotnetExecutable),
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".dotnet"),
     ];
 
@@ -38,9 +40,12 @@ public static class DotNet
     {
         var isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
         var isMacOs = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
-        var fileName = isWindows ? "dotnet.exe" : "dotnet";
+        var fileName = isWindows ? "dotnet.exe" : DotnetExecutable;
 
-        var knownPaths = isWindows ? WindowsKnownPaths : isMacOs ? MacOsKnownPaths : LinuxKnownPaths;
+        string[] knownPaths;
+        if (isWindows) knownPaths = WindowsKnownPaths;
+        else if (isMacOs) knownPaths = MacOsKnownPaths;
+        else knownPaths = LinuxKnownPaths;
 
         foreach (var p in knownPaths)
         {
