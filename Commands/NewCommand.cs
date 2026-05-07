@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using OpenBase.CLI.Helpers;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -46,6 +47,15 @@ public class NewCommand : AsyncCommand<NewSettings>
         { "api:pgsql", "openbasenet-pgsql" },
     };
 
+    private readonly IDotNetRunner _dotNetRunner;
+    private readonly IAnsiConsole _console;
+
+    public NewCommand(IDotNetRunner dotNetRunner, IAnsiConsole console)
+    {
+        _dotNetRunner = dotNetRunner;
+        _console = console;
+    }
+
     protected override async Task<int> ExecuteAsync(
         [NotNull] CommandContext context,
         [NotNull] NewSettings settings,
@@ -55,32 +65,32 @@ public class NewCommand : AsyncCommand<NewSettings>
 
         if (!TemplateMap.TryGetValue(key, out var shortName))
         {
-            AnsiConsole.MarkupLine(
+            _console.MarkupLine(
                 $"[red]Erro:[/] A combinação Tipo '[yellow]{settings.Type}[/]' + Template '[yellow]{settings.TemplateName}[/]' não é válida.");
-            AnsiConsole.MarkupLine("Combinações disponíveis: [blue]--type api --template sqlserver[/]");
+            _console.MarkupLine("Combinações disponíveis: [blue]--type api --template sqlserver[/]");
             return 1;
         }
 
         var exitCode = 0;
 
-        await AnsiConsole.Status()
+        await _console.Status()
             .Spinner(Spinner.Known.Dots)
             .StartAsync($"Criando projeto [blue]{settings.Name}[/]...", async _ =>
             {
-                var (success, error) = await Helpers.DotNet.RunAsync(
+                var (success, error) = await _dotNetRunner.RunAsync(
                     $"new {shortName} -n {settings.Name} -o {settings.Name}", cancellationToken);
 
                 if (!success)
                 {
                     exitCode = 1;
-                    AnsiConsole.MarkupLine("[red]Erro:[/] Falha ao criar o projeto. Verifique se o template está instalado com [blue]openbase install[/].");
+                    _console.MarkupLine("[red]Erro:[/] Falha ao criar o projeto. Verifique se o template está instalado com [blue]openbase install[/].");
                     if (!string.IsNullOrWhiteSpace(error))
-                        AnsiConsole.MarkupLine($"[grey]{Markup.Escape(error)}[/]");
+                        _console.MarkupLine($"[grey]{Markup.Escape(error)}[/]");
                 }
                 else
                 {
-                    AnsiConsole.MarkupLine($"[grey]  cd {settings.Name}[/]");
-                    AnsiConsole.MarkupLine("[grey]  dotnet run --project src/...[/]");
+                    _console.MarkupLine($"[grey]  cd {settings.Name}[/]");
+                    _console.MarkupLine("[grey]  dotnet run --project src/...[/]");
                 }
             });
 

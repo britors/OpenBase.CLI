@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
+using OpenBase.CLI.Helpers;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -9,11 +10,11 @@ public class VersionSettings : CommandSettings
 {
 }
 
-public class VersionCommand : Command<VersionSettings>
+public class VersionCommand(IDotNetRunner dotNetRunner) : Command<VersionSettings>
 {
     protected override int Execute(CommandContext context, VersionSettings settings, CancellationToken cancellationToken)
     {
-        var dotnetVersion = Helpers.DotNet.GetDotnetVersion();
+        var dotnetVersion = dotNetRunner.GetDotnetVersion();
         var toolVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "--";
         var osDescription = RuntimeInformation.OSDescription;
         var architecture = RuntimeInformation.OSArchitecture.ToString().ToLower();
