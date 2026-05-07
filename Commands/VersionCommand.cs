@@ -12,6 +12,8 @@ public class VersionSettings : CommandSettings
 
 public class VersionCommand(IDotNetRunner dotNetRunner) : Command<VersionSettings>
 {
+    private const string Codename = "Andromeda";
+
     protected override int Execute(CommandContext context, VersionSettings settings, CancellationToken cancellationToken)
     {
         var dotnetVersion = dotNetRunner.GetDotnetVersion();
@@ -27,7 +29,7 @@ public class VersionCommand(IDotNetRunner dotNetRunner) : Command<VersionSetting
 
         table.AddRow("OS", $"[green]{osDescription} ({architecture})[/]");
         table.AddRow("DotNet", $"[green]{dotnetVersion}[/]");
-        table.AddRow("OpenBase CLI", $"[green]{toolVersion}[/]");
+        table.AddRow("OpenBase CLI", $"[green]{toolVersion} \"{Codename}\"[/]");
 
         AnsiConsole.Write(table);
 
