@@ -108,4 +108,10 @@ public static class DotNet
 
         return "--";
     }
+
+    public static bool IsSdkVersionSufficient(int requiredMajor)
+    {
+        var versionString = GetDotnetVersion();
+        return Version.TryParse(versionString, out var parsed) && parsed.Major >= requiredMajor;
+    }
 }

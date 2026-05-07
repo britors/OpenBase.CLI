@@ -9,4 +9,6 @@ public sealed class DotNetRunner : IDotNetRunner
         => DotNet.RunAsync(arguments, cancellationToken);
 
     public string GetDotnetVersion() => DotNet.GetDotnetVersion();
+
+    public bool IsSdkVersionSufficient(int requiredMajor) => DotNet.IsSdkVersionSufficient(requiredMajor);
 }

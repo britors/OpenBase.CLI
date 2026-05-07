@@ -56,11 +56,20 @@ public class NewCommand : AsyncCommand<NewSettings>
         _console = console;
     }
 
+    private const int RequiredSdkMajorVersion = 10;
+
     protected override async Task<int> ExecuteAsync(
         [NotNull] CommandContext context,
         [NotNull] NewSettings settings,
         CancellationToken cancellationToken)
     {
+        if (!_dotNetRunner.IsSdkVersionSufficient(RequiredSdkMajorVersion))
+        {
+            _console.MarkupLine($"[red]Erro:[/] O .NET SDK instalado é incompatível com esta versão do OpenBase.");
+            _console.MarkupLine($"É necessário o [blue].NET {RequiredSdkMajorVersion}[/] ou superior. Atualize o SDK em: [blue]https://dot.net[/]");
+            return 1;
+        }
+
         var key = $"{settings.Type}:{settings.TemplateName}";
 
         if (!TemplateMap.TryGetValue(key, out var shortName))
