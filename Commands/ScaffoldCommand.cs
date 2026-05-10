@@ -48,17 +48,9 @@ public class ScaffoldCommand(IAnsiConsole console, IProjectLocator projectLocato
         }
 
         var ctx = new ScaffoldContext(settings.Entity, rootNamespace, solutionDir);
-        var generator = new ScaffoldGenerator(ctx);
-        var files = generator.GetFiles().ToList();
+        var files = new ScaffoldGenerator(ctx).GetFiles().ToList();
 
-        var created = new List<string>();
-        var skipped = new List<string>();
-        var failed = new List<string>();
-
-        console.Status()
-            .Spinner(Spinner.Known.Dots)
-            .Start($"Gerando scaffold para [blue]{settings.Entity}[/]...", _ =>
-                WriteFiles(files, solutionDir, created, skipped, failed));
+        var (created, skipped, failed) = WriteFiles(files, solutionDir, settings.Entity);
 
         PrintFileList($"{created.Count} arquivo(s) criado(s):", created, "green");
         PrintFileList($"{skipped.Count} arquivo(s) já existente(s) ignorado(s):", skipped, "yellow");
@@ -81,34 +73,43 @@ public class ScaffoldCommand(IAnsiConsole console, IProjectLocator projectLocato
         return 0;
     }
 
-    private void WriteFiles(
+    private (List<string> Created, List<string> Skipped, List<string> Failed) WriteFiles(
         IEnumerable<(string Path, string Content)> files,
         string solutionDir,
-        List<string> created,
-        List<string> skipped,
-        List<string> failed)
+        string entityName)
     {
-        foreach (var (path, content) in files)
-        {
-            var rel = Path.GetRelativePath(solutionDir, path);
-            try
-            {
-                fileWriter.EnsureDirectory(Path.GetDirectoryName(path)!);
+        var created = new List<string>();
+        var skipped = new List<string>();
+        var failed = new List<string>();
 
-                if (fileWriter.FileExists(path))
+        console.Status()
+            .Spinner(Spinner.Known.Dots)
+            .Start($"Gerando scaffold para [blue]{entityName}[/]...", _ =>
+            {
+                foreach (var (path, content) in files)
                 {
-                    skipped.Add(rel);
-                    continue;
-                }
+                    var rel = Path.GetRelativePath(solutionDir, path);
+                    try
+                    {
+                        fileWriter.EnsureDirectory(Path.GetDirectoryName(path)!);
 
-                fileWriter.WriteAllText(path, content);
-                created.Add(rel);
-            }
-            catch (Exception ex)
-            {
-                failed.Add($"{rel}: {ex.Message}");
-            }
-        }
+                        if (fileWriter.FileExists(path))
+                        {
+                            skipped.Add(rel);
+                            continue;
+                        }
+
+                        fileWriter.WriteAllText(path, content);
+                        created.Add(rel);
+                    }
+                    catch (Exception ex)
+                    {
+                        failed.Add($"{rel}: {ex.Message}");
+                    }
+                }
+            });
+
+        return (created, skipped, failed);
     }
 
     private void PrintFileList(string header, List<string> files, string headerColor, string fileColor = "grey")

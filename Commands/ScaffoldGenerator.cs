@@ -17,6 +17,7 @@ public sealed record ScaffoldContext(string Entity, string RootNamespace, string
 
 public sealed class ScaffoldGenerator(ScaffoldContext ctx)
 {
+    private const string Services = "Services";
     public IEnumerable<(string Path, string Content)> GetFiles() =>
         DomainFiles()
             .Concat(ApplicationFiles())
@@ -29,8 +30,8 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
     {
         yield return (Path.Combine(ctx.DomainPath, "Entities", $"{ctx.Entity}.cs"), EntityTemplate());
         yield return (Path.Combine(ctx.DomainPath, "Interfaces", "Repositories", $"I{ctx.Entity}Repository.cs"), IRepositoryTemplate());
-        yield return (Path.Combine(ctx.DomainPath, "Interfaces", "Services", $"I{ctx.Entity}DomainService.cs"), IDomainServiceTemplate());
-        yield return (Path.Combine(ctx.DomainPath, "Services", $"{ctx.Entity}DomainService.cs"), DomainServiceTemplate());
+        yield return (Path.Combine(ctx.DomainPath, "Interfaces", Services, $"I{ctx.Entity}DomainService.cs"), IDomainServiceTemplate());
+        yield return (Path.Combine(ctx.DomainPath, Services, $"{ctx.Entity}DomainService.cs"), DomainServiceTemplate());
     }
 
     private string EntityTemplate() => $$"""
@@ -152,9 +153,9 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         yield return (Path.Combine(update, $"Update{ctx.Entity}CommandValidator.cs"), UpdateCommandValidatorTemplate());
 
         // Application service
-        yield return (Path.Combine(ctx.AppPath, "Interfaces", "Services", $"I{ctx.Entity}ApplicationService.cs"), IApplicationServiceTemplate());
+        yield return (Path.Combine(ctx.AppPath, "Interfaces", Services, $"I{ctx.Entity}ApplicationService.cs"), IApplicationServiceTemplate());
         yield return (Path.Combine(ctx.AppPath, "Mappers", $"{ctx.Entity}MapperProfile.cs"), MapperProfileTemplate());
-        yield return (Path.Combine(ctx.AppPath, "Services", $"{ctx.Entity}ApplicationService.cs"), ApplicationServiceTemplate());
+        yield return (Path.Combine(ctx.AppPath, Services, $"{ctx.Entity}ApplicationService.cs"), ApplicationServiceTemplate());
     }
 
     private string CreateRequestTemplate() => $$"""
