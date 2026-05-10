@@ -11,6 +11,7 @@ services.AddSingleton<IDotNetRunner, DotNetRunner>();
 services.AddSingleton<ITemplatePackageRunner, TemplatePackageRunner>();
 services.AddSingleton<IProjectLocator, ProjectLocator>();
 services.AddSingleton<IFileWriter, FileWriter>();
+services.AddSingleton<IProjectConfigurator, ConsoleProjectConfigurator>();
 
 var registrar = new TypeRegistrar(services);
 var app = new CommandApp(registrar);

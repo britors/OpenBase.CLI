@@ -1,5 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using OpenBase.CLI.Helpers;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -41,19 +43,23 @@ public class NewSettings : CommandSettings
 
 public class NewCommand : AsyncCommand<NewSettings>
 {
-    private static readonly Dictionary<string, string> TemplateMap = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly Dictionary<string, IDbTemplateStrategy> TemplateMap = new(StringComparer.OrdinalIgnoreCase)
     {
-        { "api:sqlserver", "openbasenet-sql" },
-        { "api:pgsql", "openbasenet-pgsql" },
+        { "api:sqlserver", new SqlServerTemplateStrategy() },
+        { "api:pgsql",     new PostgresTemplateStrategy() },
     };
 
     private readonly IDotNetRunner _dotNetRunner;
     private readonly IAnsiConsole _console;
+    private readonly IProjectConfigurator _configurator;
+    private readonly IFileWriter _fileWriter;
 
-    public NewCommand(IDotNetRunner dotNetRunner, IAnsiConsole console)
+    public NewCommand(IDotNetRunner dotNetRunner, IAnsiConsole console, IProjectConfigurator configurator, IFileWriter fileWriter)
     {
         _dotNetRunner = dotNetRunner;
         _console = console;
+        _configurator = configurator;
+        _fileWriter = fileWriter;
     }
 
     private const int RequiredSdkMajorVersion = 10;
@@ -72,13 +78,15 @@ public class NewCommand : AsyncCommand<NewSettings>
 
         var key = $"{settings.Type}:{settings.TemplateName}";
 
-        if (!TemplateMap.TryGetValue(key, out var shortName))
+        if (!TemplateMap.TryGetValue(key, out var strategy))
         {
             _console.MarkupLine(
                 $"[red]Erro:[/] A combinação Tipo '[yellow]{settings.Type}[/]' + Template '[yellow]{settings.TemplateName}[/]' não é válida.");
             _console.MarkupLine("Combinações disponíveis: [blue]--type api --template sqlserver[/]");
             return 1;
         }
+
+        var config = _configurator.Collect(strategy);
 
         var exitCode = 0;
 
@@ -87,7 +95,7 @@ public class NewCommand : AsyncCommand<NewSettings>
             .StartAsync($"Criando projeto [blue]{settings.Name}[/]...", async _ =>
             {
                 var (success, error) = await _dotNetRunner.RunAsync(
-                    $"new {shortName} -n {settings.Name} -o {settings.Name}", cancellationToken);
+                    $"new {strategy.ShortName} -n {settings.Name} -o {settings.Name}", cancellationToken);
 
                 if (!success)
                 {
@@ -98,11 +106,48 @@ public class NewCommand : AsyncCommand<NewSettings>
                 }
                 else
                 {
+                    UpdateAppSettings(settings.Name, strategy, config, _fileWriter);
                     _console.MarkupLine($"[grey]  cd {settings.Name}[/]");
                     _console.MarkupLine("[grey]  dotnet run --project src/...[/]");
                 }
             });
 
         return exitCode;
+    }
+
+    public static void UpdateAppSettings(string projectName, IDbTemplateStrategy strategy, ProjectSetupConfig config, IFileWriter fileWriter)
+    {
+        var basePath = Path.Combine(projectName, "src", $"{projectName}.Presentation.Api");
+        var connectionString = strategy.BuildConnectionString(projectName, config.DbServer, config.DbUser, config.DbPassword);
+
+        foreach (var fileName in new[] { "appsettings.json", "appsettings.Development.json" })
+        {
+            var path = Path.Combine(basePath, fileName);
+            if (!fileWriter.FileExists(path)) continue;
+
+            var updated = ApplyConfigToJson(fileWriter.ReadAllText(path), strategy.ConnectionKey, connectionString, config);
+            fileWriter.WriteAllText(path, updated);
+        }
+    }
+
+    public static string ApplyConfigToJson(string jsonContent, string connectionKey, string connectionString, ProjectSetupConfig config)
+    {
+        JsonNode? json;
+        try { json = JsonNode.Parse(jsonContent); }
+        catch (JsonException) { return jsonContent; }
+        if (json is null) return jsonContent;
+
+        if (json["ConnectionStrings"] is JsonObject connStrings)
+            connStrings[connectionKey] = connectionString;
+
+        foreach (var key in new[] { "Mediatr", "Mediator" })
+            if (json[key] is JsonObject node)
+                node["LicenseKey"] = config.MediatrLicense;
+
+        foreach (var key in new[] { "Automapper", "AutoMapper" })
+            if (json[key] is JsonObject node)
+                node["LicenseKey"] = config.AutomapperLicense;
+
+        return json.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
     }
 }
