@@ -33,6 +33,12 @@ public class HelpCommand : Command<HelpSettings>
         );
 
         table.AddRow(
+            "[blue]scaffold[/]",
+            "Gera todas as camadas CRUD de uma entidade (Domain, Application, Infra, Presentation)",
+            "openbase [green]scaffold --entity Produto[/]"
+        );
+
+        table.AddRow(
             "[blue]update[/]",
             "Sincroniza e atualiza templates e a CLI",
             "openbase [green]update[/]"
