@@ -49,6 +49,15 @@ public class NewCommand : AsyncCommand<NewSettings>
         { "api:pgsql",     new PostgresTemplateStrategy() },
     };
 
+    private const string JsonSectionConnectionStrings = "ConnectionStrings";
+    private const string JsonKeyLicenseKey            = "LicenseKey";
+    private const string ApiSourceDir                 = "src";
+    private const string ApiProjectSuffix             = ".Presentation.Api";
+
+    private static readonly string[] AppSettingsFiles = ["appsettings.json", "appsettings.Development.json"];
+    private static readonly string[] MediatRKeys      = ["Mediatr", "Mediator"];
+    private static readonly string[] AutoMapperKeys   = ["Automapper", "AutoMapper"];
+
     private readonly IDotNetRunner _dotNetRunner;
     private readonly IAnsiConsole _console;
     private readonly IProjectConfigurator _configurator;
@@ -117,10 +126,10 @@ public class NewCommand : AsyncCommand<NewSettings>
 
     public static void UpdateAppSettings(string projectName, IDbTemplateStrategy strategy, ProjectSetupConfig config, IFileWriter fileWriter)
     {
-        var basePath = Path.Combine(projectName, "src", $"{projectName}.Presentation.Api");
+        var basePath = Path.Combine(projectName, ApiSourceDir, $"{projectName}{ApiProjectSuffix}");
         var connectionString = strategy.BuildConnectionString(projectName, config.DbServer, config.DbUser, config.DbPassword);
 
-        foreach (var fileName in new[] { "appsettings.json", "appsettings.Development.json" })
+        foreach (var fileName in AppSettingsFiles)
         {
             var path = Path.Combine(basePath, fileName);
             if (!fileWriter.FileExists(path)) continue;
@@ -137,17 +146,19 @@ public class NewCommand : AsyncCommand<NewSettings>
         catch (JsonException) { return jsonContent; }
         if (json is null) return jsonContent;
 
-        if (json["ConnectionStrings"] is JsonObject connStrings)
+        if (json[JsonSectionConnectionStrings] is JsonObject connStrings)
             connStrings[connectionKey] = connectionString;
 
-        foreach (var key in new[] { "Mediatr", "Mediator" })
-            if (json[key] is JsonObject node)
-                node["LicenseKey"] = config.MediatrLicense;
-
-        foreach (var key in new[] { "Automapper", "AutoMapper" })
-            if (json[key] is JsonObject node)
-                node["LicenseKey"] = config.AutomapperLicense;
+        SetLicenseKey(json, MediatRKeys,    config.MediatrLicense);
+        SetLicenseKey(json, AutoMapperKeys, config.AutomapperLicense);
 
         return json.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+    }
+
+    private static void SetLicenseKey(JsonNode json, string[] keyVariants, string licenseKey)
+    {
+        foreach (var key in keyVariants)
+            if (json[key] is JsonObject node)
+                node[JsonKeyLicenseKey] = licenseKey;
     }
 }
