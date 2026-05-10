@@ -9,6 +9,8 @@ var services = new ServiceCollection();
 services.AddSingleton<IAnsiConsole>(AnsiConsole.Console);
 services.AddSingleton<IDotNetRunner, DotNetRunner>();
 services.AddSingleton<ITemplatePackageRunner, TemplatePackageRunner>();
+services.AddSingleton<IProjectLocator, ProjectLocator>();
+services.AddSingleton<IFileWriter, FileWriter>();
 
 var registrar = new TypeRegistrar(services);
 var app = new CommandApp(registrar);
@@ -27,6 +29,10 @@ app.Configure(config =>
     config.AddCommand<NewCommand>("new")
         .WithDescription("Cria um novo projeto baseado em um template.")
         .WithExample("new", "--type", "api", "--template", "sqlserver", "--name", "MeuProjeto");
+
+    config.AddCommand<ScaffoldCommand>("scaffold")
+        .WithDescription("Gera todas as camadas da arquitetura para uma entidade.")
+        .WithExample("scaffold", "--entity", "Produto");
 
     config.AddCommand<HelpCommand>("help")
         .WithDescription("Exibe a ajuda para os comandos do OpenBase");
