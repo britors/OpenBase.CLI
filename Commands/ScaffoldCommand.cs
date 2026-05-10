@@ -58,61 +58,64 @@ public class ScaffoldCommand(IAnsiConsole console, IProjectLocator projectLocato
         console.Status()
             .Spinner(Spinner.Known.Dots)
             .Start($"Gerando scaffold para [blue]{settings.Entity}[/]...", _ =>
-            {
-                foreach (var (path, content) in files)
-                {
-                    var rel = Path.GetRelativePath(solutionDir, path);
-                    try
-                    {
-                        fileWriter.EnsureDirectory(Path.GetDirectoryName(path)!);
+                WriteFiles(files, solutionDir, created, skipped, failed));
 
-                        if (fileWriter.FileExists(path))
-                        {
-                            skipped.Add(rel);
-                            continue;
-                        }
-
-                        fileWriter.WriteAllText(path, content);
-                        created.Add(rel);
-                    }
-                    catch (Exception ex)
-                    {
-                        failed.Add($"{rel}: {ex.Message}");
-                    }
-                }
-            });
-
-        if (created.Count > 0)
-        {
-            console.MarkupLine($"\n[green]{created.Count} arquivo(s) criado(s):[/]");
-            foreach (var f in created)
-                console.MarkupLine($"  [grey]{Markup.Escape(f)}[/]");
-        }
-
-        if (skipped.Count > 0)
-        {
-            console.MarkupLine($"\n[yellow]{skipped.Count} arquivo(s) já existente(s) ignorado(s):[/]");
-            foreach (var f in skipped)
-                console.MarkupLine($"  [grey]{Markup.Escape(f)}[/]");
-        }
+        PrintFileList($"{created.Count} arquivo(s) criado(s):", created, "green");
+        PrintFileList($"{skipped.Count} arquivo(s) já existente(s) ignorado(s):", skipped, "yellow");
 
         if (failed.Count > 0)
         {
-            console.MarkupLine($"\n[red]{failed.Count} erro(s):[/]");
-            foreach (var f in failed)
-                console.MarkupLine($"  [red]{Markup.Escape(f)}[/]");
+            PrintFileList($"{failed.Count} erro(s):", failed, "red", "red");
             return 1;
         }
 
-        if (created.Count > 0)
-        {
-            console.MarkupLine($"\n[green]Scaffold da entidade [bold]{settings.Entity}[/] gerado com sucesso![/]");
-            console.MarkupLine("Próximos passos:");
-            console.MarkupLine($"  1. Adicione [blue]DbSet<{settings.Entity}> {settings.Entity}s {{ get; set; }}[/] ao DbContext");
-            console.MarkupLine($"  2. Execute [blue]dotnet ef migrations add Add{settings.Entity}[/]");
-            console.MarkupLine("  3. Execute [blue]dotnet ef database update[/]");
-        }
+        if (created.Count == 0)
+            return 0;
+
+        console.MarkupLine($"\n[green]Scaffold da entidade [bold]{settings.Entity}[/] gerado com sucesso![/]");
+        console.MarkupLine("Próximos passos:");
+        console.MarkupLine($"  1. Adicione [blue]DbSet<{settings.Entity}> {settings.Entity}s {{ get; set; }}[/] ao DbContext");
+        console.MarkupLine($"  2. Execute [blue]dotnet ef migrations add Add{settings.Entity}[/]");
+        console.MarkupLine("  3. Execute [blue]dotnet ef database update[/]");
 
         return 0;
+    }
+
+    private void WriteFiles(
+        IEnumerable<(string Path, string Content)> files,
+        string solutionDir,
+        List<string> created,
+        List<string> skipped,
+        List<string> failed)
+    {
+        foreach (var (path, content) in files)
+        {
+            var rel = Path.GetRelativePath(solutionDir, path);
+            try
+            {
+                fileWriter.EnsureDirectory(Path.GetDirectoryName(path)!);
+
+                if (fileWriter.FileExists(path))
+                {
+                    skipped.Add(rel);
+                    continue;
+                }
+
+                fileWriter.WriteAllText(path, content);
+                created.Add(rel);
+            }
+            catch (Exception ex)
+            {
+                failed.Add($"{rel}: {ex.Message}");
+            }
+        }
+    }
+
+    private void PrintFileList(string header, List<string> files, string headerColor, string fileColor = "grey")
+    {
+        if (files.Count == 0) return;
+        console.MarkupLine($"\n[{headerColor}]{header}[/]");
+        foreach (var f in files)
+            console.MarkupLine($"  [{fileColor}]{Markup.Escape(f)}[/]");
     }
 }

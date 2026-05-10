@@ -105,4 +105,101 @@ public class ScaffoldCommandTests
 
         _fileWriter.Verify(f => f.EnsureDirectory(It.IsAny<string>()), Times.AtLeastOnce);
     }
+
+    // ── PrintFileList ─────────────────────────────────────────────────────────
+
+    private (ScaffoldCommand Command, StringWriter Output) CreateCommandWithOutput()
+    {
+        var writer = new StringWriter();
+        var console = AnsiConsole.Create(new AnsiConsoleSettings
+        {
+            Ansi = AnsiSupport.No,
+            ColorSystem = ColorSystemSupport.NoColors,
+            Interactive = InteractionSupport.No,
+            Out = new AnsiConsoleOutput(writer)
+        });
+        return (new ScaffoldCommand(console, _locator.Object, _fileWriter.Object), writer);
+    }
+
+    private Task<int> RunWithOutput(ScaffoldCommand command, ScaffoldSettings settings) =>
+        ((ICommand<ScaffoldSettings>)command)
+            .ExecuteAsync(CommandTestHelper.CreateContext("scaffold"), settings, CancellationToken.None);
+
+    [Fact]
+    public async Task PrintFileList_CreatedFiles_PrintsCountAndHeader()
+    {
+        var (cmd, output) = CreateCommandWithOutput();
+        SetupLocator("/solution", "OpenBaseNET");
+        _fileWriter.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
+
+        await RunWithOutput(cmd, BuildSettings("Produto"));
+
+        Assert.Contains("arquivo(s) criado(s):", output.ToString());
+    }
+
+    [Fact]
+    public async Task PrintFileList_CreatedFiles_PrintsRelativePath()
+    {
+        var (cmd, output) = CreateCommandWithOutput();
+        SetupLocator("/solution", "OpenBaseNET");
+        _fileWriter.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
+
+        await RunWithOutput(cmd, BuildSettings("Produto"));
+
+        Assert.Contains("Produto", output.ToString());
+    }
+
+    [Fact]
+    public async Task PrintFileList_SkippedFiles_PrintsSkippedHeader()
+    {
+        var (cmd, output) = CreateCommandWithOutput();
+        SetupLocator("/solution", "OpenBaseNET");
+        _fileWriter.Setup(f => f.FileExists(It.IsAny<string>())).Returns(true);
+
+        await RunWithOutput(cmd, BuildSettings("Produto"));
+
+        Assert.Contains("já existente(s) ignorado(s):", output.ToString());
+    }
+
+    [Fact]
+    public async Task PrintFileList_SkippedFiles_DoesNotPrintCreatedHeader()
+    {
+        var (cmd, output) = CreateCommandWithOutput();
+        SetupLocator("/solution", "OpenBaseNET");
+        _fileWriter.Setup(f => f.FileExists(It.IsAny<string>())).Returns(true);
+
+        await RunWithOutput(cmd, BuildSettings("Produto"));
+
+        Assert.DoesNotContain("arquivo(s) criado(s):", output.ToString());
+    }
+
+    [Fact]
+    public async Task PrintFileList_FailedFiles_PrintsErrorHeader()
+    {
+        var (cmd, output) = CreateCommandWithOutput();
+        SetupLocator("/solution", "OpenBaseNET");
+        _fileWriter.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
+        _fileWriter
+            .Setup(f => f.WriteAllText(It.IsAny<string>(), It.IsAny<string>()))
+            .Throws(new IOException("Disco cheio"));
+
+        await RunWithOutput(cmd, BuildSettings("Produto"));
+
+        Assert.Contains("erro(s):", output.ToString());
+    }
+
+    [Fact]
+    public async Task PrintFileList_FailedFiles_PrintsExceptionMessage()
+    {
+        var (cmd, output) = CreateCommandWithOutput();
+        SetupLocator("/solution", "OpenBaseNET");
+        _fileWriter.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
+        _fileWriter
+            .Setup(f => f.WriteAllText(It.IsAny<string>(), It.IsAny<string>()))
+            .Throws(new IOException("Disco cheio"));
+
+        await RunWithOutput(cmd, BuildSettings("Produto"));
+
+        Assert.Contains("Disco cheio", output.ToString());
+    }
 }

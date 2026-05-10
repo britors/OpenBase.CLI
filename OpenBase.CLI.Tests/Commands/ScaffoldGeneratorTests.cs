@@ -135,4 +135,103 @@ public class ScaffoldGeneratorTests
         Assert.Contains("CreateMap<Produto, ProdutoResponse>", mapper.Content);
         Assert.Contains("CreateMap<PaginatedQueryResult<Produto>, PaginatedResponse<ProdutoResponse>>", mapper.Content);
     }
+
+    // ── ValidatorTemplate ─────────────────────────────────────────────────────
+
+    [Fact]
+    public void GetFiles_ExactlyFiveValidatorFiles()
+    {
+        var validators = MakeGenerator().GetFiles()
+            .Where(f => f.Path.EndsWith("Validator.cs")).ToList();
+
+        Assert.Equal(5, validators.Count);
+    }
+
+    [Fact]
+    public void GetFiles_AllValidators_ContainFluentValidationUsing()
+    {
+        var validators = MakeGenerator().GetFiles()
+            .Where(f => f.Path.EndsWith("Validator.cs"));
+
+        Assert.All(validators, f => Assert.Contains("using FluentValidation;", f.Content));
+    }
+
+    [Fact]
+    public void GetFiles_AllValidators_InheritAbstractValidator()
+    {
+        var validators = MakeGenerator().GetFiles()
+            .Where(f => f.Path.EndsWith("Validator.cs"));
+
+        Assert.All(validators, f => Assert.Contains("AbstractValidator<", f.Content));
+    }
+
+    [Fact]
+    public void GetFiles_AllValidators_HaveMatchingNamespaceAndClassName()
+    {
+        var files = MakeGenerator("Produto").GetFiles().ToList();
+        var validators = files.Where(f => f.Path.EndsWith("Validator.cs")).ToList();
+
+        Assert.All(validators, f =>
+        {
+            var className = Path.GetFileNameWithoutExtension(f.Path);
+            Assert.Contains(className, f.Content);
+        });
+    }
+
+    [Fact]
+    public void GetFiles_CreateCommandValidator_HasNameRules()
+    {
+        var files = MakeGenerator("Produto").GetFiles().ToList();
+        var v = files.First(f => f.Path.EndsWith("CreateProdutoCommandValidator.cs"));
+
+        Assert.Contains("RuleFor(x => x.Name)", v.Content);
+        Assert.Contains(".NotEmpty()", v.Content);
+        Assert.Contains(".MinimumLength(1)", v.Content);
+        Assert.Contains(".MaximumLength(255)", v.Content);
+    }
+
+    [Fact]
+    public void GetFiles_DeleteCommandValidator_HasIdRules()
+    {
+        var files = MakeGenerator("Produto").GetFiles().ToList();
+        var v = files.First(f => f.Path.EndsWith("DeleteProdutoCommandValidator.cs"));
+
+        Assert.Contains("RuleFor(x => x.Id)", v.Content);
+        Assert.Contains(".NotEmpty()", v.Content);
+        Assert.Contains(".NotNull()", v.Content);
+    }
+
+    [Fact]
+    public void GetFiles_FindByIdQueryValidator_HasIdNotEmptyRule()
+    {
+        var files = MakeGenerator("Produto").GetFiles().ToList();
+        var v = files.First(f => f.Path.EndsWith("FindProdutoByIdQueryValidator.cs"));
+
+        Assert.Contains("RuleFor(x => x.Id).NotEmpty();", v.Content);
+    }
+
+    [Fact]
+    public void GetFiles_GetQueryValidator_HasPageAndPageSizeRules()
+    {
+        var files = MakeGenerator("Produto").GetFiles().ToList();
+        var v = files.First(f => f.Path.EndsWith("GetProdutoQueryValidator.cs"));
+
+        Assert.Contains("RuleFor(x => x.Page)", v.Content);
+        Assert.Contains(".GreaterThanOrEqualTo(1)", v.Content);
+        Assert.Contains("RuleFor(x => x.PageSize)", v.Content);
+        Assert.Contains(".GreaterThanOrEqualTo(5)", v.Content);
+    }
+
+    [Fact]
+    public void GetFiles_UpdateCommandValidator_HasIdAndNameRules()
+    {
+        var files = MakeGenerator("Produto").GetFiles().ToList();
+        var v = files.First(f => f.Path.EndsWith("UpdateProdutoCommandValidator.cs"));
+
+        Assert.Contains("RuleFor(x => x.Id)", v.Content);
+        Assert.Contains("RuleFor(x => x.Name)", v.Content);
+        Assert.Contains(".MinimumLength(1)", v.Content);
+        Assert.Contains(".MaximumLength(255)", v.Content);
+        Assert.Contains("string.IsNullOrWhiteSpace", v.Content);
+    }
 }

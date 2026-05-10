@@ -244,22 +244,24 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         }
         """;
 
-    private string CreateCommandValidatorTemplate() => $$"""
+    private string ValidatorTemplate(string feature, string typeName, string rules) => $$"""
         using FluentValidation;
 
-        namespace {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Create{{ctx.Entity}}Feature;
+        namespace {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.{{feature}};
 
-        public sealed class Create{{ctx.Entity}}CommandValidator : AbstractValidator<Create{{ctx.Entity}}Command>
+        public sealed class {{typeName}}Validator : AbstractValidator<{{typeName}}>
         {
-            public Create{{ctx.Entity}}CommandValidator()
+            public {{typeName}}Validator()
             {
-                RuleFor(x => x.Name)
-                    .NotEmpty()
-                    .MinimumLength(1)
-                    .MaximumLength(255);
+                {{rules}}
             }
         }
         """;
+
+    private string CreateCommandValidatorTemplate() => ValidatorTemplate(
+        $"Create{ctx.Entity}Feature",
+        $"Create{ctx.Entity}Command",
+        "RuleFor(x => x.Name)\n            .NotEmpty()\n            .MinimumLength(1)\n            .MaximumLength(255);");
 
     private string DeleteCommandTemplate() => $$"""
         using MediatR;
@@ -289,21 +291,10 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         }
         """;
 
-    private string DeleteCommandValidatorTemplate() => $$"""
-        using FluentValidation;
-
-        namespace {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Delete{{ctx.Entity}}Feature;
-
-        public sealed class Delete{{ctx.Entity}}CommandValidator : AbstractValidator<Delete{{ctx.Entity}}Command>
-        {
-            public Delete{{ctx.Entity}}CommandValidator()
-            {
-                RuleFor(x => x.Id)
-                    .NotEmpty()
-                    .NotNull();
-            }
-        }
-        """;
+    private string DeleteCommandValidatorTemplate() => ValidatorTemplate(
+        $"Delete{ctx.Entity}Feature",
+        $"Delete{ctx.Entity}Command",
+        "RuleFor(x => x.Id)\n            .NotEmpty()\n            .NotNull();");
 
     private string FindByIdQueryTemplate() => $$"""
         using MediatR;
@@ -336,19 +327,10 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         }
         """;
 
-    private string FindByIdQueryValidatorTemplate() => $$"""
-        using FluentValidation;
-
-        namespace {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Find{{ctx.Entity}}ByIdFeature;
-
-        public sealed class Find{{ctx.Entity}}ByIdQueryValidator : AbstractValidator<Find{{ctx.Entity}}ByIdQuery>
-        {
-            public Find{{ctx.Entity}}ByIdQueryValidator()
-            {
-                RuleFor(x => x.Id).NotEmpty();
-            }
-        }
-        """;
+    private string FindByIdQueryValidatorTemplate() => ValidatorTemplate(
+        $"Find{ctx.Entity}ByIdFeature",
+        $"Find{ctx.Entity}ByIdQuery",
+        "RuleFor(x => x.Id).NotEmpty();");
 
     private string GetQueryTemplate() => $$"""
         using MediatR;
@@ -385,25 +367,10 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         }
         """;
 
-    private string GetQueryValidatorTemplate() => $$"""
-        using FluentValidation;
-
-        namespace {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Get{{ctx.EPlural}}Feature;
-
-        public sealed class Get{{ctx.Entity}}QueryValidator : AbstractValidator<Get{{ctx.Entity}}Query>
-        {
-            public Get{{ctx.Entity}}QueryValidator()
-            {
-                RuleFor(x => x.Page)
-                    .GreaterThanOrEqualTo(1)
-                    .WithMessage("O número da página deve ser maior ou igual a 1.");
-
-                RuleFor(x => x.PageSize)
-                    .GreaterThanOrEqualTo(5)
-                    .WithMessage("O tamanho da página deve ser maior ou igual a 5.");
-            }
-        }
-        """;
+    private string GetQueryValidatorTemplate() => ValidatorTemplate(
+        $"Get{ctx.EPlural}Feature",
+        $"Get{ctx.Entity}Query",
+        "RuleFor(x => x.Page)\n            .GreaterThanOrEqualTo(1)\n            .WithMessage(\"O número da página deve ser maior ou igual a 1.\");\n\n        RuleFor(x => x.PageSize)\n            .GreaterThanOrEqualTo(5)\n            .WithMessage(\"O tamanho da página deve ser maior ou igual a 5.\");");
 
     private string UpdateCommandTemplate() => $$"""
         using MediatR;
@@ -438,24 +405,10 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         }
         """;
 
-    private string UpdateCommandValidatorTemplate() => $$"""
-        using FluentValidation;
-
-        namespace {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Update{{ctx.Entity}}Feature;
-
-        public sealed class Update{{ctx.Entity}}CommandValidator : AbstractValidator<Update{{ctx.Entity}}Command>
-        {
-            public Update{{ctx.Entity}}CommandValidator()
-            {
-                RuleFor(x => x.Id).NotEmpty();
-
-                RuleFor(x => x.Name)
-                    .MinimumLength(1)
-                    .MaximumLength(255)
-                    .When(x => !string.IsNullOrWhiteSpace(x.Name));
-            }
-        }
-        """;
+    private string UpdateCommandValidatorTemplate() => ValidatorTemplate(
+        $"Update{ctx.Entity}Feature",
+        $"Update{ctx.Entity}Command",
+        "RuleFor(x => x.Id).NotEmpty();\n\n        RuleFor(x => x.Name)\n            .MinimumLength(1)\n            .MaximumLength(255)\n            .When(x => !string.IsNullOrWhiteSpace(x.Name));");
 
     private string IApplicationServiceTemplate() => $$"""
         using {{ctx.NS}}.Application.DTOs.Base.Response;
