@@ -158,68 +158,33 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         yield return (Path.Combine(ctx.AppPath, Services, $"{ctx.Entity}ApplicationService.cs"), ApplicationServiceTemplate());
     }
 
-    private string CreateRequestTemplate() => $$"""
-        namespace {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Requests;
+    private string DtoTemplate(string subNs, string typeName, string body) => $$"""
+        namespace {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.{{subNs}};
 
-        public sealed record Create{{ctx.Entity}}Request(string Name);
+        public sealed record {{typeName}}({{body}});
         """;
 
-    private string UpdateRequestTemplate() => $$"""
-        namespace {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Requests;
+    private string CreateRequestTemplate() => DtoTemplate("Requests", $"Create{ctx.Entity}Request", "string Name");
+    private string UpdateRequestTemplate() => DtoTemplate("Requests", $"Update{ctx.Entity}Request", "int Id, string Name");
+    private string DeleteRequestTemplate() => DtoTemplate("Requests", $"Delete{ctx.Entity}Request", "int Id");
+    private string FindByIdRequestTemplate() => DtoTemplate("Requests", $"Find{ctx.Entity}ByIdRequest", "int Id");
+    private string GetRequestTemplate() => DtoTemplate("Requests", $"Get{ctx.Entity}Request", "string Name = \"\", int Page = 1, int PageSize = 5");
+    private string ResponseTemplate() => DtoTemplate("Responses", $"{ctx.Entity}Response", "int Id, string Name");
+    private string CreateResponseTemplate() => DtoTemplate("Responses", $"Create{ctx.Entity}Response", "int Id, string Name");
+    private string UpdateResponseTemplate() => DtoTemplate("Responses", $"Update{ctx.Entity}Response", "int Id, string Name");
+    private string DeleteResponseTemplate() => DtoTemplate("Responses", $"Delete{ctx.Entity}Response", "bool Success");
 
-        public sealed record Update{{ctx.Entity}}Request(int Id, string Name);
-        """;
-
-    private string DeleteRequestTemplate() => $$"""
-        namespace {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Requests;
-
-        public sealed record Delete{{ctx.Entity}}Request(int Id);
-        """;
-
-    private string FindByIdRequestTemplate() => $$"""
-        namespace {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Requests;
-
-        public sealed record Find{{ctx.Entity}}ByIdRequest(int Id);
-        """;
-
-    private string GetRequestTemplate() => $$"""
-        namespace {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Requests;
-
-        public sealed record Get{{ctx.Entity}}Request(string Name = "", int Page = 1, int PageSize = 5);
-        """;
-
-    private string ResponseTemplate() => $$"""
-        namespace {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
-
-        public sealed record {{ctx.Entity}}Response(int Id, string Name);
-        """;
-
-    private string CreateResponseTemplate() => $$"""
-        namespace {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
-
-        public sealed record Create{{ctx.Entity}}Response(int Id, string Name);
-        """;
-
-    private string UpdateResponseTemplate() => $$"""
-        namespace {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
-
-        public sealed record Update{{ctx.Entity}}Response(int Id, string Name);
-        """;
-
-    private string DeleteResponseTemplate() => $$"""
-        namespace {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
-
-        public sealed record Delete{{ctx.Entity}}Response(bool Success);
-        """;
-
-    private string CreateCommandTemplate() => $$"""
+    private string CommandTemplate(string feature, string name, string parameters, string response) => $$"""
         using MediatR;
         using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
 
-        namespace {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Create{{ctx.Entity}}Feature;
+        namespace {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.{{feature}};
 
-        public sealed record Create{{ctx.Entity}}Command(string Name) : IRequest<Create{{ctx.Entity}}Response?>;
+        public sealed record {{name}}({{parameters}}) : IRequest<{{response}}?>;
         """;
+
+    private string CreateCommandTemplate() => CommandTemplate(
+        $"Create{ctx.Entity}Feature", $"Create{ctx.Entity}Command", "string Name", $"Create{ctx.Entity}Response");
 
     private string CreateCommandHandlerTemplate() => $$"""
         using AutoMapper;
@@ -264,14 +229,8 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         $"Create{ctx.Entity}Command",
         "RuleFor(x => x.Name)\n            .NotEmpty()\n            .MinimumLength(1)\n            .MaximumLength(255);");
 
-    private string DeleteCommandTemplate() => $$"""
-        using MediatR;
-        using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
-
-        namespace {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Delete{{ctx.Entity}}Feature;
-
-        public sealed record Delete{{ctx.Entity}}Command(int Id) : IRequest<Delete{{ctx.Entity}}Response?>;
-        """;
+    private string DeleteCommandTemplate() => CommandTemplate(
+        $"Delete{ctx.Entity}Feature", $"Delete{ctx.Entity}Command", "int Id", $"Delete{ctx.Entity}Response");
 
     private string DeleteCommandHandlerTemplate() => $$"""
         using MediatR;
@@ -373,14 +332,8 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         $"Get{ctx.Entity}Query",
         "RuleFor(x => x.Page)\n            .GreaterThanOrEqualTo(1)\n            .WithMessage(\"O número da página deve ser maior ou igual a 1.\");\n\n        RuleFor(x => x.PageSize)\n            .GreaterThanOrEqualTo(5)\n            .WithMessage(\"O tamanho da página deve ser maior ou igual a 5.\");");
 
-    private string UpdateCommandTemplate() => $$"""
-        using MediatR;
-        using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
-
-        namespace {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Update{{ctx.Entity}}Feature;
-
-        public sealed record Update{{ctx.Entity}}Command(int Id, string Name) : IRequest<Update{{ctx.Entity}}Response?>;
-        """;
+    private string UpdateCommandTemplate() => CommandTemplate(
+        $"Update{ctx.Entity}Feature", $"Update{ctx.Entity}Command", "int Id, string Name", $"Update{ctx.Entity}Response");
 
     private string UpdateCommandHandlerTemplate() => $$"""
         using AutoMapper;
