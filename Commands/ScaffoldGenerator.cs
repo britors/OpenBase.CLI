@@ -13,6 +13,7 @@ public sealed record ScaffoldContext(string Entity, string RootNamespace, string
     public string InfraContextPath => Path.Combine(Src, $"{NS}.Infra.Data.Context");
     public string InfraDataPath => Path.Combine(Src, $"{NS}.Infra.Data");
     public string PresentationPath => Path.Combine(Src, $"{NS}.Presentation.Api");
+    public string TestsPath => Path.Combine(SolutionDir, "tests", $"{NS}.Tests");
 }
 
 public sealed class ScaffoldGenerator(ScaffoldContext ctx)
@@ -25,7 +26,8 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         DomainFiles()
             .Concat(ApplicationFiles())
             .Concat(InfrastructureFiles())
-            .Concat(PresentationFiles());
+            .Concat(PresentationFiles())
+            .Concat(TestFiles());
 
     // ── Domain ────────────────────────────────────────────────────────────────
 
@@ -530,6 +532,528 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
             Path.Combine(ctx.PresentationPath, "Controllers", $"{ctx.Entity}Controller.cs"),
             ControllerTemplate());
     }
+
+    // ── Tests ─────────────────────────────────────────────────────────────────
+
+    private IEnumerable<(string, string)> TestFiles()
+    {
+        var domainTests = Path.Combine(ctx.TestsPath, "Domain", Services);
+        var featTests = Path.Combine(ctx.TestsPath, "Application", "Features", $"{ctx.Entity}Features");
+        var appSvcTests = Path.Combine(ctx.TestsPath, "Application", Services);
+
+        yield return (Path.Combine(ctx.AppPath, "Properties", "AssemblyInfo.cs"), AssemblyInfoTemplate());
+        yield return (Path.Combine(domainTests, $"{ctx.Entity}DomainServiceTests.cs"), DomainServiceTestsTemplate());
+        yield return (Path.Combine(featTests, $"Create{ctx.Entity}CommandHandlerTests.cs"), CreateCommandHandlerTestsTemplate());
+        yield return (Path.Combine(featTests, $"Delete{ctx.Entity}CommandHandlerTests.cs"), DeleteCommandHandlerTestsTemplate());
+        yield return (Path.Combine(featTests, $"Update{ctx.Entity}CommandHandlerTests.cs"), UpdateCommandHandlerTestsTemplate());
+        yield return (Path.Combine(featTests, $"Find{ctx.Entity}ByIdQueryHandlerTests.cs"), FindByIdQueryHandlerTestsTemplate());
+        yield return (Path.Combine(featTests, $"Get{ctx.Entity}QueryHandlerTests.cs"), GetQueryHandlerTestsTemplate());
+        yield return (Path.Combine(featTests, $"Create{ctx.Entity}CommandValidatorTests.cs"), CreateCommandValidatorTestsTemplate());
+        yield return (Path.Combine(featTests, $"Delete{ctx.Entity}CommandValidatorTests.cs"), DeleteCommandValidatorTestsTemplate());
+        yield return (Path.Combine(featTests, $"Update{ctx.Entity}CommandValidatorTests.cs"), UpdateCommandValidatorTestsTemplate());
+        yield return (Path.Combine(featTests, $"Find{ctx.Entity}ByIdQueryValidatorTests.cs"), FindByIdQueryValidatorTestsTemplate());
+        yield return (Path.Combine(featTests, $"Get{ctx.Entity}QueryValidatorTests.cs"), GetQueryValidatorTestsTemplate());
+        yield return (Path.Combine(appSvcTests, $"{ctx.Entity}ApplicationServiceTests.cs"), ApplicationServiceTestsTemplate());
+    }
+
+    private string AssemblyInfoTemplate() => $$"""
+        using System.Runtime.CompilerServices;
+
+        [assembly: InternalsVisibleTo("{{ctx.NS}}.Tests")]
+        """;
+
+    private string DomainServiceTestsTemplate() => $$"""
+        using System.Linq.Expressions;
+        using NSubstitute;
+        using {{ctx.NS}}.Domain.Entities;
+        using {{ctx.NS}}.Domain.Interfaces.Repositories;
+        using {{ctx.NS}}.Domain.Services;
+
+        namespace {{ctx.NS}}.Tests.Domain.Services;
+
+        public sealed class {{ctx.Entity}}DomainServiceTests
+        {
+            private readonly I{{ctx.Entity}}Repository _{{ctx.ECamel}}Repository = Substitute.For<I{{ctx.Entity}}Repository>();
+            private readonly {{ctx.Entity}}DomainService _service;
+
+            public {{ctx.Entity}}DomainServiceTests()
+            {
+                _service = new {{ctx.Entity}}DomainService(_{{ctx.ECamel}}Repository);
+            }
+
+            [Fact]
+            public async Task FindByNamePagedAsync_ReturnsResult_WhenNameIsProvided()
+            {
+                var entities = new List<{{ctx.Entity}}> { new() { Id = 1, Name = "Test" } };
+                _{{ctx.ECamel}}Repository
+                    .CountAsync(Arg.Any<CancellationToken>(), Arg.Any<Expression<Func<{{ctx.Entity}}, bool>>?>())
+                    .Returns(1);
+                _{{ctx.ECamel}}Repository
+                    .FindAsync(Arg.Any<CancellationToken>(), Arg.Any<bool>(),
+                        Arg.Any<Expression<Func<{{ctx.Entity}}, bool>>?>(), Arg.Any<int>(), Arg.Any<int>())
+                    .Returns(entities);
+
+                var result = await _service.FindByNamePagedAsync("Test", 1, 5, CancellationToken.None);
+
+                Assert.NotNull(result);
+            }
+
+            [Fact]
+            public async Task FindByNamePagedAsync_ReturnsResult_WhenNameIsEmpty()
+            {
+                var entities = new List<{{ctx.Entity}}> { new() { Id = 1, Name = "Test" } };
+                _{{ctx.ECamel}}Repository
+                    .CountAsync(Arg.Any<CancellationToken>(), Arg.Any<Expression<Func<{{ctx.Entity}}, bool>>?>())
+                    .Returns(1);
+                _{{ctx.ECamel}}Repository
+                    .FindAsync(Arg.Any<CancellationToken>(), Arg.Any<bool>(),
+                        Arg.Any<Expression<Func<{{ctx.Entity}}, bool>>?>(), Arg.Any<int>(), Arg.Any<int>())
+                    .Returns(entities);
+
+                var result = await _service.FindByNamePagedAsync(string.Empty, 1, 5, CancellationToken.None);
+
+                Assert.NotNull(result);
+            }
+        }
+        """;
+
+    private string CreateCommandHandlerTestsTemplate() => $$"""
+        using AutoMapper;
+        using NSubstitute;
+        using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
+        using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Create{{ctx.Entity}}Feature;
+        using {{ctx.NS}}.Domain.Entities;
+        using {{ctx.NS}}.Domain.Interfaces.Services;
+
+        namespace {{ctx.NS}}.Tests.Application.Features.{{ctx.Entity}}Features;
+
+        public sealed class Create{{ctx.Entity}}CommandHandlerTests
+        {
+            private readonly I{{ctx.Entity}}DomainService _{{ctx.ECamel}}DomainService = Substitute.For<I{{ctx.Entity}}DomainService>();
+            private readonly IMapper _mapper = Substitute.For<IMapper>();
+            private readonly Create{{ctx.Entity}}CommandHandler _handler;
+
+            public Create{{ctx.Entity}}CommandHandlerTests()
+            {
+                _handler = new Create{{ctx.Entity}}CommandHandler(_{{ctx.ECamel}}DomainService, _mapper);
+            }
+
+            [Fact]
+            public async Task Handle_ReturnsResponse_WhenEntityIsCreated()
+            {
+                var command = new Create{{ctx.Entity}}Command("Test Name");
+                var entity = new {{ctx.Entity}} { Id = 1, Name = "Test Name" };
+                var response = new Create{{ctx.Entity}}Response(1, "Test Name");
+
+                _mapper.Map<{{ctx.Entity}}>(command).Returns(entity);
+                _{{ctx.ECamel}}DomainService.AddAsync(entity, Arg.Any<CancellationToken>()).Returns(entity);
+                _mapper.Map<Create{{ctx.Entity}}Response>(entity).Returns(response);
+
+                var result = await _handler.Handle(command, CancellationToken.None);
+
+                Assert.NotNull(result);
+                Assert.Equal(1, result.Id);
+                Assert.Equal("Test Name", result.Name);
+            }
+        }
+        """;
+
+    private string DeleteCommandHandlerTestsTemplate() => $$"""
+        using NSubstitute;
+        using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Delete{{ctx.Entity}}Feature;
+        using {{ctx.NS}}.Domain.Interfaces.Services;
+
+        namespace {{ctx.NS}}.Tests.Application.Features.{{ctx.Entity}}Features;
+
+        public sealed class Delete{{ctx.Entity}}CommandHandlerTests
+        {
+            private readonly I{{ctx.Entity}}DomainService _{{ctx.ECamel}}DomainService = Substitute.For<I{{ctx.Entity}}DomainService>();
+            private readonly Delete{{ctx.Entity}}CommandHandler _handler;
+
+            public Delete{{ctx.Entity}}CommandHandlerTests()
+            {
+                _handler = new Delete{{ctx.Entity}}CommandHandler(_{{ctx.ECamel}}DomainService);
+            }
+
+            [Fact]
+            public async Task Handle_ReturnsSuccess_WhenEntityIsDeleted()
+            {
+                var command = new Delete{{ctx.Entity}}Command(1);
+                _{{ctx.ECamel}}DomainService.RemoveByIdAsync(1, Arg.Any<CancellationToken>()).Returns(true);
+
+                var result = await _handler.Handle(command, CancellationToken.None);
+
+                Assert.NotNull(result);
+                Assert.True(result.Success);
+            }
+
+            [Fact]
+            public async Task Handle_ReturnsFailure_WhenEntityNotFound()
+            {
+                var command = new Delete{{ctx.Entity}}Command(999);
+                _{{ctx.ECamel}}DomainService.RemoveByIdAsync(999, Arg.Any<CancellationToken>()).Returns(false);
+
+                var result = await _handler.Handle(command, CancellationToken.None);
+
+                Assert.NotNull(result);
+                Assert.False(result.Success);
+            }
+        }
+        """;
+
+    private string UpdateCommandHandlerTestsTemplate() => $$"""
+        using AutoMapper;
+        using NSubstitute;
+        using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
+        using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Update{{ctx.Entity}}Feature;
+        using {{ctx.NS}}.Domain.Entities;
+        using {{ctx.NS}}.Domain.Interfaces.Services;
+
+        namespace {{ctx.NS}}.Tests.Application.Features.{{ctx.Entity}}Features;
+
+        public sealed class Update{{ctx.Entity}}CommandHandlerTests
+        {
+            private readonly I{{ctx.Entity}}DomainService _{{ctx.ECamel}}DomainService = Substitute.For<I{{ctx.Entity}}DomainService>();
+            private readonly IMapper _mapper = Substitute.For<IMapper>();
+            private readonly Update{{ctx.Entity}}CommandHandler _handler;
+
+            public Update{{ctx.Entity}}CommandHandlerTests()
+            {
+                _handler = new Update{{ctx.Entity}}CommandHandler(_{{ctx.ECamel}}DomainService, _mapper);
+            }
+
+            [Fact]
+            public async Task Handle_ReturnsResponse_WhenEntityIsUpdated()
+            {
+                var command = new Update{{ctx.Entity}}Command(1, "Updated Name");
+                var entity = new {{ctx.Entity}} { Id = 1, Name = "Updated Name" };
+                var response = new Update{{ctx.Entity}}Response(1, "Updated Name");
+
+                _mapper.Map<{{ctx.Entity}}>(command).Returns(entity);
+                _{{ctx.ECamel}}DomainService.UpdateAsync(entity, Arg.Any<CancellationToken>()).Returns(entity);
+                _mapper.Map<Update{{ctx.Entity}}Response>(entity).Returns(response);
+
+                var result = await _handler.Handle(command, CancellationToken.None);
+
+                Assert.NotNull(result);
+                Assert.Equal(1, result.Id);
+                Assert.Equal("Updated Name", result.Name);
+            }
+        }
+        """;
+
+    private string FindByIdQueryHandlerTestsTemplate() => $$"""
+        using AutoMapper;
+        using NSubstitute;
+        using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
+        using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Find{{ctx.Entity}}ByIdFeature;
+        using {{ctx.NS}}.Domain.Entities;
+        using {{ctx.NS}}.Domain.Interfaces.Services;
+
+        namespace {{ctx.NS}}.Tests.Application.Features.{{ctx.Entity}}Features;
+
+        public sealed class Find{{ctx.Entity}}ByIdQueryHandlerTests
+        {
+            private readonly I{{ctx.Entity}}DomainService _{{ctx.ECamel}}DomainService = Substitute.For<I{{ctx.Entity}}DomainService>();
+            private readonly IMapper _mapper = Substitute.For<IMapper>();
+            private readonly Find{{ctx.Entity}}ByIdQueryHandler _handler;
+
+            public Find{{ctx.Entity}}ByIdQueryHandlerTests()
+            {
+                _handler = new Find{{ctx.Entity}}ByIdQueryHandler(_{{ctx.ECamel}}DomainService, _mapper);
+            }
+
+            [Fact]
+            public async Task Handle_ReturnsResponse_WhenEntityIsFound()
+            {
+                var query = new Find{{ctx.Entity}}ByIdQuery(1);
+                var entity = new {{ctx.Entity}} { Id = 1, Name = "Test" };
+                var response = new {{ctx.Entity}}Response(1, "Test");
+
+                _{{ctx.ECamel}}DomainService.GetByIdAsync(1, Arg.Any<CancellationToken>()).Returns(entity);
+                _mapper.Map<{{ctx.Entity}}Response>(entity).Returns(response);
+
+                var result = await _handler.Handle(query, CancellationToken.None);
+
+                Assert.NotNull(result);
+                Assert.Equal(1, result.Id);
+            }
+        }
+        """;
+
+    private string GetQueryHandlerTestsTemplate() => $$"""
+        using AutoMapper;
+        using NSubstitute;
+        using {{ctx.NS}}.Application.DTOs.Base.Response;
+        using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
+        using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Get{{ctx.EPlural}}Feature;
+        using {{ctx.NS}}.Domain.Interfaces.Services;
+
+        namespace {{ctx.NS}}.Tests.Application.Features.{{ctx.Entity}}Features;
+
+        public sealed class Get{{ctx.Entity}}QueryHandlerTests
+        {
+            private readonly I{{ctx.Entity}}DomainService _{{ctx.ECamel}}DomainService = Substitute.For<I{{ctx.Entity}}DomainService>();
+            private readonly IMapper _mapper = Substitute.For<IMapper>();
+            private readonly Get{{ctx.Entity}}QueryHandler _handler;
+
+            public Get{{ctx.Entity}}QueryHandlerTests()
+            {
+                _handler = new Get{{ctx.Entity}}QueryHandler(_{{ctx.ECamel}}DomainService, _mapper);
+            }
+
+            [Fact]
+            public async Task Handle_CallsServiceWithCorrectParameters()
+            {
+                var query = new Get{{ctx.Entity}}Query("Search", 2, 10);
+
+                await _handler.Handle(query, CancellationToken.None);
+
+                await _{{ctx.ECamel}}DomainService
+                    .Received(1)
+                    .FindByNamePagedAsync("Search", 2, 10, Arg.Any<CancellationToken>());
+            }
+        }
+        """;
+
+    private string CreateCommandValidatorTestsTemplate() => $$"""
+        using FluentValidation.TestHelper;
+        using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Create{{ctx.Entity}}Feature;
+
+        namespace {{ctx.NS}}.Tests.Application.Features.{{ctx.Entity}}Features;
+
+        public sealed class Create{{ctx.Entity}}CommandValidatorTests
+        {
+            private readonly Create{{ctx.Entity}}CommandValidator _validator = new();
+
+            [Fact]
+            public void Validate_IsValid_WhenNameIsProvided()
+            {
+                var result = _validator.TestValidate(new Create{{ctx.Entity}}Command("Valid Name"));
+                result.ShouldNotHaveAnyValidationErrors();
+            }
+
+            [Fact]
+            public void Validate_IsInvalid_WhenNameIsEmpty()
+            {
+                var result = _validator.TestValidate(new Create{{ctx.Entity}}Command(""));
+                result.ShouldHaveValidationErrorFor(x => x.Name);
+            }
+
+            [Fact]
+            public void Validate_IsInvalid_WhenNameExceeds255Characters()
+            {
+                var result = _validator.TestValidate(new Create{{ctx.Entity}}Command(new string('a', 256)));
+                result.ShouldHaveValidationErrorFor(x => x.Name);
+            }
+        }
+        """;
+
+    private string DeleteCommandValidatorTestsTemplate() => $$"""
+        using FluentValidation.TestHelper;
+        using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Delete{{ctx.Entity}}Feature;
+
+        namespace {{ctx.NS}}.Tests.Application.Features.{{ctx.Entity}}Features;
+
+        public sealed class Delete{{ctx.Entity}}CommandValidatorTests
+        {
+            private readonly Delete{{ctx.Entity}}CommandValidator _validator = new();
+
+            [Fact]
+            public void Validate_IsValid_WhenIdIsProvided()
+            {
+                var result = _validator.TestValidate(new Delete{{ctx.Entity}}Command(1));
+                result.ShouldNotHaveAnyValidationErrors();
+            }
+
+            [Fact]
+            public void Validate_IsInvalid_WhenIdIsZero()
+            {
+                var result = _validator.TestValidate(new Delete{{ctx.Entity}}Command(0));
+                result.ShouldHaveValidationErrorFor(x => x.Id);
+            }
+        }
+        """;
+
+    private string UpdateCommandValidatorTestsTemplate() => $$"""
+        using FluentValidation.TestHelper;
+        using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Update{{ctx.Entity}}Feature;
+
+        namespace {{ctx.NS}}.Tests.Application.Features.{{ctx.Entity}}Features;
+
+        public sealed class Update{{ctx.Entity}}CommandValidatorTests
+        {
+            private readonly Update{{ctx.Entity}}CommandValidator _validator = new();
+
+            [Fact]
+            public void Validate_IsValid_WhenIdAndNameAreProvided()
+            {
+                var result = _validator.TestValidate(new Update{{ctx.Entity}}Command(1, "Valid Name"));
+                result.ShouldNotHaveAnyValidationErrors();
+            }
+
+            [Fact]
+            public void Validate_IsInvalid_WhenIdIsZero()
+            {
+                var result = _validator.TestValidate(new Update{{ctx.Entity}}Command(0, "Name"));
+                result.ShouldHaveValidationErrorFor(x => x.Id);
+            }
+
+            [Fact]
+            public void Validate_IsInvalid_WhenNameExceeds255Characters()
+            {
+                var result = _validator.TestValidate(new Update{{ctx.Entity}}Command(1, new string('a', 256)));
+                result.ShouldHaveValidationErrorFor(x => x.Name);
+            }
+        }
+        """;
+
+    private string FindByIdQueryValidatorTestsTemplate() => $$"""
+        using FluentValidation.TestHelper;
+        using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Find{{ctx.Entity}}ByIdFeature;
+
+        namespace {{ctx.NS}}.Tests.Application.Features.{{ctx.Entity}}Features;
+
+        public sealed class Find{{ctx.Entity}}ByIdQueryValidatorTests
+        {
+            private readonly Find{{ctx.Entity}}ByIdQueryValidator _validator = new();
+
+            [Fact]
+            public void Validate_IsValid_WhenIdIsProvided()
+            {
+                var result = _validator.TestValidate(new Find{{ctx.Entity}}ByIdQuery(1));
+                result.ShouldNotHaveAnyValidationErrors();
+            }
+
+            [Fact]
+            public void Validate_IsInvalid_WhenIdIsZero()
+            {
+                var result = _validator.TestValidate(new Find{{ctx.Entity}}ByIdQuery(0));
+                result.ShouldHaveValidationErrorFor(x => x.Id);
+            }
+        }
+        """;
+
+    private string GetQueryValidatorTestsTemplate() => $$"""
+        using FluentValidation.TestHelper;
+        using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Get{{ctx.EPlural}}Feature;
+
+        namespace {{ctx.NS}}.Tests.Application.Features.{{ctx.Entity}}Features;
+
+        public sealed class Get{{ctx.Entity}}QueryValidatorTests
+        {
+            private readonly Get{{ctx.Entity}}QueryValidator _validator = new();
+
+            [Fact]
+            public void Validate_IsValid_WhenPageAndPageSizeAreValid()
+            {
+                var result = _validator.TestValidate(new Get{{ctx.Entity}}Query("", 1, 5));
+                result.ShouldNotHaveAnyValidationErrors();
+            }
+
+            [Fact]
+            public void Validate_IsInvalid_WhenPageIsZero()
+            {
+                var result = _validator.TestValidate(new Get{{ctx.Entity}}Query("", 0, 5));
+                result.ShouldHaveValidationErrorFor(x => x.Page);
+            }
+
+            [Fact]
+            public void Validate_IsInvalid_WhenPageSizeIsBelowMinimum()
+            {
+                var result = _validator.TestValidate(new Get{{ctx.Entity}}Query("", 1, 4));
+                result.ShouldHaveValidationErrorFor(x => x.PageSize);
+            }
+        }
+        """;
+
+    private string ApplicationServiceTestsTemplate() => $$"""
+        using AutoMapper;
+        using MediatR;
+        using NSubstitute;
+        using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Requests;
+        using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
+        using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Create{{ctx.Entity}}Feature;
+        using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Delete{{ctx.Entity}}Feature;
+        using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Find{{ctx.Entity}}ByIdFeature;
+        using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Get{{ctx.EPlural}}Feature;
+        using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Update{{ctx.Entity}}Feature;
+        using {{ctx.NS}}.Application.Services;
+
+        namespace {{ctx.NS}}.Tests.Application.Services;
+
+        public sealed class {{ctx.Entity}}ApplicationServiceTests
+        {
+            private readonly IMediator _mediator = Substitute.For<IMediator>();
+            private readonly IMapper _mapper = Substitute.For<IMapper>();
+            private readonly {{ctx.Entity}}ApplicationService _service;
+
+            public {{ctx.Entity}}ApplicationServiceTests()
+            {
+                _service = new {{ctx.Entity}}ApplicationService(_mediator, _mapper);
+            }
+
+            [Fact]
+            public async Task CreateAsync_SendsCommand_ToMediator()
+            {
+                var request = new Create{{ctx.Entity}}Request("Test Name");
+                var command = new Create{{ctx.Entity}}Command("Test Name");
+                _mapper.Map<Create{{ctx.Entity}}Command>(request).Returns(command);
+
+                await _service.CreateAsync(request, CancellationToken.None);
+
+                await _mediator.Received(1).Send(command, Arg.Any<CancellationToken>());
+            }
+
+            [Fact]
+            public async Task UpdateAsync_SendsCommand_ToMediator()
+            {
+                var request = new Update{{ctx.Entity}}Request(1, "Updated Name");
+                var command = new Update{{ctx.Entity}}Command(1, "Updated Name");
+                _mapper.Map<Update{{ctx.Entity}}Command>(request).Returns(command);
+
+                await _service.UpdateAsync(request, CancellationToken.None);
+
+                await _mediator.Received(1).Send(command, Arg.Any<CancellationToken>());
+            }
+
+            [Fact]
+            public async Task DeleteAsync_SendsCommand_ToMediator()
+            {
+                var request = new Delete{{ctx.Entity}}Request(1);
+                var command = new Delete{{ctx.Entity}}Command(1);
+                _mapper.Map<Delete{{ctx.Entity}}Command>(request).Returns(command);
+
+                await _service.DeleteAsync(request, CancellationToken.None);
+
+                await _mediator.Received(1).Send(command, Arg.Any<CancellationToken>());
+            }
+
+            [Fact]
+            public async Task GetByIdAsync_SendsQuery_ToMediator()
+            {
+                var request = new Find{{ctx.Entity}}ByIdRequest(1);
+                var query = new Find{{ctx.Entity}}ByIdQuery(1);
+                _mapper.Map<Find{{ctx.Entity}}ByIdQuery>(request).Returns(query);
+
+                await _service.GetByIdAsync(request, CancellationToken.None);
+
+                await _mediator.Received(1).Send(query, Arg.Any<CancellationToken>());
+            }
+
+            [Fact]
+            public async Task GetAsync_SendsQuery_ToMediator()
+            {
+                var request = new Get{{ctx.Entity}}Request("", 1, 5);
+                var query = new Get{{ctx.Entity}}Query("", 1, 5);
+                _mapper.Map<Get{{ctx.Entity}}Query>(request).Returns(query);
+
+                await _service.GetAsync(request, CancellationToken.None);
+
+                await _mediator.Received(1).Send(query, Arg.Any<CancellationToken>());
+            }
+        }
+        """;
 
     private string ControllerTemplate() => $$"""
         using Microsoft.AspNetCore.Mvc;

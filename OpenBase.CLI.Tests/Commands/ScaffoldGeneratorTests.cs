@@ -11,10 +11,10 @@ public class ScaffoldGeneratorTests
         new(MakeContext(entity));
 
     [Fact]
-    public void GetFiles_Returns34Files()
+    public void GetFiles_Returns47Files()
     {
         var files = MakeGenerator().GetFiles().ToList();
-        Assert.Equal(34, files.Count);
+        Assert.Equal(47, files.Count);
     }
 
     [Fact]
@@ -34,7 +34,9 @@ public class ScaffoldGeneratorTests
     [Fact]
     public void GetFiles_EntityNameAppearsInAllContents()
     {
-        var files = MakeGenerator("Produto").GetFiles().ToList();
+        var files = MakeGenerator("Produto").GetFiles()
+            .Where(f => !f.Path.EndsWith("AssemblyInfo.cs"))
+            .ToList();
         Assert.All(files, f => Assert.Contains("Produto", f.Content));
     }
 
@@ -233,5 +235,86 @@ public class ScaffoldGeneratorTests
         Assert.Contains(".MinimumLength(1)", v.Content);
         Assert.Contains(".MaximumLength(255)", v.Content);
         Assert.Contains("string.IsNullOrWhiteSpace", v.Content);
+    }
+
+    // ── TestFiles ─────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void GetFiles_AssemblyInfo_HasInternalsVisibleTo()
+    {
+        var files = MakeGenerator("Produto").GetFiles().ToList();
+        var info = files.First(f => f.Path.EndsWith("AssemblyInfo.cs"));
+
+        Assert.Contains("InternalsVisibleTo", info.Content);
+        Assert.Contains("MyApp.Tests", info.Content);
+    }
+
+    [Fact]
+    public void GetFiles_DomainServiceTests_HasFindByNamePagedAsyncTests()
+    {
+        var files = MakeGenerator("Produto").GetFiles().ToList();
+        var f = files.First(f => f.Path.EndsWith("ProdutoDomainServiceTests.cs"));
+
+        Assert.Contains("FindByNamePagedAsync", f.Content);
+        Assert.Contains("NSubstitute", f.Content);
+    }
+
+    [Fact]
+    public void GetFiles_ExactlyFiveHandlerTestFiles()
+    {
+        var handlerTests = MakeGenerator().GetFiles()
+            .Where(f => f.Path.EndsWith("HandlerTests.cs")).ToList();
+
+        Assert.Equal(5, handlerTests.Count);
+    }
+
+    [Fact]
+    public void GetFiles_ExactlyFiveValidatorTestFiles()
+    {
+        var validatorTests = MakeGenerator().GetFiles()
+            .Where(f => f.Path.EndsWith("ValidatorTests.cs")).ToList();
+
+        Assert.Equal(5, validatorTests.Count);
+    }
+
+    [Fact]
+    public void GetFiles_ApplicationServiceTests_HasAllFiveOperations()
+    {
+        var files = MakeGenerator("Produto").GetFiles().ToList();
+        var f = files.First(f => f.Path.EndsWith("ProdutoApplicationServiceTests.cs"));
+
+        Assert.Contains("CreateAsync", f.Content);
+        Assert.Contains("UpdateAsync", f.Content);
+        Assert.Contains("DeleteAsync", f.Content);
+        Assert.Contains("GetByIdAsync", f.Content);
+        Assert.Contains("GetAsync", f.Content);
+    }
+
+    [Fact]
+    public void GetFiles_ValidatorTests_UseFluentValidationTestHelper()
+    {
+        var validatorTests = MakeGenerator().GetFiles()
+            .Where(f => f.Path.EndsWith("ValidatorTests.cs"));
+
+        Assert.All(validatorTests, f => Assert.Contains("FluentValidation.TestHelper", f.Content));
+    }
+
+    [Fact]
+    public void GetFiles_TestFilesAreInTestsDirectory()
+    {
+        var testFiles = MakeGenerator("Produto").GetFiles()
+            .Where(f => f.Path.Contains("Tests") && !f.Path.Contains("AssemblyInfo")).ToList();
+
+        Assert.All(testFiles, f => Assert.Contains("tests", f.Path));
+    }
+
+    [Fact]
+    public void GetFiles_DeleteHandlerTests_HasSuccessAndFailureCases()
+    {
+        var files = MakeGenerator("Produto").GetFiles().ToList();
+        var f = files.First(f => f.Path.EndsWith("DeleteProdutoCommandHandlerTests.cs"));
+
+        Assert.Contains("ReturnsSuccess", f.Content);
+        Assert.Contains("ReturnsFailure", f.Content);
     }
 }

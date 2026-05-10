@@ -48,14 +48,14 @@ public class ScaffoldCommandTests
     }
 
     [Fact]
-    public async Task Execute_ValidProject_Creates34Files()
+    public async Task Execute_ValidProject_Creates47Files()
     {
         SetupLocator("/solution", "OpenBaseNET");
         _fileWriter.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
 
         await Run(BuildSettings("Produto"));
 
-        _fileWriter.Verify(f => f.WriteAllText(It.IsAny<string>(), It.IsAny<string>()), Times.Exactly(34));
+        _fileWriter.Verify(f => f.WriteAllText(It.IsAny<string>(), It.IsAny<string>()), Times.Exactly(47));
     }
 
     [Fact]
