@@ -13,7 +13,8 @@ public sealed record ScaffoldContext(string Entity, string RootNamespace, string
     public string InfraContextPath => Path.Combine(Src, $"{NS}.Infra.Data.Context");
     public string InfraDataPath => Path.Combine(Src, $"{NS}.Infra.Data");
     public string PresentationPath => Path.Combine(Src, $"{NS}.Presentation.Api");
-    public string TestsPath => Path.Combine(SolutionDir, "tests", $"{NS}.Tests");
+    public string TestsPath => Path.Combine(SolutionDir, "tests", $"{NS}.Tests.Unit");
+    public string TestsCsprojPath => Path.Combine(TestsPath, $"{NS}.Tests.Unit.csproj");
 }
 
 public sealed class ScaffoldGenerator(ScaffoldContext ctx)
@@ -559,7 +560,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
     private string AssemblyInfoTemplate() => $$"""
         using System.Runtime.CompilerServices;
 
-        [assembly: InternalsVisibleTo("{{ctx.NS}}.Tests")]
+        [assembly: InternalsVisibleTo("{{ctx.NS}}.Tests.Unit")]
         """;
 
     private string DomainServiceTestsTemplate() => $$"""
@@ -569,7 +570,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         using {{ctx.NS}}.Domain.Interfaces.Repositories;
         using {{ctx.NS}}.Domain.Services;
 
-        namespace {{ctx.NS}}.Tests.Domain.Services;
+        namespace {{ctx.NS}}.Tests.Unit.Domain.Services;
 
         public sealed class {{ctx.Entity}}DomainServiceTests
         {
@@ -625,7 +626,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         using {{ctx.NS}}.Domain.Entities;
         using {{ctx.NS}}.Domain.Interfaces.Services;
 
-        namespace {{ctx.NS}}.Tests.Application.Features.{{ctx.Entity}}Features;
+        namespace {{ctx.NS}}.Tests.Unit.Application.Features.{{ctx.Entity}}Features;
 
         public sealed class Create{{ctx.Entity}}CommandHandlerTests
         {
@@ -663,7 +664,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Delete{{ctx.Entity}}Feature;
         using {{ctx.NS}}.Domain.Interfaces.Services;
 
-        namespace {{ctx.NS}}.Tests.Application.Features.{{ctx.Entity}}Features;
+        namespace {{ctx.NS}}.Tests.Unit.Application.Features.{{ctx.Entity}}Features;
 
         public sealed class Delete{{ctx.Entity}}CommandHandlerTests
         {
@@ -709,7 +710,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         using {{ctx.NS}}.Domain.Entities;
         using {{ctx.NS}}.Domain.Interfaces.Services;
 
-        namespace {{ctx.NS}}.Tests.Application.Features.{{ctx.Entity}}Features;
+        namespace {{ctx.NS}}.Tests.Unit.Application.Features.{{ctx.Entity}}Features;
 
         public sealed class Update{{ctx.Entity}}CommandHandlerTests
         {
@@ -750,7 +751,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         using {{ctx.NS}}.Domain.Entities;
         using {{ctx.NS}}.Domain.Interfaces.Services;
 
-        namespace {{ctx.NS}}.Tests.Application.Features.{{ctx.Entity}}Features;
+        namespace {{ctx.NS}}.Tests.Unit.Application.Features.{{ctx.Entity}}Features;
 
         public sealed class Find{{ctx.Entity}}ByIdQueryHandlerTests
         {
@@ -789,7 +790,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Get{{ctx.EPlural}}Feature;
         using {{ctx.NS}}.Domain.Interfaces.Services;
 
-        namespace {{ctx.NS}}.Tests.Application.Features.{{ctx.Entity}}Features;
+        namespace {{ctx.NS}}.Tests.Unit.Application.Features.{{ctx.Entity}}Features;
 
         public sealed class Get{{ctx.Entity}}QueryHandlerTests
         {
@@ -820,7 +821,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         using FluentValidation.TestHelper;
         using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Create{{ctx.Entity}}Feature;
 
-        namespace {{ctx.NS}}.Tests.Application.Features.{{ctx.Entity}}Features;
+        namespace {{ctx.NS}}.Tests.Unit.Application.Features.{{ctx.Entity}}Features;
 
         public sealed class Create{{ctx.Entity}}CommandValidatorTests
         {
@@ -853,7 +854,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         using FluentValidation.TestHelper;
         using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Delete{{ctx.Entity}}Feature;
 
-        namespace {{ctx.NS}}.Tests.Application.Features.{{ctx.Entity}}Features;
+        namespace {{ctx.NS}}.Tests.Unit.Application.Features.{{ctx.Entity}}Features;
 
         public sealed class Delete{{ctx.Entity}}CommandValidatorTests
         {
@@ -879,7 +880,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         using FluentValidation.TestHelper;
         using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Update{{ctx.Entity}}Feature;
 
-        namespace {{ctx.NS}}.Tests.Application.Features.{{ctx.Entity}}Features;
+        namespace {{ctx.NS}}.Tests.Unit.Application.Features.{{ctx.Entity}}Features;
 
         public sealed class Update{{ctx.Entity}}CommandValidatorTests
         {
@@ -912,7 +913,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         using FluentValidation.TestHelper;
         using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Find{{ctx.Entity}}ByIdFeature;
 
-        namespace {{ctx.NS}}.Tests.Application.Features.{{ctx.Entity}}Features;
+        namespace {{ctx.NS}}.Tests.Unit.Application.Features.{{ctx.Entity}}Features;
 
         public sealed class Find{{ctx.Entity}}ByIdQueryValidatorTests
         {
@@ -938,7 +939,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         using FluentValidation.TestHelper;
         using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Get{{ctx.EPlural}}Feature;
 
-        namespace {{ctx.NS}}.Tests.Application.Features.{{ctx.Entity}}Features;
+        namespace {{ctx.NS}}.Tests.Unit.Application.Features.{{ctx.Entity}}Features;
 
         public sealed class Get{{ctx.Entity}}QueryValidatorTests
         {
@@ -980,7 +981,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Update{{ctx.Entity}}Feature;
         using {{ctx.NS}}.Application.Services;
 
-        namespace {{ctx.NS}}.Tests.Application.Services;
+        namespace {{ctx.NS}}.Tests.Unit.Application.Services;
 
         public sealed class {{ctx.Entity}}ApplicationServiceTests
         {

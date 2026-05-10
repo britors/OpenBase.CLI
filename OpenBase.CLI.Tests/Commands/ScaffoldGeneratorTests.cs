@@ -246,7 +246,7 @@ public class ScaffoldGeneratorTests
         var info = files.First(f => f.Path.EndsWith("AssemblyInfo.cs"));
 
         Assert.Contains("InternalsVisibleTo", info.Content);
-        Assert.Contains("MyApp.Tests", info.Content);
+        Assert.Contains("MyApp.Tests.Unit", info.Content);
     }
 
     [Fact]
@@ -305,7 +305,15 @@ public class ScaffoldGeneratorTests
         var testFiles = MakeGenerator("Produto").GetFiles()
             .Where(f => f.Path.Contains("Tests") && !f.Path.Contains("AssemblyInfo")).ToList();
 
-        Assert.All(testFiles, f => Assert.Contains("tests", f.Path));
+        Assert.All(testFiles, f => Assert.Contains("Tests.Unit", f.Path));
+    }
+
+    [Fact]
+    public void Context_TestsCsprojPath_ContainsTestsUnitCsproj()
+    {
+        var ctx = MakeContext("Produto", "MyApp", "/sol");
+        Assert.EndsWith("MyApp.Tests.Unit.csproj", ctx.TestsCsprojPath);
+        Assert.Contains("tests", ctx.TestsCsprojPath);
     }
 
     [Fact]

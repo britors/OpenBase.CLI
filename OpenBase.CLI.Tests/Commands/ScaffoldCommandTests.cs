@@ -202,4 +202,95 @@ public class ScaffoldCommandTests
 
         Assert.Contains("Disco cheio", output.ToString());
     }
+
+    // ── AddTestFilesToCsproj ──────────────────────────────────────────────────
+
+    private const string MinimalCsproj = """
+        <Project Sdk="Microsoft.NET.Sdk">
+          <PropertyGroup>
+            <TargetFramework>net10.0</TargetFramework>
+          </PropertyGroup>
+        </Project>
+        """;
+
+    private void SetupForCsprojWrite(string csprojPath)
+    {
+        _fileWriter
+            .Setup(f => f.FileExists(It.Is<string>(p => p == csprojPath)))
+            .Returns(true);
+        _fileWriter
+            .Setup(f => f.ReadAllText(It.Is<string>(p => p == csprojPath)))
+            .Returns(MinimalCsproj);
+    }
+
+    [Fact]
+    public async Task Execute_ValidProject_AddsTestFilesToCsproj()
+    {
+        SetupLocator("/solution", "OpenBaseNET");
+        var csprojPath = Path.Combine("/solution", "tests", "OpenBaseNET.Tests.Unit", "OpenBaseNET.Tests.Unit.csproj");
+
+        _fileWriter.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
+        SetupForCsprojWrite(csprojPath);
+
+        await Run(BuildSettings("Produto"));
+
+        _fileWriter.Verify(
+            f => f.WriteAllText(
+                It.Is<string>(p => p == csprojPath),
+                It.Is<string>(c => c.Contains("<Compile Include=") && c.Contains("ProdutoDomainServiceTests.cs"))),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Execute_CsprojNotFound_SkipsCsprojModification()
+    {
+        SetupLocator("/solution", "OpenBaseNET");
+        _fileWriter.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
+
+        await Run(BuildSettings("Produto"));
+
+        _fileWriter.Verify(
+            f => f.ReadAllText(It.IsAny<string>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Execute_AllFilesSkipped_DoesNotModifyCsproj()
+    {
+        SetupLocator("/solution", "OpenBaseNET");
+        _fileWriter.Setup(f => f.FileExists(It.IsAny<string>())).Returns(true);
+
+        var csprojPath = Path.Combine("/solution", "tests", "OpenBaseNET.Tests.Unit", "OpenBaseNET.Tests.Unit.csproj");
+        _fileWriter
+            .Setup(f => f.ReadAllText(It.Is<string>(p => p == csprojPath)))
+            .Returns(MinimalCsproj);
+
+        await Run(BuildSettings("Produto"));
+
+        _fileWriter.Verify(
+            f => f.WriteAllText(
+                It.Is<string>(p => p == csprojPath),
+                It.IsAny<string>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Execute_ValidProject_AddsAllTwelveTestFilesToCsproj()
+    {
+        SetupLocator("/solution", "OpenBaseNET");
+        var csprojPath = Path.Combine("/solution", "tests", "OpenBaseNET.Tests.Unit", "OpenBaseNET.Tests.Unit.csproj");
+
+        _fileWriter.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
+        SetupForCsprojWrite(csprojPath);
+
+        string? capturedContent = null;
+        _fileWriter
+            .Setup(f => f.WriteAllText(It.Is<string>(p => p == csprojPath), It.IsAny<string>()))
+            .Callback<string, string>((_, c) => capturedContent = c);
+
+        await Run(BuildSettings("Produto"));
+
+        Assert.NotNull(capturedContent);
+        Assert.Equal(12, capturedContent!.Split("<Compile Include=").Length - 1);
+    }
 }
