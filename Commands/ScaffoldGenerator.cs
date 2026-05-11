@@ -36,6 +36,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
     private const string Services  = "Services";
     private const string Requests  = "Requests";
     private const string Responses = "Responses";
+    private const string IntId     = "int Id";
 
     // Output indentation levels (verbatim in generated files)
     private const string I4  = "    ";
@@ -63,7 +64,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         string.Join(", ", ctx.Properties.Select(p => $"{p.ActualCsType} {p.Name}"));
 
     private string IdAndPropertiesParams() =>
-        ctx.Properties.Count == 0 ? "int Id" : $"int Id, {CreateParams()}";
+        ctx.Properties.Count == 0 ? IntId : $"{IntId}, {CreateParams()}";
 
     private string EfPropertyBlocks()
     {
@@ -141,21 +142,12 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         sb.Append($"\n{I8}result.ShouldNotHaveAnyValidationErrors();");
         sb.Append($"\n{I4}}}");
 
-        foreach (var p in ctx.Properties.Where(p => p.IsStringType && p.IsRequired))
+        foreach (var name in ctx.Properties.Where(p => p.IsStringType && p.IsRequired).Select(p => p.Name))
         {
-            sb.Append($"\n\n{I4}[Fact]");
-            sb.Append($"\n{I4}public void Validate_IsInvalid_When{p.Name}IsEmpty()");
-            sb.Append($"\n{I4}{{");
-            sb.Append($"\n{I8}var result = _validator.TestValidate(new Create{ctx.Entity}Command({CreateTestArgsOverride(p.Name, "\"\"")}));");
-            sb.Append($"\n{I8}result.ShouldHaveValidationErrorFor(x => x.{p.Name});");
-            sb.Append($"\n{I4}}}");
-
-            sb.Append($"\n\n{I4}[Fact]");
-            sb.Append($"\n{I4}public void Validate_IsInvalid_When{p.Name}Exceeds255Characters()");
-            sb.Append($"\n{I4}{{");
-            sb.Append($"\n{I8}var result = _validator.TestValidate(new Create{ctx.Entity}Command({CreateTestArgsOverride(p.Name, "new string('a', 256)")}));");
-            sb.Append($"\n{I8}result.ShouldHaveValidationErrorFor(x => x.{p.Name});");
-            sb.Append($"\n{I4}}}");
+            AppendValidatorFact(sb, $"Validate_IsInvalid_When{name}IsEmpty",
+                $"Create{ctx.Entity}Command({CreateTestArgsOverride(name, "\"\"")})", name);
+            AppendValidatorFact(sb, $"Validate_IsInvalid_When{name}Exceeds255Characters",
+                $"Create{ctx.Entity}Command({CreateTestArgsOverride(name, "new string('a', 256)")})", name);
         }
 
         return sb.ToString();
@@ -171,23 +163,43 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         sb.Append($"\n{I8}result.ShouldNotHaveAnyValidationErrors();");
         sb.Append($"\n{I4}}}");
 
+        AppendValidatorFact(sb, "Validate_IsInvalid_WhenIdIsZero",
+            $"Update{ctx.Entity}Command(0, {CreateTestArgs()})", "Id");
+
+        foreach (var name in ctx.Properties.Where(p => p.IsStringType).Select(p => p.Name))
+        {
+            AppendValidatorFact(sb, $"Validate_IsInvalid_When{name}Exceeds255Characters",
+                $"Update{ctx.Entity}Command(1, {CreateTestArgsOverride(name, "new string('a', 256)")})", name);
+        }
+
+        return sb.ToString();
+    }
+
+    private static void AppendValidatorFact(StringBuilder sb, string methodName, string commandCtor, string propName)
+    {
+        sb.Append($"\n\n{I4}[Fact]");
+        sb.Append($"\n{I4}public void {methodName}()");
+        sb.Append($"\n{I4}{{");
+        sb.Append($"\n{I8}var result = _validator.TestValidate(new {commandCtor});");
+        sb.Append($"\n{I8}result.ShouldHaveValidationErrorFor(x => x.{propName});");
+        sb.Append($"\n{I4}}}");
+    }
+
+    private static string BuildIdValidatorTestMethods(string typeName)
+    {
+        var sb = new StringBuilder();
+        sb.Append("[Fact]");
+        sb.Append($"\n{I4}public void Validate_IsValid_WhenIdIsProvided()");
+        sb.Append($"\n{I4}{{");
+        sb.Append($"\n{I8}var result = _validator.TestValidate(new {typeName}(1));");
+        sb.Append($"\n{I8}result.ShouldNotHaveAnyValidationErrors();");
+        sb.Append($"\n{I4}}}");
         sb.Append($"\n\n{I4}[Fact]");
         sb.Append($"\n{I4}public void Validate_IsInvalid_WhenIdIsZero()");
         sb.Append($"\n{I4}{{");
-        sb.Append($"\n{I8}var result = _validator.TestValidate(new Update{ctx.Entity}Command(0, {CreateTestArgs()}));");
+        sb.Append($"\n{I8}var result = _validator.TestValidate(new {typeName}(0));");
         sb.Append($"\n{I8}result.ShouldHaveValidationErrorFor(x => x.Id);");
         sb.Append($"\n{I4}}}");
-
-        foreach (var p in ctx.Properties.Where(p => p.IsStringType))
-        {
-            sb.Append($"\n\n{I4}[Fact]");
-            sb.Append($"\n{I4}public void Validate_IsInvalid_When{p.Name}Exceeds255Characters()");
-            sb.Append($"\n{I4}{{");
-            sb.Append($"\n{I8}var result = _validator.TestValidate(new Update{ctx.Entity}Command(1, {CreateTestArgsOverride(p.Name, "new string('a', 256)")}));");
-            sb.Append($"\n{I8}result.ShouldHaveValidationErrorFor(x => x.{p.Name});");
-            sb.Append($"\n{I4}}}");
-        }
-
         return sb.ToString();
     }
 
@@ -331,8 +343,8 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
 
     private string CreateRequestTemplate() => DtoTemplate(Requests, $"Create{ctx.Entity}Request", CreateParams());
     private string UpdateRequestTemplate() => DtoTemplate(Requests, $"Update{ctx.Entity}Request", IdAndPropertiesParams());
-    private string DeleteRequestTemplate() => DtoTemplate(Requests, $"Delete{ctx.Entity}Request", "int Id");
-    private string FindByIdRequestTemplate() => DtoTemplate(Requests, $"Find{ctx.Entity}ByIdRequest", "int Id");
+    private string DeleteRequestTemplate() => DtoTemplate(Requests, $"Delete{ctx.Entity}Request", IntId);
+    private string FindByIdRequestTemplate() => DtoTemplate(Requests, $"Find{ctx.Entity}ByIdRequest", IntId);
     private string GetRequestTemplate() => DtoTemplate(Requests, $"Get{ctx.Entity}Request", "string Name = \"\", int Page = 1, int PageSize = 5");
     private string ResponseTemplate() => DtoTemplate(Responses, $"{ctx.Entity}Response", IdAndPropertiesParams());
     private string CreateResponseTemplate() => DtoTemplate(Responses, $"Create{ctx.Entity}Response", IdAndPropertiesParams());
@@ -395,7 +407,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         CreateValidatorRules());
 
     private string DeleteCommandTemplate() => CommandTemplate(
-        $"Delete{ctx.Entity}Feature", $"Delete{ctx.Entity}Command", "int Id", $"Delete{ctx.Entity}Response");
+        $"Delete{ctx.Entity}Feature", $"Delete{ctx.Entity}Command", IntId, $"Delete{ctx.Entity}Response");
 
     private string DeleteCommandHandlerTemplate() => $$"""
         using MediatR;
@@ -995,19 +1007,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         {
             private readonly Delete{{ctx.Entity}}CommandValidator _validator = new();
 
-            [Fact]
-            public void Validate_IsValid_WhenIdIsProvided()
-            {
-                var result = _validator.TestValidate(new Delete{{ctx.Entity}}Command(1));
-                result.ShouldNotHaveAnyValidationErrors();
-            }
-
-            [Fact]
-            public void Validate_IsInvalid_WhenIdIsZero()
-            {
-                var result = _validator.TestValidate(new Delete{{ctx.Entity}}Command(0));
-                result.ShouldHaveValidationErrorFor(x => x.Id);
-            }
+            {{BuildIdValidatorTestMethods($"Delete{ctx.Entity}Command")}}
         }
         """;
 
@@ -1035,19 +1035,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         {
             private readonly Find{{ctx.Entity}}ByIdQueryValidator _validator = new();
 
-            [Fact]
-            public void Validate_IsValid_WhenIdIsProvided()
-            {
-                var result = _validator.TestValidate(new Find{{ctx.Entity}}ByIdQuery(1));
-                result.ShouldNotHaveAnyValidationErrors();
-            }
-
-            [Fact]
-            public void Validate_IsInvalid_WhenIdIsZero()
-            {
-                var result = _validator.TestValidate(new Find{{ctx.Entity}}ByIdQuery(0));
-                result.ShouldHaveValidationErrorFor(x => x.Id);
-            }
+            {{BuildIdValidatorTestMethods($"Find{ctx.Entity}ByIdQuery")}}
         }
         """;
 

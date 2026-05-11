@@ -24,20 +24,7 @@ public sealed class ConsoleEntityPropertyCollector(IAnsiConsole console) : IEnti
         {
             var name = console.Prompt(
                 new TextPrompt<string>($"[bold]Prop {properties.Count + 1}[/] — Nome [grey](PascalCase)[/]:")
-                    .Validate(n =>
-                    {
-                        if (string.IsNullOrWhiteSpace(n))
-                            return ValidationResult.Error("O nome é obrigatório.");
-                        if (!char.IsUpper(n[0]))
-                            return ValidationResult.Error("Deve começar com letra maiúscula.");
-                        if (!n.All(char.IsLetterOrDigit))
-                            return ValidationResult.Error("Use apenas letras e números.");
-                        if (n.Equals(ReservedIdName, StringComparison.OrdinalIgnoreCase))
-                            return ValidationResult.Error("'Id' é reservado como chave primária.");
-                        if (properties.Any(p => p.Name.Equals(n, StringComparison.OrdinalIgnoreCase)))
-                            return ValidationResult.Error($"Propriedade '{n}' já foi adicionada.");
-                        return ValidationResult.Success();
-                    }));
+                    .Validate(n => ValidatePropertyName(n, properties)));
 
             var type = console.Prompt(
                 new SelectionPrompt<string>()
@@ -55,6 +42,21 @@ public sealed class ConsoleEntityPropertyCollector(IAnsiConsole console) : IEnti
 
         ShowSummaryTable(properties);
         return properties;
+    }
+
+    private ValidationResult ValidatePropertyName(string n, List<EntityProperty> properties)
+    {
+        if (string.IsNullOrWhiteSpace(n))
+            return ValidationResult.Error("O nome é obrigatório.");
+        if (!char.IsUpper(n[0]))
+            return ValidationResult.Error("Deve começar com letra maiúscula.");
+        if (!n.All(char.IsLetterOrDigit))
+            return ValidationResult.Error("Use apenas letras e números.");
+        if (n.Equals(ReservedIdName, StringComparison.OrdinalIgnoreCase))
+            return ValidationResult.Error("'Id' é reservado como chave primária.");
+        if (properties.Any(p => p.Name.Equals(n, StringComparison.OrdinalIgnoreCase)))
+            return ValidationResult.Error($"Propriedade '{n}' já foi adicionada.");
+        return ValidationResult.Success();
     }
 
     private void ShowSummaryTable(IReadOnlyList<EntityProperty> properties)
