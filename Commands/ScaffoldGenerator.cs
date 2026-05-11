@@ -142,20 +142,20 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         sb.Append($"\n{I8}result.ShouldNotHaveAnyValidationErrors();");
         sb.Append($"\n{I4}}}");
 
-        foreach (var p in ctx.Properties.Where(p => p.IsStringType && p.IsRequired))
+        foreach (var name in ctx.Properties.Where(p => p.IsStringType && p.IsRequired).Select(p => p.Name))
         {
             sb.Append($"\n\n{I4}[Fact]");
-            sb.Append($"\n{I4}public void Validate_IsInvalid_When{p.Name}IsEmpty()");
+            sb.Append($"\n{I4}public void Validate_IsInvalid_When{name}IsEmpty()");
             sb.Append($"\n{I4}{{");
-            sb.Append($"\n{I8}var result = _validator.TestValidate(new Create{ctx.Entity}Command({CreateTestArgsOverride(p.Name, "\"\"")}));");
-            sb.Append($"\n{I8}result.ShouldHaveValidationErrorFor(x => x.{p.Name});");
+            sb.Append($"\n{I8}var result = _validator.TestValidate(new Create{ctx.Entity}Command({CreateTestArgsOverride(name, "\"\"")}));");
+            sb.Append($"\n{I8}result.ShouldHaveValidationErrorFor(x => x.{name});");
             sb.Append($"\n{I4}}}");
 
             sb.Append($"\n\n{I4}[Fact]");
-            sb.Append($"\n{I4}public void Validate_IsInvalid_When{p.Name}Exceeds255Characters()");
+            sb.Append($"\n{I4}public void Validate_IsInvalid_When{name}Exceeds255Characters()");
             sb.Append($"\n{I4}{{");
-            sb.Append($"\n{I8}var result = _validator.TestValidate(new Create{ctx.Entity}Command({CreateTestArgsOverride(p.Name, "new string('a', 256)")}));");
-            sb.Append($"\n{I8}result.ShouldHaveValidationErrorFor(x => x.{p.Name});");
+            sb.Append($"\n{I8}var result = _validator.TestValidate(new Create{ctx.Entity}Command({CreateTestArgsOverride(name, "new string('a', 256)")}));");
+            sb.Append($"\n{I8}result.ShouldHaveValidationErrorFor(x => x.{name});");
             sb.Append($"\n{I4}}}");
         }
 
