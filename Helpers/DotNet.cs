@@ -175,6 +175,8 @@ public static class DotNet
                 var trimmed = lines[j].Trim();
                 if (trimmed.StartsWith("Version:", StringComparison.OrdinalIgnoreCase))
                     return trimmed["Version:".Length..].Trim();
+                if (trimmed.StartsWith("Versão:", StringComparison.OrdinalIgnoreCase))
+                    return trimmed["Versão:".Length..].Trim();
             }
         }
         return null;

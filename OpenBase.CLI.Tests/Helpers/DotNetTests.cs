@@ -102,6 +102,23 @@ public class DotNetTests
         Assert.Equal("1.5.3", DotNet.ParseTemplateVersion(output, "w3ti.OpenBaseNET.Postgres.Template"));
     }
 
+    [Fact]
+    public void ParseTemplateVersion_PortugueseOutput_ReturnsVersion()
+    {
+        var output = """
+            Itens instalados no momento:
+               w3ti.OpenBaseNET.SQLServer.Template
+                  Versão: 10.3.1
+                  Detalhes:
+                     Author: w3ti
+               w3ti.OpenBaseNET.Postgres.Template
+                  Versão: 10.3.0
+            """;
+
+        Assert.Equal("10.3.1", DotNet.ParseTemplateVersion(output, "w3ti.OpenBaseNET.SQLServer.Template"));
+        Assert.Equal("10.3.0", DotNet.ParseTemplateVersion(output, "w3ti.OpenBaseNET.Postgres.Template"));
+    }
+
     [Theory]
     [InlineData("", "w3ti.OpenBaseNET.SQLServer.Template")]
     [InlineData("Currently installed items:\n   other.package\n     Version: 1.0.0", "w3ti.OpenBaseNET.SQLServer.Template")]
