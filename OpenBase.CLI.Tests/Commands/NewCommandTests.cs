@@ -290,6 +290,37 @@ public class NewCommandApplyConfigToJsonTests
     }
 
     [Fact]
+    public void CreatesConnectionStrings_WhenSectionMissing()
+    {
+        const string json = """{}""";
+
+        var result = NewCommand.ApplyConfigToJson(json, SqlServerKey, "Server=.;Database=Test", Config());
+
+        Assert.Contains("ConnectionStrings", result);
+        Assert.Contains("Server=.;Database=Test", result);
+    }
+
+    [Fact]
+    public void CreatesMediatRSection_WhenMissing()
+    {
+        const string json = """{"ConnectionStrings":{"OpenBaseSQLServer":""}}""";
+
+        var result = NewCommand.ApplyConfigToJson(json, SqlServerKey, "cs", Config(mediatr: "mtr-key-123"));
+
+        Assert.Contains("mtr-key-123", result);
+    }
+
+    [Fact]
+    public void CreatesAutoMapperSection_WhenMissing()
+    {
+        const string json = """{"ConnectionStrings":{"OpenBaseSQLServer":""}}""";
+
+        var result = NewCommand.ApplyConfigToJson(json, SqlServerKey, "cs", Config(automapper: "am-key-456"));
+
+        Assert.Contains("am-key-456", result);
+    }
+
+    [Fact]
     public void InvalidJson_ReturnsOriginalContent()
     {
         const string invalid = "not json";

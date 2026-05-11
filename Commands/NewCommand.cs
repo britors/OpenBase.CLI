@@ -148,6 +148,8 @@ public class NewCommand : AsyncCommand<NewSettings>
 
         if (json[JsonSectionConnectionStrings] is JsonObject connStrings)
             connStrings[connectionKey] = connectionString;
+        else
+            json[JsonSectionConnectionStrings] = new JsonObject { [connectionKey] = connectionString };
 
         SetLicenseKey(json, MediatRKeys,    config.MediatrLicense);
         SetLicenseKey(json, AutoMapperKeys, config.AutomapperLicense);
@@ -158,7 +160,14 @@ public class NewCommand : AsyncCommand<NewSettings>
     private static void SetLicenseKey(JsonNode json, string[] keyVariants, string licenseKey)
     {
         foreach (var key in keyVariants)
+        {
             if (json[key] is JsonObject node)
+            {
                 node[JsonKeyLicenseKey] = licenseKey;
+                return;
+            }
+        }
+
+        json[keyVariants[0]] = new JsonObject { [JsonKeyLicenseKey] = licenseKey };
     }
 }
