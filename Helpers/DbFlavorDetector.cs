@@ -14,12 +14,10 @@ public sealed class DbFlavorDetector : IDbFlavorDetector
         if (!Directory.Exists(srcDir))
             return DbFlavor.SqlServer;
 
-        foreach (var csproj in Directory.GetFiles(srcDir, "*.csproj", SearchOption.AllDirectories))
-        {
-            if (File.ReadAllText(csproj).Contains(NpgsqlPackage, StringComparison.OrdinalIgnoreCase))
-                return DbFlavor.Postgres;
-        }
+        var hasNpgsql = Directory.GetFiles(srcDir, "*.csproj", SearchOption.AllDirectories)
+            .Where(f => File.ReadAllText(f).Contains(NpgsqlPackage, StringComparison.OrdinalIgnoreCase))
+            .Any();
 
-        return DbFlavor.SqlServer;
+        return hasNpgsql ? DbFlavor.Postgres : DbFlavor.SqlServer;
     }
 }
