@@ -1,6 +1,5 @@
 using OpenBase.CLI.Commands;
 using OpenBase.CLI.Helpers;
-using OpenBase.CLI.Models;
 using Spectre.Console.Cli;
 
 namespace OpenBase.CLI.Tests.Commands;
@@ -8,31 +7,29 @@ namespace OpenBase.CLI.Tests.Commands;
 public class VersionCommandTests
 {
     private readonly Mock<IDotNetRunner> _dotNetRunner = new();
-    private readonly Mock<IUpdateHistoryService> _historyService = new();
 
     private VersionCommand CreateCommand() =>
-        new(_dotNetRunner.Object, _historyService.Object, CommandTestHelper.CreateConsole());
+        new(_dotNetRunner.Object, CommandTestHelper.CreateConsole());
 
-    private void SetupDotnet(string version = "10.0.0") =>
-        _dotNetRunner.Setup(r => r.GetDotnetVersion()).Returns(version);
-
-    private void SetupHistory(string component, string? newVersion) =>
-        _historyService
-            .Setup(s => s.GetHistoryAsync(component, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(newVersion is null
-                ? Array.Empty<UpdateHistoryEntry>()
-                : [new UpdateHistoryEntry { Component = component, NewVersion = newVersion, Success = true, Date = DateTime.UtcNow }]);
-
-    private void SetupNoHistory() =>
-        _historyService
-            .Setup(s => s.GetHistoryAsync(It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Array.Empty<UpdateHistoryEntry>());
+    private void SetupDefaults(
+        string dotnetVersion = "10.0.0",
+        string? cliVersion = null,
+        string? sqlVersion = null,
+        string? pgVersion = null)
+    {
+        _dotNetRunner.Setup(r => r.GetDotnetVersion()).Returns(dotnetVersion);
+        _dotNetRunner.Setup(r => r.GetInstalledToolVersionAsync("w3ti.OpenBase.CLI", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(cliVersion);
+        _dotNetRunner.Setup(r => r.GetInstalledTemplateVersionAsync("w3ti.OpenBaseNET.SQLServer.Template", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(sqlVersion);
+        _dotNetRunner.Setup(r => r.GetInstalledTemplateVersionAsync("w3ti.OpenBaseNET.Postgres.Template", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(pgVersion);
+    }
 
     [Fact]
     public async Task Execute_ReturnsZero()
     {
-        SetupDotnet();
-        SetupNoHistory();
+        SetupDefaults();
 
         var result = await ((ICommand<VersionSettings>)CreateCommand())
             .ExecuteAsync(CommandTestHelper.CreateContext("show"), new VersionSettings(), CancellationToken.None);
@@ -43,8 +40,7 @@ public class VersionCommandTests
     [Fact]
     public async Task Execute_CallsGetDotnetVersion()
     {
-        SetupDotnet("10.0.1");
-        SetupNoHistory();
+        SetupDefaults(dotnetVersion: "10.0.1");
 
         await ((ICommand<VersionSettings>)CreateCommand())
             .ExecuteAsync(CommandTestHelper.CreateContext("show"), new VersionSettings(), CancellationToken.None);
@@ -53,38 +49,22 @@ public class VersionCommandTests
     }
 
     [Fact]
-    public async Task Execute_UnknownDotnetVersion_ReturnsZero()
+    public async Task Execute_QueriesInstalledVersionsForAllTrackedComponents()
     {
-        SetupDotnet("--");
-        SetupNoHistory();
-
-        var result = await ((ICommand<VersionSettings>)CreateCommand())
-            .ExecuteAsync(CommandTestHelper.CreateContext("show"), new VersionSettings(), CancellationToken.None);
-
-        Assert.Equal(0, result);
-    }
-
-    [Fact]
-    public async Task Execute_QueriesHistoryForAllTrackedComponents()
-    {
-        SetupDotnet();
-        SetupNoHistory();
+        SetupDefaults();
 
         await ((ICommand<VersionSettings>)CreateCommand())
             .ExecuteAsync(CommandTestHelper.CreateContext("show"), new VersionSettings(), CancellationToken.None);
 
-        _historyService.Verify(s => s.GetHistoryAsync("w3ti.OpenBase.CLI", It.IsAny<CancellationToken>()), Times.Once);
-        _historyService.Verify(s => s.GetHistoryAsync("w3ti.OpenBaseNET.SQLServer.Template", It.IsAny<CancellationToken>()), Times.Once);
-        _historyService.Verify(s => s.GetHistoryAsync("w3ti.OpenBaseNET.Postgres.Template", It.IsAny<CancellationToken>()), Times.Once);
+        _dotNetRunner.Verify(r => r.GetInstalledToolVersionAsync("w3ti.OpenBase.CLI", It.IsAny<CancellationToken>()), Times.Once);
+        _dotNetRunner.Verify(r => r.GetInstalledTemplateVersionAsync("w3ti.OpenBaseNET.SQLServer.Template", It.IsAny<CancellationToken>()), Times.Once);
+        _dotNetRunner.Verify(r => r.GetInstalledTemplateVersionAsync("w3ti.OpenBaseNET.Postgres.Template", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task Execute_WithHistory_ReturnsZero()
+    public async Task Execute_WithInstalledVersions_ReturnsZero()
     {
-        SetupDotnet();
-        SetupHistory("w3ti.OpenBase.CLI", "10.5.11");
-        SetupHistory("w3ti.OpenBaseNET.SQLServer.Template", "2.0.1");
-        SetupHistory("w3ti.OpenBaseNET.Postgres.Template", "1.5.3");
+        SetupDefaults(cliVersion: "10.6.2", sqlVersion: "10.3.1", pgVersion: "10.3.0");
 
         var result = await ((ICommand<VersionSettings>)CreateCommand())
             .ExecuteAsync(CommandTestHelper.CreateContext("show"), new VersionSettings(), CancellationToken.None);
@@ -93,12 +73,9 @@ public class VersionCommandTests
     }
 
     [Fact]
-    public async Task Execute_FailedHistoryEntriesIgnored_FallsBackToNoVersion()
+    public async Task Execute_WithNoInstalledVersions_ReturnsZero()
     {
-        SetupDotnet();
-        _historyService
-            .Setup(s => s.GetHistoryAsync(It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync([new UpdateHistoryEntry { NewVersion = "1.0.0", Success = false, Date = DateTime.UtcNow }]);
+        SetupDefaults();
 
         var result = await ((ICommand<VersionSettings>)CreateCommand())
             .ExecuteAsync(CommandTestHelper.CreateContext("show"), new VersionSettings(), CancellationToken.None);

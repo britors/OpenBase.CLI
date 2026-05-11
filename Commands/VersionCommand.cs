@@ -13,7 +13,6 @@ public class VersionSettings : CommandSettings
 
 public class VersionCommand(
     IDotNetRunner dotNetRunner,
-    IUpdateHistoryService historyService,
     IAnsiConsole console) : AsyncCommand<VersionSettings>
 {
     private const string Codename = "Andromeda";
@@ -35,11 +34,12 @@ public class VersionCommand(
         var osDescription = RuntimeInformation.OSDescription;
         var architecture = RuntimeInformation.OSArchitecture.ToString().ToLower();
 
-        var lastVersions = new Dictionary<string, string?>();
+        var installedVersions = new Dictionary<string, string?>();
         foreach (var (component, _) in TrackedComponents)
         {
-            var history = await historyService.GetHistoryAsync(component, cancellationToken);
-            lastVersions[component] = history.FirstOrDefault(e => e.Success && e.NewVersion != null)?.NewVersion;
+            installedVersions[component] = component == "w3ti.OpenBase.CLI"
+                ? await dotNetRunner.GetInstalledToolVersionAsync(component, cancellationToken)
+                : await dotNetRunner.GetInstalledTemplateVersionAsync(component, cancellationToken);
         }
 
         console.Write(new FigletText("OpenBase").Color(Color.Blue));
@@ -53,7 +53,7 @@ public class VersionCommand(
 
         foreach (var (component, label) in TrackedComponents)
         {
-            var version = lastVersions[component];
+            var version = installedVersions[component];
             var isCli = component == "w3ti.OpenBase.CLI";
 
             string display;
@@ -63,7 +63,7 @@ public class VersionCommand(
                     : $"[green]{Markup.Escape(version)}[/]";
             else
                 display = isCli
-                    ? $"[yellow]{Markup.Escape(assemblyVersion)} \"{Codename}\"[/] [grey](sem histórico)[/]"
+                    ? $"[yellow]{Markup.Escape(assemblyVersion)} \"{Codename}\"[/]"
                     : "[grey]--[/]";
 
             table.AddRow(label, display);
