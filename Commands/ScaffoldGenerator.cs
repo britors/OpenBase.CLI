@@ -36,6 +36,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
     private const string Services  = "Services";
     private const string Requests  = "Requests";
     private const string Responses = "Responses";
+    private const string IntId     = "int Id";
 
     // Output indentation levels (verbatim in generated files)
     private const string I4  = "    ";
@@ -63,7 +64,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         string.Join(", ", ctx.Properties.Select(p => $"{p.ActualCsType} {p.Name}"));
 
     private string IdAndPropertiesParams() =>
-        ctx.Properties.Count == 0 ? "int Id" : $"int Id, {CreateParams()}";
+        ctx.Properties.Count == 0 ? IntId : $"{IntId}, {CreateParams()}";
 
     private string EfPropertyBlocks()
     {
@@ -331,8 +332,8 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
 
     private string CreateRequestTemplate() => DtoTemplate(Requests, $"Create{ctx.Entity}Request", CreateParams());
     private string UpdateRequestTemplate() => DtoTemplate(Requests, $"Update{ctx.Entity}Request", IdAndPropertiesParams());
-    private string DeleteRequestTemplate() => DtoTemplate(Requests, $"Delete{ctx.Entity}Request", "int Id");
-    private string FindByIdRequestTemplate() => DtoTemplate(Requests, $"Find{ctx.Entity}ByIdRequest", "int Id");
+    private string DeleteRequestTemplate() => DtoTemplate(Requests, $"Delete{ctx.Entity}Request", IntId);
+    private string FindByIdRequestTemplate() => DtoTemplate(Requests, $"Find{ctx.Entity}ByIdRequest", IntId);
     private string GetRequestTemplate() => DtoTemplate(Requests, $"Get{ctx.Entity}Request", "string Name = \"\", int Page = 1, int PageSize = 5");
     private string ResponseTemplate() => DtoTemplate(Responses, $"{ctx.Entity}Response", IdAndPropertiesParams());
     private string CreateResponseTemplate() => DtoTemplate(Responses, $"Create{ctx.Entity}Response", IdAndPropertiesParams());
@@ -395,7 +396,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         CreateValidatorRules());
 
     private string DeleteCommandTemplate() => CommandTemplate(
-        $"Delete{ctx.Entity}Feature", $"Delete{ctx.Entity}Command", "int Id", $"Delete{ctx.Entity}Response");
+        $"Delete{ctx.Entity}Feature", $"Delete{ctx.Entity}Command", IntId, $"Delete{ctx.Entity}Response");
 
     private string DeleteCommandHandlerTemplate() => $$"""
         using MediatR;
