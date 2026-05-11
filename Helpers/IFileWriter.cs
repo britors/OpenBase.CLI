@@ -7,4 +7,5 @@ public interface IFileWriter
     string ReadAllText(string path);
     void WriteAllText(string path, string content);
     string? FindSolutionFile(string dir);
+    string? FindFile(string rootDirectory, string fileName);
 }

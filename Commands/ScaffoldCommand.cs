@@ -59,10 +59,12 @@ public class ScaffoldCommand(
         if (console.Profile.Capabilities.Interactive && !console.Confirm("Prosseguir com o scaffold?", defaultValue: true))
             return 0;
 
+        var testsPath = DetectTestsPath(solutionDir, rootNamespace);
         var ctx = new ScaffoldContext(settings.Entity, rootNamespace, solutionDir)
         {
             Properties = properties,
-            DbFlavor = dbFlavor
+            DbFlavor = dbFlavor,
+            TestsPath = testsPath
         };
 
         var files = new ScaffoldGenerator(ctx).GetFiles().ToList();
@@ -89,6 +91,16 @@ public class ScaffoldCommand(
         console.MarkupLine("  3. Execute [blue]dotnet ef database update[/]");
 
         return 0;
+    }
+
+    private string DetectTestsPath(string solutionDir, string rootNamespace)
+    {
+        var testsRoot = Path.Combine(solutionDir, "tests");
+        var csprojName = $"{rootNamespace}.Tests.Unit.csproj";
+        var found = fileWriter.FindFile(testsRoot, csprojName);
+        return found is not null
+            ? Path.GetDirectoryName(found)!
+            : Path.Combine(testsRoot, $"{rootNamespace}.Tests.Unit");
     }
 
     private void AddTestProjectToSolution(string testCsprojPath, string solutionDir)

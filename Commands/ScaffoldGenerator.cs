@@ -24,7 +24,12 @@ public sealed record ScaffoldContext(string Entity, string RootNamespace, string
     public string InfraContextPath => Path.Combine(Src, $"{NS}.Infra.Data.Context");
     public string InfraDataPath => Path.Combine(Src, $"{NS}.Infra.Data");
     public string PresentationPath => Path.Combine(Src, $"{NS}.Presentation.Api");
-    public string TestsPath => Path.Combine(SolutionDir, "tests", $"{NS}.Tests.Unit");
+    private string? _testsPathOverride;
+    public string TestsPath
+    {
+        get => _testsPathOverride ?? Path.Combine(SolutionDir, "tests", $"{NS}.Tests.Unit");
+        init => _testsPathOverride = value;
+    }
     public string TestsCsprojPath => Path.Combine(TestsPath, $"{NS}.Tests.Unit.csproj");
 
     private static readonly IReadOnlyList<EntityProperty> DefaultProperties =

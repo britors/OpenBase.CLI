@@ -11,4 +11,9 @@ public sealed class FileWriter : IFileWriter
     public void WriteAllText(string path, string content) => File.WriteAllText(path, content);
     public string? FindSolutionFile(string dir) =>
         Directory.GetFiles(dir, "*.sln", SearchOption.TopDirectoryOnly).FirstOrDefault();
+
+    public string? FindFile(string rootDirectory, string fileName) =>
+        Directory.Exists(rootDirectory)
+            ? Directory.GetFiles(rootDirectory, fileName, SearchOption.AllDirectories).FirstOrDefault()
+            : null;
 }
