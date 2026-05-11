@@ -11,6 +11,7 @@ public class ScaffoldCommandTests
     private readonly Mock<IFileWriter> _fileWriter = new();
     private readonly Mock<IEntityPropertyCollector> _propertyCollector = new();
     private readonly Mock<IDbFlavorDetector> _dbFlavorDetector = new();
+    private readonly Mock<IDotNetRunner> _dotNetRunner = new();
 
     public ScaffoldCommandTests()
     {
@@ -21,11 +22,15 @@ public class ScaffoldCommandTests
         _dbFlavorDetector
             .Setup(d => d.Detect(It.IsAny<string>()))
             .Returns(DbFlavor.SqlServer);
+
+        _dotNetRunner
+            .Setup(r => r.Run(It.IsAny<string>()))
+            .Returns((true, string.Empty));
     }
 
     private ScaffoldCommand CreateCommand() =>
         new(CommandTestHelper.CreateConsole(), _locator.Object, _fileWriter.Object,
-            _propertyCollector.Object, _dbFlavorDetector.Object);
+            _propertyCollector.Object, _dbFlavorDetector.Object, _dotNetRunner.Object);
 
     private static ScaffoldSettings BuildSettings(string entity = "Produto", string? ns = null) =>
         new() { Entity = entity, RootNamespace = ns };
@@ -157,7 +162,7 @@ public class ScaffoldCommandTests
             Out = new AnsiConsoleOutput(writer)
         });
         return (new ScaffoldCommand(console, _locator.Object, _fileWriter.Object,
-            _propertyCollector.Object, _dbFlavorDetector.Object), writer);
+            _propertyCollector.Object, _dbFlavorDetector.Object, _dotNetRunner.Object), writer);
     }
 
     private Task<int> RunWithOutput(ScaffoldCommand command, ScaffoldSettings settings) =>
@@ -240,6 +245,50 @@ public class ScaffoldCommandTests
         await RunWithOutput(cmd, BuildSettings("Produto"));
 
         Assert.Contains("Disco cheio", output.ToString());
+    }
+
+    // ── AddTestProjectToSolution ──────────────────────────────────────────────
+
+    [Fact]
+    public async Task Execute_ValidProject_AddsCsprojToSolution()
+    {
+        SetupLocator("/solution", "OpenBaseNET");
+        var csprojPath = Path.Combine("/solution", "tests", "OpenBaseNET.Tests.Unit", "OpenBaseNET.Tests.Unit.csproj");
+        var slnPath = Path.Combine("/solution", "OpenBaseNET.sln");
+
+        _fileWriter.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
+        _fileWriter.Setup(f => f.FindSolutionFile("/solution")).Returns(slnPath);
+        _fileWriter.Setup(f => f.FileExists(csprojPath)).Returns(true);
+
+        await Run(BuildSettings("Produto"));
+
+        _dotNetRunner.Verify(
+            r => r.Run(It.Is<string>(a => a.Contains("sln") && a.Contains(slnPath) && a.Contains(csprojPath))),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Execute_NoSolutionFile_SkipsSlnAdd()
+    {
+        SetupLocator("/solution", "OpenBaseNET");
+        _fileWriter.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
+        _fileWriter.Setup(f => f.FindSolutionFile(It.IsAny<string>())).Returns((string?)null);
+
+        await Run(BuildSettings("Produto"));
+
+        _dotNetRunner.Verify(r => r.Run(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Execute_CsprojNotFound_SkipsSlnAdd()
+    {
+        SetupLocator("/solution", "OpenBaseNET");
+        _fileWriter.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
+        _fileWriter.Setup(f => f.FindSolutionFile("/solution")).Returns("/solution/OpenBaseNET.sln");
+
+        await Run(BuildSettings("Produto"));
+
+        _dotNetRunner.Verify(r => r.Run(It.IsAny<string>()), Times.Never);
     }
 
     // ── AddTestFilesToCsproj ──────────────────────────────────────────────────

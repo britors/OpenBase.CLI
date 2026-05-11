@@ -36,7 +36,8 @@ public class ScaffoldCommand(
     IProjectLocator projectLocator,
     IFileWriter fileWriter,
     IEntityPropertyCollector propertyCollector,
-    IDbFlavorDetector dbFlavorDetector)
+    IDbFlavorDetector dbFlavorDetector,
+    IDotNetRunner dotNetRunner)
     : Command<ScaffoldSettings>
 {
     protected override int Execute([NotNull] CommandContext context, [NotNull] ScaffoldSettings settings, CancellationToken cancellationToken)
@@ -55,6 +56,9 @@ public class ScaffoldCommand(
         var dbFlavor = dbFlavorDetector.Detect(solutionDir);
         var properties = propertyCollector.Collect(dbFlavor);
 
+        if (console.Profile.Capabilities.Interactive && !console.Confirm("Prosseguir com o scaffold?", defaultValue: true))
+            return 0;
+
         var ctx = new ScaffoldContext(settings.Entity, rootNamespace, solutionDir)
         {
             Properties = properties,
@@ -64,6 +68,7 @@ public class ScaffoldCommand(
         var files = new ScaffoldGenerator(ctx).GetFiles().ToList();
         var (created, skipped, failed) = WriteFiles(files, solutionDir, settings.Entity);
         AddTestFilesToCsproj(ctx, created, solutionDir);
+        AddTestProjectToSolution(ctx.TestsCsprojPath, solutionDir);
 
         PrintFileList($"{created.Count} arquivo(s) criado(s):", created, "green");
         PrintFileList($"{skipped.Count} arquivo(s) já existente(s) ignorado(s):", skipped, "yellow");
@@ -84,6 +89,18 @@ public class ScaffoldCommand(
         console.MarkupLine("  3. Execute [blue]dotnet ef database update[/]");
 
         return 0;
+    }
+
+    private void AddTestProjectToSolution(string testCsprojPath, string solutionDir)
+    {
+        var slnFile = fileWriter.FindSolutionFile(solutionDir);
+        if (slnFile is null || !fileWriter.FileExists(testCsprojPath))
+            return;
+
+        var (success, error) = dotNetRunner.Run($"sln \"{slnFile}\" add \"{testCsprojPath}\"");
+
+        if (!success && !string.IsNullOrWhiteSpace(error))
+            console.MarkupLine($"[yellow]Aviso:[/] Não foi possível adicionar o projeto de testes à solution: {Markup.Escape(error)}");
     }
 
     private void AddTestFilesToCsproj(ScaffoldContext ctx, List<string> createdRelPaths, string solutionDir)
