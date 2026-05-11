@@ -1,60 +1,157 @@
-# OpenBase  CLI 🚀
+# OpenBase CLI
 
 A interface de linha de comando oficial para o ecossistema **OpenBase**.
 
 ---
 
-## 🛠️ Instalação
+## Instalação
 
-A OpenBase CLI é distribuída como uma ferramenta global do .NET. Para instalar, execute:
+Distribuída como ferramenta global do .NET:
 
 ```bash
 dotnet tool install -g w3ti.OpenBase.Cli
+```
 
-🚀 Como usar
-1. Preparar o ambiente
+Para atualizar:
 
-Instale os templates oficiais de arquitetura necessários para a CLI:
-Bash
+```bash
+dotnet tool update -g w3ti.OpenBase.Cli
+```
 
+---
+
+## Como usar
+
+### 1. Instalar os templates
+
+```bash
 openbase install
+```
 
-2. Criar um novo projeto
+### 2. Criar um novo projeto
 
-Gere uma solução completa com API, Infraestrutura e suporte a SQL Server:
-Bash
-
+```bash
+# SQL Server
 openbase new --type api --template sqlserver --name MeuProjeto
 
-3. Verificar o ambiente
+# PostgreSQL
+openbase new --type api --template pgsql --name MeuProjeto
+```
 
-Consulte as informações do Sistema Operacional e as versões do .NET e Angular instaladas:
-Bash
+### 3. Gerar scaffold de uma entidade
 
-openbase version
+Dentro da raiz do projeto criado:
 
-📋 Comandos Disponíveis
-Comando Descrição Exemplo
-install Instala ou atualiza os templates NuGet necessários.openbase install
-new Cria um novo projeto a partir dos templates.openbase new --name X
-update Sincroniza a CLI e os templates com a última versão.openbase update
-version Exibe o SO, Arquitetura e versões do ecossistema.openbase version
-help Guia completo de argumentos e flags.openbase help
-💻 Requisitos
-    SDK .NET 10 ou superior.
+```bash
+openbase scaffold --entity Produto
+```
 
-🛡️ Segurança e Compatibilidade
+O comando detecta automaticamente se o projeto usa **SQL Server** ou **PostgreSQL** e abre um assistente interativo para definir as propriedades da entidade:
 
-Esta ferramenta foi desenvolvida com foco em segurança e é monitorada pelo SonarCloud.
+```
+Propriedades da entidade
+Banco: SqlServer | Tipos disponíveis: int, long, short, string, bool, decimal, ...
 
-    Multiplataforma: Suporte nativo para Windows, macOS (Intel/Apple Silicon) e Linux (Fedora/Ubuntu).
+Prop 1 — Nome (PascalCase): Nome
+  Tipo: string
+  Not null (obrigatório)? [s/n] (s): s
+  + Nome (string)
 
-    Resiliência: Detecta automaticamente instalações globais e gerenciadas via NVM (Node Version Manager).
+Adicionar outra propriedade? [s/n] (n): s
 
-    Segurança: Execução de processos protegida contra injeção de comandos (S4036 compliance).
+Prop 2 — Nome (PascalCase): Preco
+  Tipo: decimal
+  Not null (obrigatório)? [s/n] (s): s
+  + Preco (decimal)
 
-📄 Licença
+Adicionar outra propriedade? [s/n] (n): n
 
-Distribuído sob a licença MIT. Veja LICENSE.txt para mais informações.
+┌────────────┬─────────┬─────┬──────────┐
+│ Propriedade│ Tipo    │ PK  │ Not Null │
+├────────────┼─────────┼─────┼──────────┤
+│ Id         │ int     │ Sim │ Sim      │
+│ Nome       │ string  │ Não │ Sim      │
+│ Preco      │ decimal │ Não │ Sim      │
+└────────────┴─────────┴─────┴──────────┘
+```
 
-Desenvolvido com ❤️ por Rodrigo Brito <rodrigo@w3ti.com.br>.
+Ao final, são gerados **47 arquivos** cobrindo todas as camadas da Clean Architecture:
+
+| Camada         | O que é gerado                                               |
+|----------------|--------------------------------------------------------------|
+| Domain         | Entity, IRepository, IDomainService, DomainService           |
+| Application    | DTOs, Commands/Queries, Handlers, Validators, Mapper, Service|
+| Infrastructure | EF Core Configuration, Repository                            |
+| Presentation   | Controller com endpoints CRUD completos                       |
+| Tests          | Testes unitários para handlers, validators e services        |
+
+#### Tipos de propriedades disponíveis
+
+| Tipo            | SQL Server | PostgreSQL |
+|-----------------|:----------:|:----------:|
+| `int`           | ✓          | ✓          |
+| `long`          | ✓          | ✓          |
+| `short`         | ✓          | ✓          |
+| `string`        | ✓          | ✓          |
+| `bool`          | ✓          | ✓          |
+| `decimal`       | ✓          | ✓          |
+| `float`         | ✓          | ✓          |
+| `double`        | ✓          | ✓          |
+| `DateTime`      | ✓          | ✓          |
+| `DateOnly`      | ✓          | ✓          |
+| `TimeOnly`      | ✓          | ✓          |
+| `DateTimeOffset`| ✓          | ✓          |
+| `Guid`          | ✓          | ✓          |
+| `byte[]`        | ✓          | ✓          |
+| `JsonDocument`  |            | ✓          |
+
+#### Regras geradas automaticamente nos Validators
+
+- `string` required → `NotEmpty().MinimumLength(1).MaximumLength(255)`
+- `Guid` required → `NotEmpty()`
+- Campos string no Update → regra com `.When(x => !string.IsNullOrWhiteSpace(x.Prop))`
+
+#### Próximos passos após o scaffold
+
+```bash
+# Adicionar o DbSet ao DbContext
+# DbSet<Produto> Produtos { get; set; }
+
+dotnet ef migrations add AddProduto
+dotnet ef database update
+```
+
+---
+
+## Comandos disponíveis
+
+| Comando   | Descrição                                              | Exemplo                                            |
+|-----------|--------------------------------------------------------|----------------------------------------------------|
+| `install` | Instala os templates NuGet necessários                 | `openbase install`                                 |
+| `new`     | Cria um novo projeto a partir dos templates            | `openbase new --type api --template sqlserver --name X` |
+| `scaffold`| Gera todas as camadas para uma entidade (interativo)   | `openbase scaffold --entity Produto`               |
+| `update`  | Atualiza a CLI e os templates para a última versão     | `openbase update`                                  |
+| `version` | Exibe as versões da CLI e do template                  | `openbase version`                                 |
+| `help`    | Guia completo de argumentos e flags                    | `openbase help`                                    |
+
+---
+
+## Requisitos
+
+- .NET SDK 10 ou superior
+
+---
+
+## Segurança e compatibilidade
+
+- **Multiplataforma**: Windows, macOS (Intel/Apple Silicon) e Linux
+- **Segurança**: Execução de processos protegida contra injeção de comandos (S4036 compliance)
+- Monitorado pelo **SonarCloud**
+
+---
+
+## Licença
+
+Distribuído sob a licença MIT. Veja `LICENSE.txt` para mais informações.
+
+Desenvolvido por Rodrigo Brito <rodrigo@w3ti.com.br>.
