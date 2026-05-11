@@ -38,6 +38,20 @@ openbase new --type api --template sqlserver --name MeuProjeto
 openbase new --type api --template pgsql --name MeuProjeto
 ```
 
+O assistente irá solicitar as informações de configuração do projeto:
+
+```
+Configuração do projeto
+
+Licença do MediatR (deixe em branco se não tiver): <sua-licença>
+Licença do AutoMapper (deixe em branco se não tiver): <sua-licença>
+Servidor do banco de dados [.]: .
+Usuário do banco de dados:
+Senha do banco de dados:
+```
+
+As informações são gravadas automaticamente nos arquivos `appsettings.json` e `appsettings.Development.json` do projeto gerado.
+
 ### 3. Gerar scaffold de uma entidade
 
 Dentro da raiz do projeto criado:
@@ -75,7 +89,7 @@ Adicionar outra propriedade? [s/n] (n): n
 └────────────┴─────────┴─────┴──────────┘
 ```
 
-Ao final, são gerados **47 arquivos** cobrindo todas as camadas da Clean Architecture:
+Ao final, são gerados **47 arquivos** cobrindo todas as camadas da Clean Architecture e o `DbSet` da entidade é **inserido automaticamente** no `OneBaseDataBaseContext`:
 
 | Camada         | O que é gerado                                               |
 |----------------|--------------------------------------------------------------|
@@ -113,10 +127,9 @@ Ao final, são gerados **47 arquivos** cobrindo todas as camadas da Clean Archit
 
 #### Próximos passos após o scaffold
 
-```bash
-# Adicionar o DbSet ao DbContext
-# DbSet<Produto> Produtos { get; set; }
+O `DbSet` é injetado automaticamente no `OneBaseDataBaseContext.cs`. Basta executar as migrations:
 
+```bash
 dotnet ef migrations add AddProduto
 dotnet ef database update
 ```
