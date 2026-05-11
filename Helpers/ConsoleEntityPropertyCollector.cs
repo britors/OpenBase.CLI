@@ -17,7 +17,7 @@ public sealed class ConsoleEntityPropertyCollector(IAnsiConsole console) : IEnti
 
         console.WriteLine();
         console.MarkupLine("[bold]Propriedades da entidade[/]");
-        console.MarkupLine($"[grey]Banco: [blue]{dbFlavor}[/] | Tipos disponíveis: {string.Join(", ", validTypes)}[/]");
+        console.MarkupLine($"[grey]Banco: [blue]{dbFlavor}[/] | Tipos disponíveis: {Markup.Escape(string.Join(", ", validTypes))}[/]");
         console.WriteLine();
 
         do
