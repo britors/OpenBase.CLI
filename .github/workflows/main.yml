@@ -19,7 +19,7 @@ jobs:
       - name: Configurar o .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "10.0.x"
+          dotnet-version: "10.0.1xx"
 
       - name: Empacotar e preparar para publicação
         run: dotnet pack OpenBase.CLI.csproj --configuration Release -o ./packages
