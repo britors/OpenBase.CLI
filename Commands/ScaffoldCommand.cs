@@ -69,7 +69,6 @@ public class ScaffoldCommand(
 
         var files = new ScaffoldGenerator(ctx).GetFiles().ToList();
         var (created, skipped, failed) = WriteFiles(files, solutionDir, settings.Entity);
-        AddTestFilesToCsproj(ctx, created, solutionDir);
         AddTestProjectToSolution(ctx.TestsCsprojPath, solutionDir);
 
         PrintFileList($"{created.Count} arquivo(s) criado(s):", created, "green");
@@ -113,43 +112,6 @@ public class ScaffoldCommand(
 
         if (!success && !string.IsNullOrWhiteSpace(error))
             console.MarkupLine($"[yellow]Aviso:[/] Não foi possível adicionar o projeto de testes à solution: {Markup.Escape(error)}");
-    }
-
-    private void AddTestFilesToCsproj(ScaffoldContext ctx, List<string> createdRelPaths, string solutionDir)
-    {
-        if (!fileWriter.FileExists(ctx.TestsCsprojPath))
-            return;
-
-        var testsRelDir = Path.GetRelativePath(solutionDir, ctx.TestsPath);
-        var prefix = testsRelDir + Path.DirectorySeparatorChar;
-
-        var testFiles = createdRelPaths
-            .Where(f => f.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-            .Select(f => f[prefix.Length..])
-            .ToList();
-
-        if (testFiles.Count == 0)
-            return;
-
-        var content = fileWriter.ReadAllText(ctx.TestsCsprojPath);
-        if (string.IsNullOrEmpty(content))
-            return;
-
-        var toAdd = testFiles
-            .Where(f => !content.Contains(Path.GetFileName(f), StringComparison.OrdinalIgnoreCase))
-            .ToList();
-
-        if (toAdd.Count == 0)
-            return;
-
-        const string closeTag = "</Project>";
-        var idx = content.LastIndexOf(closeTag, StringComparison.OrdinalIgnoreCase);
-        if (idx < 0)
-            return;
-
-        var lines = toAdd.Select(f => $"    <Compile Include=\"{f}\" />");
-        var itemGroup = $"  <ItemGroup>\n{string.Join("\n", lines)}\n  </ItemGroup>\n";
-        fileWriter.WriteAllText(ctx.TestsCsprojPath, content[..idx] + itemGroup + content[idx..]);
     }
 
     private (List<string> Created, List<string> Skipped, List<string> Failed) WriteFiles(
