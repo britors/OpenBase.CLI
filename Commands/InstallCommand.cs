@@ -25,9 +25,9 @@ public class InstallCommand : AsyncCommand<InstallSettings>
     {
         AnsiConsole.MarkupLine("[blue]Iniciando a instalação dos pacotes OpenBase...[/]");
 
-        var failed = await _runner.RunPackagesAsync(
+        var results = await _runner.RunPackagesAsync(
             "Instalando", "instalado", "instalar", cancellationToken);
 
-        return failed ? 1 : 0;
+        return results.Any(r => !r.Success) ? 1 : 0;
     }
 }

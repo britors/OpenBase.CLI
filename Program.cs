@@ -9,6 +9,7 @@ var services = new ServiceCollection();
 services.AddSingleton<IAnsiConsole>(AnsiConsole.Console);
 services.AddSingleton<IDotNetRunner, DotNetRunner>();
 services.AddSingleton<ITemplatePackageRunner, TemplatePackageRunner>();
+services.AddSingleton<IUpdateHistoryService, UpdateHistoryService>();
 services.AddSingleton<IProjectLocator, ProjectLocator>();
 services.AddSingleton<IFileWriter, FileWriter>();
 services.AddSingleton<IProjectConfigurator, ConsoleProjectConfigurator>();
@@ -37,11 +38,27 @@ app.Configure(config =>
         .WithDescription("Gera todas as camadas da arquitetura para uma entidade.")
         .WithExample("scaffold", "--entity", "Produto");
 
+    config.AddCommand<HistoryCommand>("history")
+        .WithDescription("Exibe o histórico de atualizações dos componentes OpenBase.")
+        .WithExample("history")
+        .WithExample("history", "--type", "cli");
+
     config.AddCommand<HelpCommand>("help")
         .WithDescription("Exibe a ajuda para os comandos do OpenBase");
 
-    config.AddCommand<VersionCommand>("version")
-        .WithDescription("Exibe as versões da CLI e do template do OpenBase");
+    config.AddBranch<CommandSettings>("version", version =>
+    {
+        version.SetDescription("Exibe e gerencia versões dos componentes OpenBase.");
+
+        version.AddCommand<VersionCommand>("show")
+               .WithDescription("Exibe as versões da CLI e do template do OpenBase")
+               .WithExample("version", "show");
+
+        version.AddCommand<VersionRestoreCommand>("restore")
+               .WithDescription("Restaura um componente para uma versão específica.")
+               .WithExample("version", "restore", "10.5.9", "--type", "cli")
+               .WithExample("version", "restore", "2.0.0", "--type", "sqlserver");
+    });
 });
 
 return await app.RunAsync(args);

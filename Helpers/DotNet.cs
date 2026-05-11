@@ -114,4 +114,69 @@ public static class DotNet
         var versionString = GetDotnetVersion();
         return Version.TryParse(versionString, out var parsed) && parsed.Major >= requiredMajor;
     }
+
+    public static async Task<string?> GetInstalledToolVersionAsync(string packageId, CancellationToken cancellationToken)
+    {
+        var psi = new ProcessStartInfo(GetDotnetPath(), "tool list -g")
+        {
+            CreateNoWindow = true,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+        };
+
+        using var process = Process.Start(psi);
+        if (process == null) return null;
+
+        var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
+        await process.WaitForExitAsync(cancellationToken);
+
+        return ParseToolVersion(output, packageId);
+    }
+
+    public static async Task<string?> GetInstalledTemplateVersionAsync(string packageId, CancellationToken cancellationToken)
+    {
+        var psi = new ProcessStartInfo(GetDotnetPath(), "new uninstall")
+        {
+            CreateNoWindow = true,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+        };
+
+        using var process = Process.Start(psi);
+        if (process == null) return null;
+
+        var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
+        await process.WaitForExitAsync(cancellationToken);
+
+        return ParseTemplateVersion(output, packageId);
+    }
+
+    public static string? ParseToolVersion(string output, string packageId)
+    {
+        foreach (var line in output.Split('\n'))
+        {
+            var parts = line.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length >= 2 && parts[0].Equals(packageId, StringComparison.OrdinalIgnoreCase))
+                return parts[1];
+        }
+        return null;
+    }
+
+    public static string? ParseTemplateVersion(string output, string packageId)
+    {
+        var lines = output.Split('\n');
+        for (var i = 0; i < lines.Length - 1; i++)
+        {
+            if (!lines[i].Trim().Equals(packageId, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            for (var j = i + 1; j < Math.Min(i + 6, lines.Length); j++)
+            {
+                var trimmed = lines[j].Trim();
+                if (trimmed.StartsWith("Version:", StringComparison.OrdinalIgnoreCase))
+                    return trimmed["Version:".Length..].Trim();
+            }
+        }
+        return null;
+    }
 }

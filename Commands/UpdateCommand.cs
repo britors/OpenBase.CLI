@@ -1,5 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using OpenBase.CLI.Helpers;
+using OpenBase.CLI.Models;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -11,15 +13,23 @@ public class UpdateSettings : CommandSettings
 
 public class UpdateCommand : AsyncCommand<UpdateSettings>
 {
+    private const string CliPackageId = "w3ti.OpenBase.CLI";
+
     private readonly ITemplatePackageRunner _packageRunner;
     private readonly IDotNetRunner _dotNetRunner;
     private readonly IAnsiConsole _console;
+    private readonly IUpdateHistoryService _historyService;
 
-    public UpdateCommand(ITemplatePackageRunner packageRunner, IDotNetRunner dotNetRunner, IAnsiConsole console)
+    public UpdateCommand(
+        ITemplatePackageRunner packageRunner,
+        IDotNetRunner dotNetRunner,
+        IAnsiConsole console,
+        IUpdateHistoryService historyService)
     {
         _packageRunner = packageRunner;
         _dotNetRunner = dotNetRunner;
         _console = console;
+        _historyService = historyService;
     }
 
     protected override async Task<int> ExecuteAsync(
@@ -27,12 +37,22 @@ public class UpdateCommand : AsyncCommand<UpdateSettings>
         [NotNull] UpdateSettings settings,
         CancellationToken cancellationToken)
     {
+        var previousCliVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3);
+
+        var previousTemplateVersions = new Dictionary<string, string?>();
+        foreach (var pkg in DotNet.TemplatePackages)
+            previousTemplateVersions[pkg] = await _dotNetRunner.GetInstalledTemplateVersionAsync(pkg, cancellationToken);
+
         _console.MarkupLine("[blue]Sincronizando templates OpenBase...[/]");
-
-        var failed = await _packageRunner.RunPackagesAsync(
-            "Atualizando", "atualizado", "atualizar", cancellationToken);
-
+        var packageResults = await _packageRunner.RunPackagesAsync("Atualizando", "atualizado", "atualizar", cancellationToken);
         _console.WriteLine();
+
+        var newTemplateVersions = new Dictionary<string, string?>();
+        foreach (var (pkgId, success) in packageResults.Where(r => r.Success))
+            newTemplateVersions[pkgId] = await _dotNetRunner.GetInstalledTemplateVersionAsync(pkgId, cancellationToken);
+
+        string? newCliVersion = null;
+        var cliFailed = false;
 
         await _console.Status()
             .Spinner(Spinner.Known.Dots)
@@ -41,7 +61,7 @@ public class UpdateCommand : AsyncCommand<UpdateSettings>
                 var (success, error) = await _dotNetRunner.RunAsync("tool update -g w3ti.OpenBase.CLI", cancellationToken);
                 if (!success)
                 {
-                    failed = true;
+                    cliFailed = true;
                     _console.MarkupLine("[red]Erro:[/] Falha ao atualizar a OpenBase CLI.");
                     if (!string.IsNullOrWhiteSpace(error))
                         _console.MarkupLine($"[grey]{Markup.Escape(error)}[/]");
@@ -49,10 +69,35 @@ public class UpdateCommand : AsyncCommand<UpdateSettings>
                 }
                 else
                 {
+                    newCliVersion = await _dotNetRunner.GetInstalledToolVersionAsync("w3ti.openbase.cli", cancellationToken);
                     _console.MarkupLine("[green]✓[/] OpenBase CLI atualizada.");
                 }
             });
 
+        var now = DateTime.UtcNow;
+
+        foreach (var (pkgId, success) in packageResults)
+        {
+            await _historyService.AddEntryAsync(new UpdateHistoryEntry
+            {
+                Date = now,
+                Component = pkgId,
+                PreviousVersion = previousTemplateVersions.GetValueOrDefault(pkgId),
+                NewVersion = success ? newTemplateVersions.GetValueOrDefault(pkgId) : null,
+                Success = success
+            }, cancellationToken);
+        }
+
+        await _historyService.AddEntryAsync(new UpdateHistoryEntry
+        {
+            Date = now,
+            Component = CliPackageId,
+            PreviousVersion = previousCliVersion,
+            NewVersion = newCliVersion,
+            Success = !cliFailed
+        }, cancellationToken);
+
+        var failed = packageResults.Any(r => !r.Success) || cliFailed;
         return failed ? 1 : 0;
     }
 }

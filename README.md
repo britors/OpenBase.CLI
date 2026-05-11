@@ -125,14 +125,49 @@ dotnet ef database update
 
 ## Comandos disponíveis
 
-| Comando   | Descrição                                              | Exemplo                                            |
-|-----------|--------------------------------------------------------|----------------------------------------------------|
-| `install` | Instala os templates NuGet necessários                 | `openbase install`                                 |
-| `new`     | Cria um novo projeto a partir dos templates            | `openbase new --type api --template sqlserver --name X` |
-| `scaffold`| Gera todas as camadas para uma entidade (interativo)   | `openbase scaffold --entity Produto`               |
-| `update`  | Atualiza a CLI e os templates para a última versão     | `openbase update`                                  |
-| `version` | Exibe as versões da CLI e do template                  | `openbase version`                                 |
-| `help`    | Guia completo de argumentos e flags                    | `openbase help`                                    |
+| Comando                  | Descrição                                              | Exemplo                                                        |
+|--------------------------|--------------------------------------------------------|----------------------------------------------------------------|
+| `install`                | Instala os templates NuGet necessários                 | `openbase install`                                             |
+| `new`                    | Cria um novo projeto a partir dos templates            | `openbase new --type api --template sqlserver --name X`        |
+| `scaffold`               | Gera todas as camadas para uma entidade (interativo)   | `openbase scaffold --entity Produto`                           |
+| `update`                 | Atualiza a CLI e os templates para a última versão     | `openbase update`                                              |
+| `history`                | Exibe o histórico de atualizações por componente       | `openbase history --type cli`                                  |
+| `version show`           | Exibe as versões da CLI e do template instalados       | `openbase version show`                                        |
+| `version restore`        | Restaura um componente para uma versão específica      | `openbase version restore 10.5.9 --type cli`                   |
+| `help`                   | Guia completo de argumentos e flags                    | `openbase help`                                                |
+
+### Histórico de atualizações
+
+```bash
+# Exibir histórico completo
+openbase history
+
+# Filtrar por componente
+openbase history --type cli
+openbase history --type sqlserver
+openbase history --type postgres
+```
+
+### Restaurar versão
+
+Restaura um componente para uma versão específica. Útil para reverter uma atualização problemática.
+
+```bash
+# Restaurar a CLI para uma versão anterior
+openbase version restore 10.5.9 --type cli
+
+# Restaurar um template
+openbase version restore 2.0.0 --type sqlserver
+openbase version restore 1.5.3 --type postgres
+```
+
+O argumento `--type` é obrigatório e aceita:
+
+| Valor       | Componente                              |
+|-------------|----------------------------------------|
+| `cli`       | OpenBase CLI (`w3ti.OpenBase.CLI`)     |
+| `sqlserver` | Template SQL Server                    |
+| `postgres`  | Template PostgreSQL                    |
 
 ---
 

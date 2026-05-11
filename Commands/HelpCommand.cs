@@ -39,15 +39,27 @@ public class HelpCommand : Command<HelpSettings>
         );
 
         table.AddRow(
+            "[blue]history[/]",
+            "Exibe o histórico de atualizações (--type cli | sqlserver | postgres)",
+            "openbase [green]history --type cli[/]"
+        );
+
+        table.AddRow(
             "[blue]update[/]",
             "Sincroniza e atualiza templates e a CLI",
             "openbase [green]update[/]"
         );
 
         table.AddRow(
-            "[blue]version[/]",
+            "[blue]version show[/]",
             "Mostra versões do ambiente instalado",
-            "openbase [green]version[/]"
+            "openbase [green]version show[/]"
+        );
+
+        table.AddRow(
+            "[blue]version restore[/]",
+            "Restaura um componente para uma versão específica (--type cli | sqlserver | postgres)",
+            "openbase [green]version restore 10.5.9 --type cli[/]"
         );
 
         AnsiConsole.Write(table);

@@ -11,13 +11,16 @@ public class InstallCommandTests
 
     private InstallCommand CreateCommand() => new(_runner.Object);
 
-    [Fact]
-    public async Task ExecuteAsync_AllPackagesSucceed_ReturnsZero()
-    {
+    private void SetupPackages(bool allSucceed) =>
         _runner
             .Setup(r => r.RunPackagesAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
+            .ReturnsAsync(DotNet.TemplatePackages.Select(p => (p, allSucceed)).ToList());
+
+    [Fact]
+    public async Task ExecuteAsync_AllPackagesSucceed_ReturnsZero()
+    {
+        SetupPackages(true);
 
         var result = await ((ICommand<InstallSettings>)CreateCommand())
             .ExecuteAsync(CommandTestHelper.CreateContext("install"), new InstallSettings(), CancellationToken.None);
@@ -28,10 +31,7 @@ public class InstallCommandTests
     [Fact]
     public async Task ExecuteAsync_PackageFails_ReturnsOne()
     {
-        _runner
-            .Setup(r => r.RunPackagesAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
+        SetupPackages(false);
 
         var result = await ((ICommand<InstallSettings>)CreateCommand())
             .ExecuteAsync(CommandTestHelper.CreateContext("install"), new InstallSettings(), CancellationToken.None);
@@ -42,10 +42,7 @@ public class InstallCommandTests
     [Fact]
     public async Task ExecuteAsync_PassesCorrectVerbsToRunner()
     {
-        _runner
-            .Setup(r => r.RunPackagesAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
+        SetupPackages(true);
 
         await ((ICommand<InstallSettings>)CreateCommand())
             .ExecuteAsync(CommandTestHelper.CreateContext("install"), new InstallSettings(), CancellationToken.None);

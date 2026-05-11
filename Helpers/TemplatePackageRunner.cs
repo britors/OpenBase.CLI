@@ -13,21 +13,23 @@ public sealed class TemplatePackageRunner : ITemplatePackageRunner
         _console = console;
     }
 
-    public async Task<bool> RunPackagesAsync(
+    public async Task<IReadOnlyList<(string PackageId, bool Success)>> RunPackagesAsync(
         string statusVerb, string successLabel, string errorLabel, CancellationToken cancellationToken)
     {
-        var failed = false;
+        var results = new List<(string PackageId, bool Success)>();
 
         foreach (var packageId in DotNet.TemplatePackages)
         {
+            var success = false;
+
             await _console.Status()
                 .Spinner(Spinner.Known.Dots)
                 .StartAsync($"{statusVerb} {packageId}...", async _ =>
                 {
-                    var (success, error) = await _dotNetRunner.RunAsync($"new install {packageId}", cancellationToken);
-                    if (!success)
+                    var (ok, error) = await _dotNetRunner.RunAsync($"new install {packageId}", cancellationToken);
+                    success = ok;
+                    if (!ok)
                     {
-                        failed = true;
                         _console.MarkupLine($"[red]Erro:[/] Falha ao {errorLabel} [yellow]{packageId}[/].");
                         if (!string.IsNullOrWhiteSpace(error))
                             _console.MarkupLine($"[grey]{Markup.Escape(error)}[/]");
@@ -37,8 +39,10 @@ public sealed class TemplatePackageRunner : ITemplatePackageRunner
                         _console.MarkupLine($"[green]✓[/] {packageId} {successLabel}.");
                     }
                 });
+
+            results.Add((packageId, success));
         }
 
-        return failed;
+        return results;
     }
 }

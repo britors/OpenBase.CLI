@@ -14,4 +14,10 @@ public sealed class DotNetRunner : IDotNetRunner
     public string GetDotnetVersion() => DotNet.GetDotnetVersion();
 
     public bool IsSdkVersionSufficient(int requiredMajor) => DotNet.IsSdkVersionSufficient(requiredMajor);
+
+    public Task<string?> GetInstalledToolVersionAsync(string packageId, CancellationToken cancellationToken)
+        => DotNet.GetInstalledToolVersionAsync(packageId, cancellationToken);
+
+    public Task<string?> GetInstalledTemplateVersionAsync(string packageId, CancellationToken cancellationToken)
+        => DotNet.GetInstalledTemplateVersionAsync(packageId, cancellationToken);
 }
