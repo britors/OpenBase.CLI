@@ -1,3 +1,7 @@
+using System.Text;
+using OpenBase.CLI.Helpers;
+using OpenBase.CLI.Models;
+
 namespace OpenBase.CLI.Commands;
 
 public sealed record ScaffoldContext(string Entity, string RootNamespace, string SolutionDir)
@@ -7,6 +11,13 @@ public sealed record ScaffoldContext(string Entity, string RootNamespace, string
     public string ELower => Entity.ToLowerInvariant();
     public string NS => RootNamespace;
 
+    public IReadOnlyList<EntityProperty> Properties { get; init; } = DefaultProperties;
+    public DbFlavor DbFlavor { get; init; } = DbFlavor.SqlServer;
+
+    public EntityProperty? FilterProperty =>
+        Properties.FirstOrDefault(p => p.IsStringType && p.Name.Equals("Name", StringComparison.OrdinalIgnoreCase))
+        ?? Properties.FirstOrDefault(p => p.IsStringType);
+
     private string Src => Path.Combine(SolutionDir, "src");
     public string DomainPath => Path.Combine(Src, $"{NS}.Domain");
     public string AppPath => Path.Combine(Src, $"{NS}.Application");
@@ -15,20 +26,170 @@ public sealed record ScaffoldContext(string Entity, string RootNamespace, string
     public string PresentationPath => Path.Combine(Src, $"{NS}.Presentation.Api");
     public string TestsPath => Path.Combine(SolutionDir, "tests", $"{NS}.Tests.Unit");
     public string TestsCsprojPath => Path.Combine(TestsPath, $"{NS}.Tests.Unit.csproj");
+
+    private static readonly IReadOnlyList<EntityProperty> DefaultProperties =
+        [new EntityProperty("Name", "string", true)];
 }
 
 public sealed class ScaffoldGenerator(ScaffoldContext ctx)
 {
-    private const string Services = "Services";
-    private const string Requests = "Requests";
+    private const string Services  = "Services";
+    private const string Requests  = "Requests";
     private const string Responses = "Responses";
-    private const string IdAndName = "int Id, string Name";
+
+    // Output indentation levels (verbatim in generated files)
+    private const string I4  = "    ";
+    private const string I8  = "        ";
+    private const string I12 = "            ";
+
     public IEnumerable<(string Path, string Content)> GetFiles() =>
         DomainFiles()
             .Concat(ApplicationFiles())
             .Concat(InfrastructureFiles())
             .Concat(PresentationFiles())
             .Concat(TestFiles());
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private string EntityPropertyDeclarations() =>
+        string.Join($"\n{I4}", ctx.Properties.Select(PropertyDeclaration));
+
+    private static string PropertyDeclaration(EntityProperty p) =>
+        p.IsStringType && p.IsRequired
+            ? $"public {p.ActualCsType} {p.Name} {{ get; init; }} = string.Empty;"
+            : $"public {p.ActualCsType} {p.Name} {{ get; init; }}";
+
+    private string CreateParams() =>
+        string.Join(", ", ctx.Properties.Select(p => $"{p.ActualCsType} {p.Name}"));
+
+    private string IdAndPropertiesParams() =>
+        ctx.Properties.Count == 0 ? "int Id" : $"int Id, {CreateParams()}";
+
+    private string EfPropertyBlocks()
+    {
+        if (ctx.Properties.Count == 0) return string.Empty;
+        return $"\n\n{I8}" + string.Join($"\n\n{I8}", ctx.Properties.Select(BuildEfBlock));
+    }
+
+    private string BuildEfBlock(EntityProperty p)
+    {
+        var sb = new StringBuilder();
+        sb.Append($"builder.Property(x => x.{p.Name})");
+        sb.Append($"\n{I12}.HasColumnName(\"{p.Name}\")");
+        if (p.IsStringType) sb.Append($"\n{I12}.HasMaxLength(255)");
+        if (p.CsType == "JsonDocument" && ctx.DbFlavor == DbFlavor.Postgres)
+            sb.Append($"\n{I12}.HasColumnType(\"jsonb\")");
+        if ((p.IsStringType || p.CsType == "byte[]") && p.IsRequired)
+            sb.Append($"\n{I12}.IsRequired()");
+        sb.Append(";");
+        return sb.ToString();
+    }
+
+    private string DomainServiceFilterBody() =>
+        ctx.FilterProperty is null ? string.Empty
+            : $"\n{I8}if (!string.IsNullOrWhiteSpace(name))\n{I12}query = x => x.{ctx.FilterProperty.Name}.Contains(name);";
+
+    private string CreateValidatorRules()
+    {
+        var rules = ctx.Properties.SelectMany(CreateRulesFor).ToList();
+        return rules.Count == 0 ? string.Empty : string.Join($"\n\n{I8}", rules);
+    }
+
+    private string UpdateValidatorRules()
+    {
+        var rules = new List<string> { $"RuleFor(x => x.Id).NotEmpty().NotNull();" };
+        rules.AddRange(ctx.Properties.Where(p => p.IsStringType).Select(BuildUpdateStringRule));
+        return string.Join($"\n\n{I8}", rules);
+    }
+
+    private static IEnumerable<string> CreateRulesFor(EntityProperty p)
+    {
+        if (p.IsStringType && p.IsRequired)
+            yield return $"RuleFor(x => x.{p.Name})\n{I12}.NotEmpty()\n{I12}.MinimumLength(1)\n{I12}.MaximumLength(255);";
+        else if (p.CsType == "Guid" && p.IsRequired)
+            yield return $"RuleFor(x => x.{p.Name}).NotEmpty();";
+    }
+
+    private static string BuildUpdateStringRule(EntityProperty p) =>
+        $"RuleFor(x => x.{p.Name})\n{I12}.MinimumLength(1)\n{I12}.MaximumLength(255)\n{I12}.When(x => !string.IsNullOrWhiteSpace(x.{p.Name}));";
+
+    private string EntityTestInitializer() =>
+        string.Join(", ", ctx.Properties.Select(p => $"{p.Name} = {DbPropertyTypes.GetTestValue(p)}"));
+
+    private string CreateTestArgs() =>
+        string.Join(", ", ctx.Properties.Select(p => DbPropertyTypes.GetTestValue(p)));
+
+    private string CreateTestArgsOverride(string overridePropName, string overrideValue) =>
+        string.Join(", ", ctx.Properties.Select(p =>
+            p.Name == overridePropName ? overrideValue : DbPropertyTypes.GetTestValue(p)));
+
+    private string IdAndPropertiesTestArgs() =>
+        ctx.Properties.Count == 0 ? "1" : $"1, {CreateTestArgs()}";
+
+    private string HandlerTestAssertions(string resultVar) =>
+        string.Join($"\n{I8}", ctx.Properties
+            .Where(DbPropertyTypes.HasStableTestValue)
+            .Select(p => $"Assert.Equal({DbPropertyTypes.GetTestValue(p)}, {resultVar}.{p.Name});"));
+
+    private string BuildCreateValidatorTestMethods()
+    {
+        var sb = new StringBuilder();
+        sb.Append($"[Fact]");
+        sb.Append($"\n{I4}public void Validate_IsValid_WhenAllPropertiesAreProvided()");
+        sb.Append($"\n{I4}{{");
+        sb.Append($"\n{I8}var result = _validator.TestValidate(new Create{ctx.Entity}Command({CreateTestArgs()}));");
+        sb.Append($"\n{I8}result.ShouldNotHaveAnyValidationErrors();");
+        sb.Append($"\n{I4}}}");
+
+        foreach (var p in ctx.Properties.Where(p => p.IsStringType && p.IsRequired))
+        {
+            sb.Append($"\n\n{I4}[Fact]");
+            sb.Append($"\n{I4}public void Validate_IsInvalid_When{p.Name}IsEmpty()");
+            sb.Append($"\n{I4}{{");
+            sb.Append($"\n{I8}var result = _validator.TestValidate(new Create{ctx.Entity}Command({CreateTestArgsOverride(p.Name, "\"\"")}));");
+            sb.Append($"\n{I8}result.ShouldHaveValidationErrorFor(x => x.{p.Name});");
+            sb.Append($"\n{I4}}}");
+
+            sb.Append($"\n\n{I4}[Fact]");
+            sb.Append($"\n{I4}public void Validate_IsInvalid_When{p.Name}Exceeds255Characters()");
+            sb.Append($"\n{I4}{{");
+            sb.Append($"\n{I8}var result = _validator.TestValidate(new Create{ctx.Entity}Command({CreateTestArgsOverride(p.Name, "new string('a', 256)")}));");
+            sb.Append($"\n{I8}result.ShouldHaveValidationErrorFor(x => x.{p.Name});");
+            sb.Append($"\n{I4}}}");
+        }
+
+        return sb.ToString();
+    }
+
+    private string BuildUpdateValidatorTestMethods()
+    {
+        var sb = new StringBuilder();
+        sb.Append($"[Fact]");
+        sb.Append($"\n{I4}public void Validate_IsValid_WhenIdAndPropertiesAreValid()");
+        sb.Append($"\n{I4}{{");
+        sb.Append($"\n{I8}var result = _validator.TestValidate(new Update{ctx.Entity}Command({IdAndPropertiesTestArgs()}));");
+        sb.Append($"\n{I8}result.ShouldNotHaveAnyValidationErrors();");
+        sb.Append($"\n{I4}}}");
+
+        sb.Append($"\n\n{I4}[Fact]");
+        sb.Append($"\n{I4}public void Validate_IsInvalid_WhenIdIsZero()");
+        sb.Append($"\n{I4}{{");
+        sb.Append($"\n{I8}var result = _validator.TestValidate(new Update{ctx.Entity}Command(0, {CreateTestArgs()}));");
+        sb.Append($"\n{I8}result.ShouldHaveValidationErrorFor(x => x.Id);");
+        sb.Append($"\n{I4}}}");
+
+        foreach (var p in ctx.Properties.Where(p => p.IsStringType))
+        {
+            sb.Append($"\n\n{I4}[Fact]");
+            sb.Append($"\n{I4}public void Validate_IsInvalid_When{p.Name}Exceeds255Characters()");
+            sb.Append($"\n{I4}{{");
+            sb.Append($"\n{I8}var result = _validator.TestValidate(new Update{ctx.Entity}Command(1, {CreateTestArgsOverride(p.Name, "new string('a', 256)")}));");
+            sb.Append($"\n{I8}result.ShouldHaveValidationErrorFor(x => x.{p.Name});");
+            sb.Append($"\n{I4}}}");
+        }
+
+        return sb.ToString();
+    }
 
     // ── Domain ────────────────────────────────────────────────────────────────
 
@@ -48,7 +209,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         public sealed class {{ctx.Entity}} : IEntityOrQueryResult
         {
             public int Id { get; init; }
-            public string Name { get; init; } = string.Empty;
+            {{EntityPropertyDeclarations()}}
         }
         """;
 
@@ -90,9 +251,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
             public async Task<PaginatedQueryResult<{{ctx.Entity}}>> FindByNamePagedAsync(
                 string name, int page, int pageSize, CancellationToken cancellationToken)
             {
-                Expression<Func<{{ctx.Entity}}, bool>>? query = null;
-                if (!string.IsNullOrWhiteSpace(name))
-                    query = x => x.Name.Contains(name);
+                Expression<Func<{{ctx.Entity}}, bool>>? query = null;{{DomainServiceFilterBody()}}
 
                 var totalRecords = await {{ctx.ECamel}}Repository.CountAsync(cancellationToken, query);
                 var resultPaginated = await {{ctx.ECamel}}Repository.FindAsync(
@@ -170,14 +329,14 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         public sealed record {{typeName}}({{body}});
         """;
 
-    private string CreateRequestTemplate() => DtoTemplate(Requests, $"Create{ctx.Entity}Request", "string Name");
-    private string UpdateRequestTemplate() => DtoTemplate(Requests, $"Update{ctx.Entity}Request", IdAndName);
+    private string CreateRequestTemplate() => DtoTemplate(Requests, $"Create{ctx.Entity}Request", CreateParams());
+    private string UpdateRequestTemplate() => DtoTemplate(Requests, $"Update{ctx.Entity}Request", IdAndPropertiesParams());
     private string DeleteRequestTemplate() => DtoTemplate(Requests, $"Delete{ctx.Entity}Request", "int Id");
     private string FindByIdRequestTemplate() => DtoTemplate(Requests, $"Find{ctx.Entity}ByIdRequest", "int Id");
     private string GetRequestTemplate() => DtoTemplate(Requests, $"Get{ctx.Entity}Request", "string Name = \"\", int Page = 1, int PageSize = 5");
-    private string ResponseTemplate() => DtoTemplate(Responses, $"{ctx.Entity}Response", IdAndName);
-    private string CreateResponseTemplate() => DtoTemplate(Responses, $"Create{ctx.Entity}Response", IdAndName);
-    private string UpdateResponseTemplate() => DtoTemplate(Responses, $"Update{ctx.Entity}Response", IdAndName);
+    private string ResponseTemplate() => DtoTemplate(Responses, $"{ctx.Entity}Response", IdAndPropertiesParams());
+    private string CreateResponseTemplate() => DtoTemplate(Responses, $"Create{ctx.Entity}Response", IdAndPropertiesParams());
+    private string UpdateResponseTemplate() => DtoTemplate(Responses, $"Update{ctx.Entity}Response", IdAndPropertiesParams());
     private string DeleteResponseTemplate() => DtoTemplate(Responses, $"Delete{ctx.Entity}Response", "bool Success");
 
     private string CommandTemplate(string feature, string name, string parameters, string response) => $$"""
@@ -190,7 +349,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         """;
 
     private string CreateCommandTemplate() => CommandTemplate(
-        $"Create{ctx.Entity}Feature", $"Create{ctx.Entity}Command", "string Name", $"Create{ctx.Entity}Response");
+        $"Create{ctx.Entity}Feature", $"Create{ctx.Entity}Command", CreateParams(), $"Create{ctx.Entity}Response");
 
     private string CreateCommandHandlerTemplate() => $$"""
         using AutoMapper;
@@ -233,7 +392,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
     private string CreateCommandValidatorTemplate() => ValidatorTemplate(
         $"Create{ctx.Entity}Feature",
         $"Create{ctx.Entity}Command",
-        "RuleFor(x => x.Name)\n            .NotEmpty()\n            .MinimumLength(1)\n            .MaximumLength(255);");
+        CreateValidatorRules());
 
     private string DeleteCommandTemplate() => CommandTemplate(
         $"Delete{ctx.Entity}Feature", $"Delete{ctx.Entity}Command", "int Id", $"Delete{ctx.Entity}Response");
@@ -260,7 +419,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
     private string DeleteCommandValidatorTemplate() => ValidatorTemplate(
         $"Delete{ctx.Entity}Feature",
         $"Delete{ctx.Entity}Command",
-        "RuleFor(x => x.Id)\n            .NotEmpty()\n            .NotNull();");
+        $"RuleFor(x => x.Id)\n{I12}.NotEmpty()\n{I12}.NotNull();");
 
     private string FindByIdQueryTemplate() => $$"""
         using MediatR;
@@ -336,10 +495,10 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
     private string GetQueryValidatorTemplate() => ValidatorTemplate(
         $"Get{ctx.EPlural}Feature",
         $"Get{ctx.Entity}Query",
-        "RuleFor(x => x.Page)\n            .GreaterThanOrEqualTo(1)\n            .WithMessage(\"O número da página deve ser maior ou igual a 1.\");\n\n        RuleFor(x => x.PageSize)\n            .GreaterThanOrEqualTo(5)\n            .WithMessage(\"O tamanho da página deve ser maior ou igual a 5.\");");
+        $"RuleFor(x => x.Page)\n{I12}.GreaterThanOrEqualTo(1)\n{I12}.WithMessage(\"O número da página deve ser maior ou igual a 1.\");\n\n{I8}RuleFor(x => x.PageSize)\n{I12}.GreaterThanOrEqualTo(5)\n{I12}.WithMessage(\"O tamanho da página deve ser maior ou igual a 5.\");");
 
     private string UpdateCommandTemplate() => CommandTemplate(
-        $"Update{ctx.Entity}Feature", $"Update{ctx.Entity}Command", IdAndName, $"Update{ctx.Entity}Response");
+        $"Update{ctx.Entity}Feature", $"Update{ctx.Entity}Command", IdAndPropertiesParams(), $"Update{ctx.Entity}Response");
 
     private string UpdateCommandHandlerTemplate() => $$"""
         using AutoMapper;
@@ -368,7 +527,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
     private string UpdateCommandValidatorTemplate() => ValidatorTemplate(
         $"Update{ctx.Entity}Feature",
         $"Update{ctx.Entity}Command",
-        "RuleFor(x => x.Id).NotEmpty();\n\n        RuleFor(x => x.Name)\n            .MinimumLength(1)\n            .MaximumLength(255)\n            .When(x => !string.IsNullOrWhiteSpace(x.Name));");
+        UpdateValidatorRules());
 
     private string IApplicationServiceTemplate() => $$"""
         using {{ctx.NS}}.Application.DTOs.Base.Response;
@@ -498,12 +657,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
 
                 builder.HasKey(x => x.Id);
 
-                builder.Property(x => x.Id).HasColumnName("Id");
-
-                builder.Property(x => x.Name)
-                    .HasColumnName("Name")
-                    .HasMaxLength(255)
-                    .IsRequired();
+                builder.Property(x => x.Id).HasColumnName("Id");{{EfPropertyBlocks()}}
             }
         }
         """;
@@ -585,7 +739,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
             [Fact]
             public async Task FindByNamePagedAsync_ReturnsResult_WhenNameIsProvided()
             {
-                var entities = new List<{{ctx.Entity}}> { new() { Id = 1, Name = "Test" } };
+                var entities = new List<{{ctx.Entity}}> { new() { Id = 1, {{EntityTestInitializer()}} } };
                 _{{ctx.ECamel}}Repository
                     .CountAsync(Arg.Any<CancellationToken>(), Arg.Any<Expression<Func<{{ctx.Entity}}, bool>>?>())
                     .Returns(1);
@@ -602,7 +756,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
             [Fact]
             public async Task FindByNamePagedAsync_ReturnsResult_WhenNameIsEmpty()
             {
-                var entities = new List<{{ctx.Entity}}> { new() { Id = 1, Name = "Test" } };
+                var entities = new List<{{ctx.Entity}}> { new() { Id = 1, {{EntityTestInitializer()}} } };
                 _{{ctx.ECamel}}Repository
                     .CountAsync(Arg.Any<CancellationToken>(), Arg.Any<Expression<Func<{{ctx.Entity}}, bool>>?>())
                     .Returns(1);
@@ -642,9 +796,9 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
             [Fact]
             public async Task Handle_ReturnsResponse_WhenEntityIsCreated()
             {
-                var command = new Create{{ctx.Entity}}Command("Test Name");
-                var entity = new {{ctx.Entity}} { Id = 1, Name = "Test Name" };
-                var response = new Create{{ctx.Entity}}Response(1, "Test Name");
+                var command = new Create{{ctx.Entity}}Command({{CreateTestArgs()}});
+                var entity = new {{ctx.Entity}} { Id = 1, {{EntityTestInitializer()}} };
+                var response = new Create{{ctx.Entity}}Response({{IdAndPropertiesTestArgs()}});
 
                 _mapper.Map<{{ctx.Entity}}>(command).Returns(entity);
                 _{{ctx.ECamel}}DomainService.AddAsync(entity, Arg.Any<CancellationToken>()).Returns(entity);
@@ -654,7 +808,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
 
                 Assert.NotNull(result);
                 Assert.Equal(1, result.Id);
-                Assert.Equal("Test Name", result.Name);
+                {{HandlerTestAssertions("result")}}
             }
         }
         """;
@@ -726,9 +880,9 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
             [Fact]
             public async Task Handle_ReturnsResponse_WhenEntityIsUpdated()
             {
-                var command = new Update{{ctx.Entity}}Command(1, "Updated Name");
-                var entity = new {{ctx.Entity}} { Id = 1, Name = "Updated Name" };
-                var response = new Update{{ctx.Entity}}Response(1, "Updated Name");
+                var command = new Update{{ctx.Entity}}Command({{IdAndPropertiesTestArgs()}});
+                var entity = new {{ctx.Entity}} { Id = 1, {{EntityTestInitializer()}} };
+                var response = new Update{{ctx.Entity}}Response({{IdAndPropertiesTestArgs()}});
 
                 _mapper.Map<{{ctx.Entity}}>(command).Returns(entity);
                 _{{ctx.ECamel}}DomainService.UpdateAsync(entity, Arg.Any<CancellationToken>()).Returns(entity);
@@ -738,7 +892,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
 
                 Assert.NotNull(result);
                 Assert.Equal(1, result.Id);
-                Assert.Equal("Updated Name", result.Name);
+                {{HandlerTestAssertions("result")}}
             }
         }
         """;
@@ -768,8 +922,8 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
             public async Task Handle_ReturnsResponse_WhenEntityIsFound()
             {
                 var query = new Find{{ctx.Entity}}ByIdQuery(1);
-                var entity = new {{ctx.Entity}} { Id = 1, Name = "Test" };
-                var response = new {{ctx.Entity}}Response(1, "Test");
+                var entity = new {{ctx.Entity}} { Id = 1, {{EntityTestInitializer()}} };
+                var response = new {{ctx.Entity}}Response({{IdAndPropertiesTestArgs()}});
 
                 _{{ctx.ECamel}}DomainService.GetByIdAsync(1, Arg.Any<CancellationToken>()).Returns(entity);
                 _mapper.Map<{{ctx.Entity}}Response>(entity).Returns(response);
@@ -827,26 +981,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         {
             private readonly Create{{ctx.Entity}}CommandValidator _validator = new();
 
-            [Fact]
-            public void Validate_IsValid_WhenNameIsProvided()
-            {
-                var result = _validator.TestValidate(new Create{{ctx.Entity}}Command("Valid Name"));
-                result.ShouldNotHaveAnyValidationErrors();
-            }
-
-            [Fact]
-            public void Validate_IsInvalid_WhenNameIsEmpty()
-            {
-                var result = _validator.TestValidate(new Create{{ctx.Entity}}Command(""));
-                result.ShouldHaveValidationErrorFor(x => x.Name);
-            }
-
-            [Fact]
-            public void Validate_IsInvalid_WhenNameExceeds255Characters()
-            {
-                var result = _validator.TestValidate(new Create{{ctx.Entity}}Command(new string('a', 256)));
-                result.ShouldHaveValidationErrorFor(x => x.Name);
-            }
+            {{BuildCreateValidatorTestMethods()}}
         }
         """;
 
@@ -886,26 +1021,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         {
             private readonly Update{{ctx.Entity}}CommandValidator _validator = new();
 
-            [Fact]
-            public void Validate_IsValid_WhenIdAndNameAreProvided()
-            {
-                var result = _validator.TestValidate(new Update{{ctx.Entity}}Command(1, "Valid Name"));
-                result.ShouldNotHaveAnyValidationErrors();
-            }
-
-            [Fact]
-            public void Validate_IsInvalid_WhenIdIsZero()
-            {
-                var result = _validator.TestValidate(new Update{{ctx.Entity}}Command(0, "Name"));
-                result.ShouldHaveValidationErrorFor(x => x.Id);
-            }
-
-            [Fact]
-            public void Validate_IsInvalid_WhenNameExceeds255Characters()
-            {
-                var result = _validator.TestValidate(new Update{{ctx.Entity}}Command(1, new string('a', 256)));
-                result.ShouldHaveValidationErrorFor(x => x.Name);
-            }
+            {{BuildUpdateValidatorTestMethods()}}
         }
         """;
 
@@ -997,8 +1113,8 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
             [Fact]
             public async Task CreateAsync_SendsCommand_ToMediator()
             {
-                var request = new Create{{ctx.Entity}}Request("Test Name");
-                var command = new Create{{ctx.Entity}}Command("Test Name");
+                var request = new Create{{ctx.Entity}}Request({{CreateTestArgs()}});
+                var command = new Create{{ctx.Entity}}Command({{CreateTestArgs()}});
                 _mapper.Map<Create{{ctx.Entity}}Command>(request).Returns(command);
 
                 await _service.CreateAsync(request, CancellationToken.None);
@@ -1009,8 +1125,8 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
             [Fact]
             public async Task UpdateAsync_SendsCommand_ToMediator()
             {
-                var request = new Update{{ctx.Entity}}Request(1, "Updated Name");
-                var command = new Update{{ctx.Entity}}Command(1, "Updated Name");
+                var request = new Update{{ctx.Entity}}Request({{IdAndPropertiesTestArgs()}});
+                var command = new Update{{ctx.Entity}}Command({{IdAndPropertiesTestArgs()}});
                 _mapper.Map<Update{{ctx.Entity}}Command>(request).Returns(command);
 
                 await _service.UpdateAsync(request, CancellationToken.None);

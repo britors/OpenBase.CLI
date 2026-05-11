@@ -31,7 +31,12 @@ public class ScaffoldSettings : CommandSettings
     }
 }
 
-public class ScaffoldCommand(IAnsiConsole console, IProjectLocator projectLocator, IFileWriter fileWriter)
+public class ScaffoldCommand(
+    IAnsiConsole console,
+    IProjectLocator projectLocator,
+    IFileWriter fileWriter,
+    IEntityPropertyCollector propertyCollector,
+    IDbFlavorDetector dbFlavorDetector)
     : Command<ScaffoldSettings>
 {
     protected override int Execute([NotNull] CommandContext context, [NotNull] ScaffoldSettings settings, CancellationToken cancellationToken)
@@ -47,9 +52,16 @@ public class ScaffoldCommand(IAnsiConsole console, IProjectLocator projectLocato
             return 1;
         }
 
-        var ctx = new ScaffoldContext(settings.Entity, rootNamespace, solutionDir);
-        var files = new ScaffoldGenerator(ctx).GetFiles().ToList();
+        var dbFlavor = dbFlavorDetector.Detect(solutionDir);
+        var properties = propertyCollector.Collect(dbFlavor);
 
+        var ctx = new ScaffoldContext(settings.Entity, rootNamespace, solutionDir)
+        {
+            Properties = properties,
+            DbFlavor = dbFlavor
+        };
+
+        var files = new ScaffoldGenerator(ctx).GetFiles().ToList();
         var (created, skipped, failed) = WriteFiles(files, solutionDir, settings.Entity);
         AddTestFilesToCsproj(ctx, created, solutionDir);
 

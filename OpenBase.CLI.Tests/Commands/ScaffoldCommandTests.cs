@@ -1,5 +1,6 @@
 using OpenBase.CLI.Commands;
 using OpenBase.CLI.Helpers;
+using OpenBase.CLI.Models;
 using Spectre.Console.Cli;
 
 namespace OpenBase.CLI.Tests.Commands;
@@ -8,9 +9,23 @@ public class ScaffoldCommandTests
 {
     private readonly Mock<IProjectLocator> _locator = new();
     private readonly Mock<IFileWriter> _fileWriter = new();
+    private readonly Mock<IEntityPropertyCollector> _propertyCollector = new();
+    private readonly Mock<IDbFlavorDetector> _dbFlavorDetector = new();
+
+    public ScaffoldCommandTests()
+    {
+        _propertyCollector
+            .Setup(c => c.Collect(It.IsAny<DbFlavor>()))
+            .Returns([new EntityProperty("Name", "string", true)]);
+
+        _dbFlavorDetector
+            .Setup(d => d.Detect(It.IsAny<string>()))
+            .Returns(DbFlavor.SqlServer);
+    }
 
     private ScaffoldCommand CreateCommand() =>
-        new(CommandTestHelper.CreateConsole(), _locator.Object, _fileWriter.Object);
+        new(CommandTestHelper.CreateConsole(), _locator.Object, _fileWriter.Object,
+            _propertyCollector.Object, _dbFlavorDetector.Object);
 
     private static ScaffoldSettings BuildSettings(string entity = "Produto", string? ns = null) =>
         new() { Entity = entity, RootNamespace = ns };
@@ -106,6 +121,29 @@ public class ScaffoldCommandTests
         _fileWriter.Verify(f => f.EnsureDirectory(It.IsAny<string>()), Times.AtLeastOnce);
     }
 
+    [Fact]
+    public async Task Execute_DetectsDbFlavorFromSolutionDir()
+    {
+        SetupLocator("/solution", "OpenBaseNET");
+        _fileWriter.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
+
+        await Run(BuildSettings("Produto"));
+
+        _dbFlavorDetector.Verify(d => d.Detect("/solution"), Times.Once);
+    }
+
+    [Fact]
+    public async Task Execute_PassesDetectedFlavorToPropertyCollector()
+    {
+        SetupLocator("/solution", "OpenBaseNET");
+        _fileWriter.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
+        _dbFlavorDetector.Setup(d => d.Detect(It.IsAny<string>())).Returns(DbFlavor.Postgres);
+
+        await Run(BuildSettings("Produto"));
+
+        _propertyCollector.Verify(c => c.Collect(DbFlavor.Postgres), Times.Once);
+    }
+
     // ── PrintFileList ─────────────────────────────────────────────────────────
 
     private (ScaffoldCommand Command, StringWriter Output) CreateCommandWithOutput()
@@ -118,7 +156,8 @@ public class ScaffoldCommandTests
             Interactive = InteractionSupport.No,
             Out = new AnsiConsoleOutput(writer)
         });
-        return (new ScaffoldCommand(console, _locator.Object, _fileWriter.Object), writer);
+        return (new ScaffoldCommand(console, _locator.Object, _fileWriter.Object,
+            _propertyCollector.Object, _dbFlavorDetector.Object), writer);
     }
 
     private Task<int> RunWithOutput(ScaffoldCommand command, ScaffoldSettings settings) =>
