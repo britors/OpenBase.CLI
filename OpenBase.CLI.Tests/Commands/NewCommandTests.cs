@@ -337,7 +337,7 @@ public class NewCommandUpdateAppSettingsTests
 {
     private const string ProjectName  = "MinhaApi";
     private const string ApiSourceDir = "src";
-    private const string ApiSuffix    = ".Presentation.Api";
+    private const string ApiProjectDir = "OpenBaseNET.Presentation.Api";
 
     private readonly Mock<IFileWriter> _fileWriter = new();
 
@@ -350,7 +350,7 @@ public class NewCommandUpdateAppSettingsTests
     [Fact]
     public void UpdatesBothAppsettingsFiles()
     {
-        var basePath = Path.Combine(ProjectName, ApiSourceDir, $"{ProjectName}{ApiSuffix}");
+        var basePath = Path.Combine(ProjectName, ApiSourceDir, ApiProjectDir);
         var prod = Path.Combine(basePath, "appsettings.json");
         var dev  = Path.Combine(basePath, "appsettings.Development.json");
         const string json = """{"ConnectionStrings":{"OpenBaseSQLServer":""},"Mediator":{"LicenseKey":""}}""";
@@ -384,7 +384,7 @@ public class NewCommandUpdateAppSettingsTests
     [MemberData(nameof(ConnectionKeyData))]
     public void WritesCorrectConnectionKey(IDbTemplateStrategy strategy, string json, string expectedKey, ProjectSetupConfig config)
     {
-        var path = Path.Combine(ProjectName, ApiSourceDir, $"{ProjectName}{ApiSuffix}", "appsettings.json");
+        var path = Path.Combine(ProjectName, ApiSourceDir, ApiProjectDir, "appsettings.json");
         SetupFile(path, json);
 
         string? written = null;

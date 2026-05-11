@@ -52,7 +52,7 @@ public class NewCommand : AsyncCommand<NewSettings>
     private const string JsonSectionConnectionStrings = "ConnectionStrings";
     private const string JsonKeyLicenseKey            = "LicenseKey";
     private const string ApiSourceDir                 = "src";
-    private const string ApiProjectSuffix             = ".Presentation.Api";
+    private const string ApiProjectDir               = "OpenBaseNET.Presentation.Api";
 
     private static readonly string[] AppSettingsFiles = ["appsettings.json", "appsettings.Development.json"];
     private static readonly string[] MediatRKeys      = ["Mediatr", "Mediator"];
@@ -126,7 +126,7 @@ public class NewCommand : AsyncCommand<NewSettings>
 
     public static void UpdateAppSettings(string projectName, IDbTemplateStrategy strategy, ProjectSetupConfig config, IFileWriter fileWriter)
     {
-        var basePath = Path.Combine(projectName, ApiSourceDir, $"{projectName}{ApiProjectSuffix}");
+        var basePath = Path.Combine(projectName, ApiSourceDir, ApiProjectDir);
         var connectionString = strategy.BuildConnectionString(projectName, config.DbServer, config.DbUser, config.DbPassword);
 
         foreach (var fileName in AppSettingsFiles)
