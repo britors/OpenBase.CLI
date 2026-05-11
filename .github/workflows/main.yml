@@ -22,8 +22,7 @@ jobs:
           dotnet-version: "10.0.x"
 
       - name: Empacotar e preparar para publicação
-        # Voltamos a apontar para o .csproj explicitamente, mas SEM o NoDefaultExcludes
-        run: dotnet pack OpenBase.CLI.csproj --configuration Release -o ./packages
+        run: dotnet pack OpenBase.CLI.csproj --configuration Release --no-default-excludes -o ./packages
       
       - name: Publicar no NuGet
         env:
