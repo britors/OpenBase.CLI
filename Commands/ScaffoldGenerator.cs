@@ -143,8 +143,8 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         sb.Append($"[Fact]");
         sb.Append($"\n{I4}public void Validate_IsValid_WhenAllPropertiesAreProvided()");
         sb.Append($"\n{I4}{{");
-        sb.Append($"\n{I8}var result = _validator.TestValidate(new Create{ctx.Entity}Command({CreateTestArgs()}));");
-        sb.Append($"\n{I8}result.ShouldNotHaveAnyValidationErrors();");
+        sb.Append($"\n{I8}var result = _validator.Validate(new Create{ctx.Entity}Command({CreateTestArgs()}));");
+        sb.Append($"\n{I8}Assert.True(result.IsValid);");
         sb.Append($"\n{I4}}}");
 
         foreach (var name in ctx.Properties.Where(p => p.IsStringType && p.IsRequired).Select(p => p.Name))
@@ -164,8 +164,8 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         sb.Append($"[Fact]");
         sb.Append($"\n{I4}public void Validate_IsValid_WhenIdAndPropertiesAreValid()");
         sb.Append($"\n{I4}{{");
-        sb.Append($"\n{I8}var result = _validator.TestValidate(new Update{ctx.Entity}Command({IdAndPropertiesTestArgs()}));");
-        sb.Append($"\n{I8}result.ShouldNotHaveAnyValidationErrors();");
+        sb.Append($"\n{I8}var result = _validator.Validate(new Update{ctx.Entity}Command({IdAndPropertiesTestArgs()}));");
+        sb.Append($"\n{I8}Assert.True(result.IsValid);");
         sb.Append($"\n{I4}}}");
 
         AppendValidatorFact(sb, "Validate_IsInvalid_WhenIdIsZero",
@@ -185,8 +185,9 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         sb.Append($"\n\n{I4}[Fact]");
         sb.Append($"\n{I4}public void {methodName}()");
         sb.Append($"\n{I4}{{");
-        sb.Append($"\n{I8}var result = _validator.TestValidate(new {commandCtor});");
-        sb.Append($"\n{I8}result.ShouldHaveValidationErrorFor(x => x.{propName});");
+        sb.Append($"\n{I8}var result = _validator.Validate(new {commandCtor});");
+        sb.Append($"\n{I8}Assert.False(result.IsValid);");
+        sb.Append($"\n{I8}Assert.Contains(result.Errors, e => e.PropertyName == \"{propName}\");");
         sb.Append($"\n{I4}}}");
     }
 
@@ -196,14 +197,15 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         sb.Append("[Fact]");
         sb.Append($"\n{I4}public void Validate_IsValid_WhenIdIsProvided()");
         sb.Append($"\n{I4}{{");
-        sb.Append($"\n{I8}var result = _validator.TestValidate(new {typeName}(1));");
-        sb.Append($"\n{I8}result.ShouldNotHaveAnyValidationErrors();");
+        sb.Append($"\n{I8}var result = _validator.Validate(new {typeName}(1));");
+        sb.Append($"\n{I8}Assert.True(result.IsValid);");
         sb.Append($"\n{I4}}}");
         sb.Append($"\n\n{I4}[Fact]");
         sb.Append($"\n{I4}public void Validate_IsInvalid_WhenIdIsZero()");
         sb.Append($"\n{I4}{{");
-        sb.Append($"\n{I8}var result = _validator.TestValidate(new {typeName}(0));");
-        sb.Append($"\n{I8}result.ShouldHaveValidationErrorFor(x => x.Id);");
+        sb.Append($"\n{I8}var result = _validator.Validate(new {typeName}(0));");
+        sb.Append($"\n{I8}Assert.False(result.IsValid);");
+        sb.Append($"\n{I8}Assert.Contains(result.Errors, e => e.PropertyName == \"Id\");");
         sb.Append($"\n{I4}}}");
         return sb.ToString();
     }
@@ -736,7 +738,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
 
     private string DomainServiceTestsTemplate() => $$"""
         using System.Linq.Expressions;
-        using NSubstitute;
+        using Moq;
         using {{ctx.NS}}.Domain.Entities;
         using {{ctx.NS}}.Domain.Interfaces.Repositories;
         using {{ctx.NS}}.Domain.Services;
@@ -745,25 +747,25 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
 
         public sealed class {{ctx.Entity}}DomainServiceTests
         {
-            private readonly I{{ctx.Entity}}Repository _{{ctx.ECamel}}Repository = Substitute.For<I{{ctx.Entity}}Repository>();
+            private readonly Mock<I{{ctx.Entity}}Repository> _{{ctx.ECamel}}RepositoryMock = new();
             private readonly {{ctx.Entity}}DomainService _service;
 
             public {{ctx.Entity}}DomainServiceTests()
             {
-                _service = new {{ctx.Entity}}DomainService(_{{ctx.ECamel}}Repository);
+                _service = new {{ctx.Entity}}DomainService(_{{ctx.ECamel}}RepositoryMock.Object);
             }
 
             [Fact]
             public async Task FindByNamePagedAsync_ReturnsResult_WhenNameIsProvided()
             {
                 var entities = new List<{{ctx.Entity}}> { new() { Id = 1, {{EntityTestInitializer()}} } };
-                _{{ctx.ECamel}}Repository
-                    .CountAsync(Arg.Any<CancellationToken>(), Arg.Any<Expression<Func<{{ctx.Entity}}, bool>>?>())
-                    .Returns(1);
-                _{{ctx.ECamel}}Repository
-                    .FindAsync(Arg.Any<CancellationToken>(), Arg.Any<bool>(),
-                        Arg.Any<Expression<Func<{{ctx.Entity}}, bool>>?>(), Arg.Any<int>(), Arg.Any<int>())
-                    .Returns(entities);
+                _{{ctx.ECamel}}RepositoryMock
+                    .Setup(r => r.CountAsync(It.IsAny<CancellationToken>(), It.IsAny<Expression<Func<{{ctx.Entity}}, bool>>?>()))
+                    .ReturnsAsync(1);
+                _{{ctx.ECamel}}RepositoryMock
+                    .Setup(r => r.FindAsync(It.IsAny<CancellationToken>(), It.IsAny<bool>(),
+                        It.IsAny<Expression<Func<{{ctx.Entity}}, bool>>?>(), It.IsAny<int>(), It.IsAny<int>()))
+                    .ReturnsAsync(entities);
 
                 var result = await _service.FindByNamePagedAsync("Test", 1, 5, CancellationToken.None);
 
@@ -774,13 +776,13 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
             public async Task FindByNamePagedAsync_ReturnsResult_WhenNameIsEmpty()
             {
                 var entities = new List<{{ctx.Entity}}> { new() { Id = 1, {{EntityTestInitializer()}} } };
-                _{{ctx.ECamel}}Repository
-                    .CountAsync(Arg.Any<CancellationToken>(), Arg.Any<Expression<Func<{{ctx.Entity}}, bool>>?>())
-                    .Returns(1);
-                _{{ctx.ECamel}}Repository
-                    .FindAsync(Arg.Any<CancellationToken>(), Arg.Any<bool>(),
-                        Arg.Any<Expression<Func<{{ctx.Entity}}, bool>>?>(), Arg.Any<int>(), Arg.Any<int>())
-                    .Returns(entities);
+                _{{ctx.ECamel}}RepositoryMock
+                    .Setup(r => r.CountAsync(It.IsAny<CancellationToken>(), It.IsAny<Expression<Func<{{ctx.Entity}}, bool>>?>()))
+                    .ReturnsAsync(1);
+                _{{ctx.ECamel}}RepositoryMock
+                    .Setup(r => r.FindAsync(It.IsAny<CancellationToken>(), It.IsAny<bool>(),
+                        It.IsAny<Expression<Func<{{ctx.Entity}}, bool>>?>(), It.IsAny<int>(), It.IsAny<int>()))
+                    .ReturnsAsync(entities);
 
                 var result = await _service.FindByNamePagedAsync(string.Empty, 1, 5, CancellationToken.None);
 
@@ -791,7 +793,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
 
     private string CreateCommandHandlerTestsTemplate() => $$"""
         using AutoMapper;
-        using NSubstitute;
+        using Moq;
         using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
         using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Create{{ctx.Entity}}Feature;
         using {{ctx.NS}}.Domain.Entities;
@@ -801,13 +803,13 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
 
         public sealed class Create{{ctx.Entity}}CommandHandlerTests
         {
-            private readonly I{{ctx.Entity}}DomainService _{{ctx.ECamel}}DomainService = Substitute.For<I{{ctx.Entity}}DomainService>();
-            private readonly IMapper _mapper = Substitute.For<IMapper>();
+            private readonly Mock<I{{ctx.Entity}}DomainService> _{{ctx.ECamel}}DomainServiceMock = new();
+            private readonly Mock<IMapper> _mapperMock = new();
             private readonly Create{{ctx.Entity}}CommandHandler _handler;
 
             public Create{{ctx.Entity}}CommandHandlerTests()
             {
-                _handler = new Create{{ctx.Entity}}CommandHandler(_{{ctx.ECamel}}DomainService, _mapper);
+                _handler = new Create{{ctx.Entity}}CommandHandler(_{{ctx.ECamel}}DomainServiceMock.Object, _mapperMock.Object);
             }
 
             [Fact]
@@ -817,9 +819,9 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
                 var entity = new {{ctx.Entity}} { Id = 1, {{EntityTestInitializer()}} };
                 var response = new Create{{ctx.Entity}}Response({{IdAndPropertiesTestArgs()}});
 
-                _mapper.Map<{{ctx.Entity}}>(command).Returns(entity);
-                _{{ctx.ECamel}}DomainService.AddAsync(entity, Arg.Any<CancellationToken>()).Returns(entity);
-                _mapper.Map<Create{{ctx.Entity}}Response>(entity).Returns(response);
+                _mapperMock.Setup(m => m.Map<{{ctx.Entity}}>(command)).Returns(entity);
+                _{{ctx.ECamel}}DomainServiceMock.Setup(s => s.AddAsync(entity, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
+                _mapperMock.Setup(m => m.Map<Create{{ctx.Entity}}Response>(entity)).Returns(response);
 
                 var result = await _handler.Handle(command, CancellationToken.None);
 
@@ -831,7 +833,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         """;
 
     private string DeleteCommandHandlerTestsTemplate() => $$"""
-        using NSubstitute;
+        using Moq;
         using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Delete{{ctx.Entity}}Feature;
         using {{ctx.NS}}.Domain.Interfaces.Services;
 
@@ -839,19 +841,19 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
 
         public sealed class Delete{{ctx.Entity}}CommandHandlerTests
         {
-            private readonly I{{ctx.Entity}}DomainService _{{ctx.ECamel}}DomainService = Substitute.For<I{{ctx.Entity}}DomainService>();
+            private readonly Mock<I{{ctx.Entity}}DomainService> _{{ctx.ECamel}}DomainServiceMock = new();
             private readonly Delete{{ctx.Entity}}CommandHandler _handler;
 
             public Delete{{ctx.Entity}}CommandHandlerTests()
             {
-                _handler = new Delete{{ctx.Entity}}CommandHandler(_{{ctx.ECamel}}DomainService);
+                _handler = new Delete{{ctx.Entity}}CommandHandler(_{{ctx.ECamel}}DomainServiceMock.Object);
             }
 
             [Fact]
             public async Task Handle_ReturnsSuccess_WhenEntityIsDeleted()
             {
                 var command = new Delete{{ctx.Entity}}Command(1);
-                _{{ctx.ECamel}}DomainService.RemoveByIdAsync(1, Arg.Any<CancellationToken>()).Returns(true);
+                _{{ctx.ECamel}}DomainServiceMock.Setup(s => s.RemoveByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
                 var result = await _handler.Handle(command, CancellationToken.None);
 
@@ -863,7 +865,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
             public async Task Handle_ReturnsFailure_WhenEntityNotFound()
             {
                 var command = new Delete{{ctx.Entity}}Command(999);
-                _{{ctx.ECamel}}DomainService.RemoveByIdAsync(999, Arg.Any<CancellationToken>()).Returns(false);
+                _{{ctx.ECamel}}DomainServiceMock.Setup(s => s.RemoveByIdAsync(999, It.IsAny<CancellationToken>())).ReturnsAsync(false);
 
                 var result = await _handler.Handle(command, CancellationToken.None);
 
@@ -875,7 +877,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
 
     private string UpdateCommandHandlerTestsTemplate() => $$"""
         using AutoMapper;
-        using NSubstitute;
+        using Moq;
         using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
         using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Update{{ctx.Entity}}Feature;
         using {{ctx.NS}}.Domain.Entities;
@@ -885,13 +887,13 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
 
         public sealed class Update{{ctx.Entity}}CommandHandlerTests
         {
-            private readonly I{{ctx.Entity}}DomainService _{{ctx.ECamel}}DomainService = Substitute.For<I{{ctx.Entity}}DomainService>();
-            private readonly IMapper _mapper = Substitute.For<IMapper>();
+            private readonly Mock<I{{ctx.Entity}}DomainService> _{{ctx.ECamel}}DomainServiceMock = new();
+            private readonly Mock<IMapper> _mapperMock = new();
             private readonly Update{{ctx.Entity}}CommandHandler _handler;
 
             public Update{{ctx.Entity}}CommandHandlerTests()
             {
-                _handler = new Update{{ctx.Entity}}CommandHandler(_{{ctx.ECamel}}DomainService, _mapper);
+                _handler = new Update{{ctx.Entity}}CommandHandler(_{{ctx.ECamel}}DomainServiceMock.Object, _mapperMock.Object);
             }
 
             [Fact]
@@ -901,9 +903,9 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
                 var entity = new {{ctx.Entity}} { Id = 1, {{EntityTestInitializer()}} };
                 var response = new Update{{ctx.Entity}}Response({{IdAndPropertiesTestArgs()}});
 
-                _mapper.Map<{{ctx.Entity}}>(command).Returns(entity);
-                _{{ctx.ECamel}}DomainService.UpdateAsync(entity, Arg.Any<CancellationToken>()).Returns(entity);
-                _mapper.Map<Update{{ctx.Entity}}Response>(entity).Returns(response);
+                _mapperMock.Setup(m => m.Map<{{ctx.Entity}}>(command)).Returns(entity);
+                _{{ctx.ECamel}}DomainServiceMock.Setup(s => s.UpdateAsync(entity, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
+                _mapperMock.Setup(m => m.Map<Update{{ctx.Entity}}Response>(entity)).Returns(response);
 
                 var result = await _handler.Handle(command, CancellationToken.None);
 
@@ -916,7 +918,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
 
     private string FindByIdQueryHandlerTestsTemplate() => $$"""
         using AutoMapper;
-        using NSubstitute;
+        using Moq;
         using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
         using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Find{{ctx.Entity}}ByIdFeature;
         using {{ctx.NS}}.Domain.Entities;
@@ -926,13 +928,13 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
 
         public sealed class Find{{ctx.Entity}}ByIdQueryHandlerTests
         {
-            private readonly I{{ctx.Entity}}DomainService _{{ctx.ECamel}}DomainService = Substitute.For<I{{ctx.Entity}}DomainService>();
-            private readonly IMapper _mapper = Substitute.For<IMapper>();
+            private readonly Mock<I{{ctx.Entity}}DomainService> _{{ctx.ECamel}}DomainServiceMock = new();
+            private readonly Mock<IMapper> _mapperMock = new();
             private readonly Find{{ctx.Entity}}ByIdQueryHandler _handler;
 
             public Find{{ctx.Entity}}ByIdQueryHandlerTests()
             {
-                _handler = new Find{{ctx.Entity}}ByIdQueryHandler(_{{ctx.ECamel}}DomainService, _mapper);
+                _handler = new Find{{ctx.Entity}}ByIdQueryHandler(_{{ctx.ECamel}}DomainServiceMock.Object, _mapperMock.Object);
             }
 
             [Fact]
@@ -942,8 +944,8 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
                 var entity = new {{ctx.Entity}} { Id = 1, {{EntityTestInitializer()}} };
                 var response = new {{ctx.Entity}}Response({{IdAndPropertiesTestArgs()}});
 
-                _{{ctx.ECamel}}DomainService.GetByIdAsync(1, Arg.Any<CancellationToken>()).Returns(entity);
-                _mapper.Map<{{ctx.Entity}}Response>(entity).Returns(response);
+                _{{ctx.ECamel}}DomainServiceMock.Setup(s => s.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
+                _mapperMock.Setup(m => m.Map<{{ctx.Entity}}Response>(entity)).Returns(response);
 
                 var result = await _handler.Handle(query, CancellationToken.None);
 
@@ -955,7 +957,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
 
     private string GetQueryHandlerTestsTemplate() => $$"""
         using AutoMapper;
-        using NSubstitute;
+        using Moq;
         using {{ctx.NS}}.Application.DTOs.Base.Response;
         using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
         using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Get{{ctx.EPlural}}Feature;
@@ -965,13 +967,13 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
 
         public sealed class Get{{ctx.Entity}}QueryHandlerTests
         {
-            private readonly I{{ctx.Entity}}DomainService _{{ctx.ECamel}}DomainService = Substitute.For<I{{ctx.Entity}}DomainService>();
-            private readonly IMapper _mapper = Substitute.For<IMapper>();
+            private readonly Mock<I{{ctx.Entity}}DomainService> _{{ctx.ECamel}}DomainServiceMock = new();
+            private readonly Mock<IMapper> _mapperMock = new();
             private readonly Get{{ctx.Entity}}QueryHandler _handler;
 
             public Get{{ctx.Entity}}QueryHandlerTests()
             {
-                _handler = new Get{{ctx.Entity}}QueryHandler(_{{ctx.ECamel}}DomainService, _mapper);
+                _handler = new Get{{ctx.Entity}}QueryHandler(_{{ctx.ECamel}}DomainServiceMock.Object, _mapperMock.Object);
             }
 
             [Fact]
@@ -981,15 +983,14 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
 
                 await _handler.Handle(query, CancellationToken.None);
 
-                await _{{ctx.ECamel}}DomainService
-                    .Received(1)
-                    .FindByNamePagedAsync("Search", 2, 10, Arg.Any<CancellationToken>());
+                _{{ctx.ECamel}}DomainServiceMock.Verify(
+                    s => s.FindByNamePagedAsync("Search", 2, 10, It.IsAny<CancellationToken>()),
+                    Times.Once());
             }
         }
         """;
 
     private string CreateCommandValidatorTestsTemplate() => $$"""
-        using FluentValidation.TestHelper;
         using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Create{{ctx.Entity}}Feature;
 
         namespace {{ctx.NS}}.Tests.Unit.Application.Features.{{ctx.Entity}}Features;
@@ -1003,7 +1004,6 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         """;
 
     private string DeleteCommandValidatorTestsTemplate() => $$"""
-        using FluentValidation.TestHelper;
         using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Delete{{ctx.Entity}}Feature;
 
         namespace {{ctx.NS}}.Tests.Unit.Application.Features.{{ctx.Entity}}Features;
@@ -1017,7 +1017,6 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         """;
 
     private string UpdateCommandValidatorTestsTemplate() => $$"""
-        using FluentValidation.TestHelper;
         using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Update{{ctx.Entity}}Feature;
 
         namespace {{ctx.NS}}.Tests.Unit.Application.Features.{{ctx.Entity}}Features;
@@ -1031,7 +1030,6 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         """;
 
     private string FindByIdQueryValidatorTestsTemplate() => $$"""
-        using FluentValidation.TestHelper;
         using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Find{{ctx.Entity}}ByIdFeature;
 
         namespace {{ctx.NS}}.Tests.Unit.Application.Features.{{ctx.Entity}}Features;
@@ -1045,7 +1043,6 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         """;
 
     private string GetQueryValidatorTestsTemplate() => $$"""
-        using FluentValidation.TestHelper;
         using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Get{{ctx.EPlural}}Feature;
 
         namespace {{ctx.NS}}.Tests.Unit.Application.Features.{{ctx.Entity}}Features;
@@ -1057,22 +1054,24 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
             [Fact]
             public void Validate_IsValid_WhenPageAndPageSizeAreValid()
             {
-                var result = _validator.TestValidate(new Get{{ctx.Entity}}Query("", 1, 5));
-                result.ShouldNotHaveAnyValidationErrors();
+                var result = _validator.Validate(new Get{{ctx.Entity}}Query("", 1, 5));
+                Assert.True(result.IsValid);
             }
 
             [Fact]
             public void Validate_IsInvalid_WhenPageIsZero()
             {
-                var result = _validator.TestValidate(new Get{{ctx.Entity}}Query("", 0, 5));
-                result.ShouldHaveValidationErrorFor(x => x.Page);
+                var result = _validator.Validate(new Get{{ctx.Entity}}Query("", 0, 5));
+                Assert.False(result.IsValid);
+                Assert.Contains(result.Errors, e => e.PropertyName == "Page");
             }
 
             [Fact]
             public void Validate_IsInvalid_WhenPageSizeIsBelowMinimum()
             {
-                var result = _validator.TestValidate(new Get{{ctx.Entity}}Query("", 1, 4));
-                result.ShouldHaveValidationErrorFor(x => x.PageSize);
+                var result = _validator.Validate(new Get{{ctx.Entity}}Query("", 1, 4));
+                Assert.False(result.IsValid);
+                Assert.Contains(result.Errors, e => e.PropertyName == "PageSize");
             }
         }
         """;
@@ -1080,7 +1079,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
     private string ApplicationServiceTestsTemplate() => $$"""
         using AutoMapper;
         using MediatR;
-        using NSubstitute;
+        using Moq;
         using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Requests;
         using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
         using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Create{{ctx.Entity}}Feature;
@@ -1094,13 +1093,13 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
 
         public sealed class {{ctx.Entity}}ApplicationServiceTests
         {
-            private readonly IMediator _mediator = Substitute.For<IMediator>();
-            private readonly IMapper _mapper = Substitute.For<IMapper>();
+            private readonly Mock<IMediator> _mediatorMock = new();
+            private readonly Mock<IMapper> _mapperMock = new();
             private readonly {{ctx.Entity}}ApplicationService _service;
 
             public {{ctx.Entity}}ApplicationServiceTests()
             {
-                _service = new {{ctx.Entity}}ApplicationService(_mediator, _mapper);
+                _service = new {{ctx.Entity}}ApplicationService(_mediatorMock.Object, _mapperMock.Object);
             }
 
             [Fact]
@@ -1108,11 +1107,11 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
             {
                 var request = new Create{{ctx.Entity}}Request({{CreateTestArgs()}});
                 var command = new Create{{ctx.Entity}}Command({{CreateTestArgs()}});
-                _mapper.Map<Create{{ctx.Entity}}Command>(request).Returns(command);
+                _mapperMock.Setup(m => m.Map<Create{{ctx.Entity}}Command>(request)).Returns(command);
 
                 await _service.CreateAsync(request, CancellationToken.None);
 
-                await _mediator.Received(1).Send(command, Arg.Any<CancellationToken>());
+                _mediatorMock.Verify(m => m.Send(It.IsAny<Create{{ctx.Entity}}Command>(), It.IsAny<CancellationToken>()), Times.Once());
             }
 
             [Fact]
@@ -1120,11 +1119,11 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
             {
                 var request = new Update{{ctx.Entity}}Request({{IdAndPropertiesTestArgs()}});
                 var command = new Update{{ctx.Entity}}Command({{IdAndPropertiesTestArgs()}});
-                _mapper.Map<Update{{ctx.Entity}}Command>(request).Returns(command);
+                _mapperMock.Setup(m => m.Map<Update{{ctx.Entity}}Command>(request)).Returns(command);
 
                 await _service.UpdateAsync(request, CancellationToken.None);
 
-                await _mediator.Received(1).Send(command, Arg.Any<CancellationToken>());
+                _mediatorMock.Verify(m => m.Send(It.IsAny<Update{{ctx.Entity}}Command>(), It.IsAny<CancellationToken>()), Times.Once());
             }
 
             [Fact]
@@ -1132,11 +1131,11 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
             {
                 var request = new Delete{{ctx.Entity}}Request(1);
                 var command = new Delete{{ctx.Entity}}Command(1);
-                _mapper.Map<Delete{{ctx.Entity}}Command>(request).Returns(command);
+                _mapperMock.Setup(m => m.Map<Delete{{ctx.Entity}}Command>(request)).Returns(command);
 
                 await _service.DeleteAsync(request, CancellationToken.None);
 
-                await _mediator.Received(1).Send(command, Arg.Any<CancellationToken>());
+                _mediatorMock.Verify(m => m.Send(It.IsAny<Delete{{ctx.Entity}}Command>(), It.IsAny<CancellationToken>()), Times.Once());
             }
 
             [Fact]
@@ -1144,11 +1143,11 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
             {
                 var request = new Find{{ctx.Entity}}ByIdRequest(1);
                 var query = new Find{{ctx.Entity}}ByIdQuery(1);
-                _mapper.Map<Find{{ctx.Entity}}ByIdQuery>(request).Returns(query);
+                _mapperMock.Setup(m => m.Map<Find{{ctx.Entity}}ByIdQuery>(request)).Returns(query);
 
                 await _service.GetByIdAsync(request, CancellationToken.None);
 
-                await _mediator.Received(1).Send(query, Arg.Any<CancellationToken>());
+                _mediatorMock.Verify(m => m.Send(It.IsAny<Find{{ctx.Entity}}ByIdQuery>(), It.IsAny<CancellationToken>()), Times.Once());
             }
 
             [Fact]
@@ -1156,11 +1155,11 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
             {
                 var request = new Get{{ctx.Entity}}Request("", 1, 5);
                 var query = new Get{{ctx.Entity}}Query("", 1, 5);
-                _mapper.Map<Get{{ctx.Entity}}Query>(request).Returns(query);
+                _mapperMock.Setup(m => m.Map<Get{{ctx.Entity}}Query>(request)).Returns(query);
 
                 await _service.GetAsync(request, CancellationToken.None);
 
-                await _mediator.Received(1).Send(query, Arg.Any<CancellationToken>());
+                _mediatorMock.Verify(m => m.Send(It.IsAny<Get{{ctx.Entity}}Query>(), It.IsAny<CancellationToken>()), Times.Once());
             }
         }
         """;

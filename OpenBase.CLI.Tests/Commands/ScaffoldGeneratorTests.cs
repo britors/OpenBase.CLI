@@ -256,7 +256,7 @@ public class ScaffoldGeneratorTests
         var f = files.First(f => f.Path.EndsWith("ProdutoDomainServiceTests.cs"));
 
         Assert.Contains("FindByNamePagedAsync", f.Content);
-        Assert.Contains("NSubstitute", f.Content);
+        Assert.Contains("Moq", f.Content);
     }
 
     [Fact]
@@ -291,12 +291,12 @@ public class ScaffoldGeneratorTests
     }
 
     [Fact]
-    public void GetFiles_ValidatorTests_UseFluentValidationTestHelper()
+    public void GetFiles_ValidatorTests_UseFluentValidationValidate()
     {
         var validatorTests = MakeGenerator().GetFiles()
             .Where(f => f.Path.EndsWith("ValidatorTests.cs"));
 
-        Assert.All(validatorTests, f => Assert.Contains("FluentValidation.TestHelper", f.Content));
+        Assert.All(validatorTests, f => Assert.Contains("_validator.Validate(", f.Content));
     }
 
     [Fact]
