@@ -769,7 +769,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
 
                 var result = await _service.FindByNamePagedAsync("Test", 1, 5, CancellationToken.None);
 
-                Assert.NotNull(result);
+                Assert.Equal(1, result.TotalRecords);
             }
 
             [Fact]
@@ -786,7 +786,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
 
                 var result = await _service.FindByNamePagedAsync(string.Empty, 1, 5, CancellationToken.None);
 
-                Assert.NotNull(result);
+                Assert.Equal(1, result.TotalRecords);
             }
         }
         """;
