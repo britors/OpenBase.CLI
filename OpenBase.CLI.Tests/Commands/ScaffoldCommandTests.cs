@@ -414,4 +414,73 @@ public class ScaffoldCommandTests
         Assert.Equal(ScaffoldCommand.DbSetInjectionResult.Failed, result);
     }
 
+    // ── EF Migrations ─────────────────────────────────────────────────────────
+
+    private void SetupForMigration()
+    {
+        SetupLocator("/solution", "OpenBaseNET");
+        _fileWriter.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
+        SetupDbContext(DbContextTemplate);
+    }
+
+    [Fact]
+    public async Task Execute_RunsMigrationAdd_WhenDbSetInjected()
+    {
+        SetupForMigration();
+
+        await Run(BuildSettings("Produto"));
+
+        _dotNetRunner.Verify(r => r.Run(It.Is<string>(a =>
+            a.Contains("ef migrations add") && a.Contains("AddProduto"))), Times.Once);
+    }
+
+    [Fact]
+    public async Task Execute_MigrationAdd_IncludesProjectAndStartupProjectFlags()
+    {
+        SetupForMigration();
+
+        await Run(BuildSettings("Produto"));
+
+        _dotNetRunner.Verify(r => r.Run(It.Is<string>(a =>
+            a.Contains("--project") && a.Contains("Infra.Data.Context") &&
+            a.Contains("--startup-project") && a.Contains("Presentation.Api"))), Times.Once);
+    }
+
+    [Fact]
+    public async Task Execute_DoesNotRunMigration_WhenDbSetNotInjected()
+    {
+        SetupLocator("/solution", "OpenBaseNET");
+        _fileWriter.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
+
+        await Run(BuildSettings("Produto"));
+
+        _dotNetRunner.Verify(r => r.Run(It.Is<string>(a => a.Contains("ef"))), Times.Never);
+    }
+
+    [Fact]
+    public async Task Execute_ShowsMigrationError_WhenMigrationFails()
+    {
+        var (cmd, output) = CreateCommandWithOutput();
+        SetupLocator("/solution", "OpenBaseNET");
+        _fileWriter.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
+        SetupDbContext(DbContextTemplate);
+        _dotNetRunner
+            .Setup(r => r.Run(It.Is<string>(a => a.Contains("migrations add"))))
+            .Returns((false, "Build failed."));
+
+        await RunWithOutput(cmd, BuildSettings("Produto"));
+
+        Assert.Contains("Erro", output.ToString());
+    }
+
+    [Fact]
+    public async Task Execute_DoesNotAskForDatabaseUpdate_WhenNonInteractive()
+    {
+        SetupForMigration();
+
+        await Run(BuildSettings("Produto"));
+
+        _dotNetRunner.Verify(r => r.Run(It.Is<string>(a => a.Contains("database update"))), Times.Never);
+    }
+
 }

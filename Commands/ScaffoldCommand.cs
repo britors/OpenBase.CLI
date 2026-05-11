@@ -89,17 +89,76 @@ public class ScaffoldCommand(
             return 0;
 
         console.MarkupLine($"\n[green]Scaffold da entidade [bold]{settings.Entity}[/] gerado com sucesso![/]");
-        console.MarkupLine("Próximos passos:");
 
         var autoInjected = dbSetResult is DbSetInjectionResult.Injected or DbSetInjectionResult.AlreadyExists;
+
         if (!autoInjected)
+        {
+            console.MarkupLine("Próximos passos:");
             console.MarkupLine($"  1. Adicione [blue]DbSet<{settings.Entity}> {ctx.EPlural} {{ get; set; }}[/] ao DbContext");
+            console.MarkupLine($"  2. Execute [blue]dotnet ef migrations add Add{settings.Entity}[/]");
+            console.MarkupLine("  3. Execute [blue]dotnet ef database update[/]");
+            return 0;
+        }
 
-        var migrationStep = autoInjected ? 1 : 2;
-        console.MarkupLine($"  {migrationStep}. Execute [blue]dotnet ef migrations add Add{settings.Entity}[/]");
-        console.MarkupLine($"  {migrationStep + 1}. Execute [blue]dotnet ef database update[/]");
-
+        RunMigrations(ctx, settings.Entity);
         return 0;
+    }
+
+    private void RunMigrations(ScaffoldContext ctx, string entity)
+    {
+        var (migrationOk, migrationError) = RunEfCommand(
+            $"migrations add Add{entity}",
+            $"Gerando migration [blue]Add{entity}[/]...",
+            ctx);
+
+        if (!migrationOk)
+        {
+            console.MarkupLine("[red]Erro:[/] Falha ao gerar a migration.");
+            if (!string.IsNullOrWhiteSpace(migrationError))
+                console.MarkupLine($"[grey]{Markup.Escape(migrationError)}[/]");
+            console.MarkupLine($"Execute manualmente: [blue]dotnet ef migrations add Add{entity}[/]");
+            return;
+        }
+
+        console.MarkupLine($"[green]Migration Add{entity} gerada.[/]");
+
+        if (!console.Profile.Capabilities.Interactive ||
+            !console.Confirm("Executar [blue]database update[/] agora?", defaultValue: true))
+            return;
+
+        var (updateOk, updateError) = RunEfCommand(
+            "database update",
+            "Executando [blue]database update[/]...",
+            ctx);
+
+        if (!updateOk)
+        {
+            console.MarkupLine("[red]Erro:[/] Falha ao executar database update.");
+            if (!string.IsNullOrWhiteSpace(updateError))
+                console.MarkupLine($"[grey]{Markup.Escape(updateError)}[/]");
+            console.MarkupLine("[blue]dotnet ef database update[/]");
+            return;
+        }
+
+        console.MarkupLine("[green]Banco de dados atualizado com sucesso.[/]");
+    }
+
+    private (bool Success, string Error) RunEfCommand(string efArgs, string spinnerLabel, ScaffoldContext ctx)
+    {
+        bool success = false;
+        string error = string.Empty;
+
+        var projectArg = $"--project \"{ctx.InfraContextPath}\" --startup-project \"{ctx.PresentationPath}\"";
+
+        console.Status()
+            .Spinner(Spinner.Known.Dots)
+            .Start(spinnerLabel, _ =>
+            {
+                (success, error) = dotNetRunner.Run($"ef {efArgs} {projectArg}");
+            });
+
+        return (success, error);
     }
 
     public DbSetInjectionResult InjectDbSet(ScaffoldContext ctx)
