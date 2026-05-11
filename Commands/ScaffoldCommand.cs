@@ -40,6 +40,10 @@ public class ScaffoldCommand(
     IDotNetRunner dotNetRunner)
     : Command<ScaffoldSettings>
 {
+    private const string DbContextFileName = "OneBaseDataBaseContext.cs";
+
+    public enum DbSetInjectionResult { Injected, AlreadyExists, FileNotFound, Failed }
+
     protected override int Execute([NotNull] CommandContext context, [NotNull] ScaffoldSettings settings, CancellationToken cancellationToken)
     {
         var (solutionDir, rootNamespace) = projectLocator.Detect(
@@ -70,6 +74,7 @@ public class ScaffoldCommand(
         var files = new ScaffoldGenerator(ctx).GetFiles().ToList();
         var (created, skipped, failed) = WriteFiles(files, solutionDir, settings.Entity);
         AddTestProjectToSolution(ctx.TestsCsprojPath, solutionDir);
+        var dbSetResult = InjectDbSet(ctx);
 
         PrintFileList($"{created.Count} arquivo(s) criado(s):", created, "green");
         PrintFileList($"{skipped.Count} arquivo(s) já existente(s) ignorado(s):", skipped, "yellow");
@@ -85,11 +90,72 @@ public class ScaffoldCommand(
 
         console.MarkupLine($"\n[green]Scaffold da entidade [bold]{settings.Entity}[/] gerado com sucesso![/]");
         console.MarkupLine("Próximos passos:");
-        console.MarkupLine($"  1. Adicione [blue]DbSet<{settings.Entity}> {settings.Entity}s {{ get; set; }}[/] ao DbContext");
-        console.MarkupLine($"  2. Execute [blue]dotnet ef migrations add Add{settings.Entity}[/]");
-        console.MarkupLine("  3. Execute [blue]dotnet ef database update[/]");
+
+        var autoInjected = dbSetResult is DbSetInjectionResult.Injected or DbSetInjectionResult.AlreadyExists;
+        if (!autoInjected)
+            console.MarkupLine($"  1. Adicione [blue]DbSet<{settings.Entity}> {ctx.EPlural} {{ get; set; }}[/] ao DbContext");
+
+        var migrationStep = autoInjected ? 1 : 2;
+        console.MarkupLine($"  {migrationStep}. Execute [blue]dotnet ef migrations add Add{settings.Entity}[/]");
+        console.MarkupLine($"  {migrationStep + 1}. Execute [blue]dotnet ef database update[/]");
 
         return 0;
+    }
+
+    public DbSetInjectionResult InjectDbSet(ScaffoldContext ctx)
+    {
+        var path = Path.Combine(ctx.InfraContextPath, DbContextFileName);
+        if (!fileWriter.FileExists(path))
+            return DbSetInjectionResult.FileNotFound;
+
+        try
+        {
+            var content = fileWriter.ReadAllText(path);
+            if (string.IsNullOrWhiteSpace(content))
+                return DbSetInjectionResult.Failed;
+
+            if (content.Contains($"DbSet<{ctx.Entity}>"))
+                return DbSetInjectionResult.AlreadyExists;
+
+            var sep = content.Contains("\r\n") ? "\r\n" : "\n";
+            var lines = content.Split(["\r\n", "\n"], StringSplitOptions.None).ToList();
+
+            var entitiesUsing = $"using {ctx.NS}.Domain.Entities;";
+            if (!content.Contains(entitiesUsing))
+            {
+                var lastUsing = lines.FindLastIndex(l => l.TrimStart().StartsWith("using "));
+                if (lastUsing >= 0)
+                    lines.Insert(lastUsing + 1, entitiesUsing);
+                else
+                    lines.Insert(0, entitiesUsing);
+            }
+
+            var dbSetLine = $"    public DbSet<{ctx.Entity}> {ctx.EPlural} {{ get; set; }}";
+
+            var lastDbSet = lines.FindLastIndex(l => l.Contains("DbSet<"));
+            if (lastDbSet >= 0)
+            {
+                lines.Insert(lastDbSet + 1, dbSetLine);
+            }
+            else
+            {
+                var classIdx = lines.FindIndex(l => l.Contains("class OneBaseDataBaseContext"));
+                if (classIdx < 0) return DbSetInjectionResult.Failed;
+
+                var braceIdx = lines.FindIndex(classIdx, l => l.Trim() == "{");
+                if (braceIdx < 0) return DbSetInjectionResult.Failed;
+
+                lines.Insert(braceIdx + 1, dbSetLine);
+                lines.Insert(braceIdx + 2, string.Empty);
+            }
+
+            fileWriter.WriteAllText(path, string.Join(sep, lines));
+            return DbSetInjectionResult.Injected;
+        }
+        catch
+        {
+            return DbSetInjectionResult.Failed;
+        }
     }
 
     private string DetectTestsPath(string solutionDir, string rootNamespace)

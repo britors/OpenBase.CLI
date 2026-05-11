@@ -291,4 +291,127 @@ public class ScaffoldCommandTests
         _dotNetRunner.Verify(r => r.Run(It.IsAny<string>()), Times.Never);
     }
 
+    // ── InjectDbSet ───────────────────────────────────────────────────────────
+
+    private static string DbContextPath(string ns = "OpenBaseNET") =>
+        Path.Combine("/solution", "src", $"{ns}.Infra.Data.Context", "OneBaseDataBaseContext.cs");
+
+    private const string DbContextTemplate = """
+        using Microsoft.EntityFrameworkCore;
+
+        namespace OpenBaseNET.Infra.Data.Context;
+
+        public class OneBaseDataBaseContext(IConfiguration configuration) : DbContext
+        {
+            protected override void OnModelCreating(ModelBuilder modelBuilder) { }
+        }
+        """;
+
+    private void SetupDbContext(string content)
+    {
+        var path = DbContextPath();
+        _fileWriter.Setup(f => f.FileExists(path)).Returns(true);
+        _fileWriter.Setup(f => f.ReadAllText(path)).Returns(content);
+    }
+
+    private ScaffoldCommand.DbSetInjectionResult RunInjectDbSet(string entity = "Produto", string ns = "OpenBaseNET")
+    {
+        var ctx = new ScaffoldContext(entity, ns, "/solution");
+        return CreateCommand().InjectDbSet(ctx);
+    }
+
+    [Fact]
+    public void InjectDbSet_ReturnsFileNotFound_WhenContextMissing()
+    {
+        _fileWriter.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
+
+        var result = RunInjectDbSet();
+
+        Assert.Equal(ScaffoldCommand.DbSetInjectionResult.FileNotFound, result);
+    }
+
+    [Fact]
+    public void InjectDbSet_ReturnsAlreadyExists_WhenDbSetPresent()
+    {
+        SetupDbContext("""public DbSet<Produto> Produtos { get; set; }""");
+
+        var result = RunInjectDbSet();
+
+        Assert.Equal(ScaffoldCommand.DbSetInjectionResult.AlreadyExists, result);
+        _fileWriter.Verify(f => f.WriteAllText(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public void InjectDbSet_ReturnsInjected_AndWritesDbSet()
+    {
+        SetupDbContext(DbContextTemplate);
+        string? written = null;
+        _fileWriter.Setup(f => f.WriteAllText(DbContextPath(), It.IsAny<string>()))
+            .Callback<string, string>((_, c) => written = c);
+
+        var result = RunInjectDbSet();
+
+        Assert.Equal(ScaffoldCommand.DbSetInjectionResult.Injected, result);
+        Assert.Contains("DbSet<Produto>", written);
+        Assert.Contains("Produtos", written);
+    }
+
+    [Fact]
+    public void InjectDbSet_AddsEntityUsing_WhenNotPresent()
+    {
+        SetupDbContext(DbContextTemplate);
+        string? written = null;
+        _fileWriter.Setup(f => f.WriteAllText(DbContextPath(), It.IsAny<string>()))
+            .Callback<string, string>((_, c) => written = c);
+
+        RunInjectDbSet();
+
+        Assert.Contains("using OpenBaseNET.Domain.Entities;", written);
+    }
+
+    [Fact]
+    public void InjectDbSet_DoesNotDuplicateUsing_WhenAlreadyPresent()
+    {
+        SetupDbContext(DbContextTemplate.Replace(
+            "using Microsoft.EntityFrameworkCore;",
+            "using Microsoft.EntityFrameworkCore;\nusing OpenBaseNET.Domain.Entities;"));
+        string? written = null;
+        _fileWriter.Setup(f => f.WriteAllText(DbContextPath(), It.IsAny<string>()))
+            .Callback<string, string>((_, c) => written = c);
+
+        RunInjectDbSet();
+
+        var count = written!.Split("using OpenBaseNET.Domain.Entities;").Length - 1;
+        Assert.Equal(1, count);
+    }
+
+    [Fact]
+    public void InjectDbSet_InsertsAfterLastDbSet_WhenMultipleExist()
+    {
+        var content = DbContextTemplate.Replace(
+            "    protected override void OnModelCreating",
+            "    public DbSet<Categoria> Categorias { get; set; }\n    protected override void OnModelCreating");
+        SetupDbContext(content);
+        string? written = null;
+        _fileWriter.Setup(f => f.WriteAllText(DbContextPath(), It.IsAny<string>()))
+            .Callback<string, string>((_, c) => written = c);
+
+        RunInjectDbSet();
+
+        var categoriaIdx = written!.IndexOf("DbSet<Categoria>", StringComparison.Ordinal);
+        var produtoIdx   = written.IndexOf("DbSet<Produto>",   StringComparison.Ordinal);
+        Assert.True(categoriaIdx < produtoIdx);
+    }
+
+    [Fact]
+    public void InjectDbSet_ReturnsFailed_WhenContentIsEmpty()
+    {
+        _fileWriter.Setup(f => f.FileExists(DbContextPath())).Returns(true);
+        _fileWriter.Setup(f => f.ReadAllText(DbContextPath())).Returns(string.Empty);
+
+        var result = RunInjectDbSet();
+
+        Assert.Equal(ScaffoldCommand.DbSetInjectionResult.Failed, result);
+    }
+
 }
