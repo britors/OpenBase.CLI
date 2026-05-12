@@ -16,7 +16,7 @@ public sealed class ConsoleModelFirstPropertyCollector(
         var defaultSchema = dbFlavor == DbFlavor.Postgres ? "public" : "dbo";
 
         var schema = console.Prompt(
-            new TextPrompt<string>($"Schema/owner [{defaultSchema}]:")
+            new TextPrompt<string>($"Schema/owner [[{defaultSchema}]]:")
                 .DefaultValue(defaultSchema)
                 .AllowEmpty());
 
