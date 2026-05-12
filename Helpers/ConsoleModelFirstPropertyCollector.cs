@@ -40,8 +40,7 @@ public sealed class ConsoleModelFirstPropertyCollector(
                         : ValidationResult.Success()));
         }
 
-        IReadOnlyList<EntityProperty>? properties = null;
-        Exception? readError = null;
+        (IReadOnlyList<EntityProperty>? Columns, Exception? Error)? result = null;
 
         console.Status()
             .Spinner(Spinner.Known.Dots)
@@ -49,19 +48,21 @@ public sealed class ConsoleModelFirstPropertyCollector(
             {
                 try
                 {
-                    properties = dbSchemaReader.ReadColumns(connString!, schema, tableName, dbFlavor);
+                    result = (dbSchemaReader.ReadColumns(connString!, schema, tableName, dbFlavor), null);
                 }
                 catch (Exception ex)
                 {
-                    readError = ex;
+                    result = (null, ex);
                 }
             });
 
-        if (readError is not null)
+        if (result?.Error is { } error)
         {
-            console.MarkupLine($"[red]Erro ao ler a tabela:[/] {Markup.Escape(readError.Message)}");
+            console.MarkupLine($"[red]Erro ao ler a tabela:[/] {Markup.Escape(error.Message)}");
             return null;
         }
+
+        var properties = result?.Columns;
 
         if (properties is null || properties.Count == 0)
         {
