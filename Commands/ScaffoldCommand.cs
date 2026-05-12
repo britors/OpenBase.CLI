@@ -148,6 +148,21 @@ public class ScaffoldCommand(
 
     private void RunMigrations(ScaffoldContext ctx, string entity)
     {
+        (bool Success, string Error)? restoreResult = null;
+        console.Status()
+            .Spinner(Spinner.Known.Dots)
+            .Start("Restaurando pacotes NuGet...", _ =>
+            {
+                restoreResult = dotNetRunner.Run($"restore \"{ctx.InfraContextPath}\"");
+            });
+
+        if (restoreResult is { Success: false })
+        {
+            console.MarkupLine("[yellow]Aviso:[/] Falha ao restaurar pacotes. Tentando gerar a migration mesmo assim...");
+            if (!string.IsNullOrWhiteSpace(restoreResult.Value.Error))
+                console.MarkupLine($"[grey]{Markup.Escape(restoreResult.Value.Error)}[/]");
+        }
+
         var (migrationOk, migrationError) = RunEfCommand(
             $"migrations add Add{entity}",
             $"Gerando migration [blue]Add{entity}[/]...",
