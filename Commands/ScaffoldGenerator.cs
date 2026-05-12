@@ -682,7 +682,6 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         """;
 
     private string RepositoryTemplate() => $$"""
-        using Microsoft.Extensions.Logging;
         using {{ctx.NS}}.Domain.Entities;
         using {{ctx.NS}}.Domain.Interfaces.Repositories;
         using {{ctx.NS}}.Infra.Data.Context;
@@ -691,9 +690,8 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
 
         public sealed class {{ctx.Entity}}Repository(
             DbSession dbSession,
-            ILogger<RepositoryBase<{{ctx.Entity}}>> logger,
             OneBaseDataBaseContext context)
-            : RepositoryBase<{{ctx.Entity}}>(dbSession, logger, context), I{{ctx.Entity}}Repository, IDataRepository
+            : RepositoryBase<{{ctx.Entity}}>(dbSession, context), I{{ctx.Entity}}Repository, IDataRepository
         {
         }
         """;
