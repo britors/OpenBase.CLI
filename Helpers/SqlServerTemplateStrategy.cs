@@ -10,8 +10,8 @@ public sealed class SqlServerTemplateStrategy : IDbTemplateStrategy
     public string ConnectionKey => SqlConnectionKey;
     public string DefaultServer => SqlDefaultServer;
 
-    public string BuildConnectionString(string projectName, string server, string user, string password)
+    public string BuildConnectionString(string dbName, string server, string user, string password)
         => string.IsNullOrWhiteSpace(user)
-            ? $"Server={server};Database={projectName};Trusted_Connection=True;TrustServerCertificate=True"
-            : $"Server={server};Database={projectName};User Id={user};Password={password};TrustServerCertificate=True";
+            ? $"Server={server};Database={dbName};Trusted_Connection=True;TrustServerCertificate=True"
+            : $"Server={server};Database={dbName};User Id={user};Password={password};TrustServerCertificate=True";
 }

@@ -101,7 +101,7 @@ public class NewCommand : AsyncCommand<NewSettings>
             return 1;
         }
 
-        var config = _configurator.Collect(strategy);
+        var config = _configurator.Collect(strategy, settings.Name);
 
         var exitCode = 0;
 
@@ -133,7 +133,7 @@ public class NewCommand : AsyncCommand<NewSettings>
     public static void UpdateAppSettings(string projectName, IDbTemplateStrategy strategy, ProjectSetupConfig config, IFileWriter fileWriter)
     {
         var basePath = Path.Combine(projectName, ApiSourceDir, ApiProjectDir);
-        var connectionString = strategy.BuildConnectionString(projectName, config.DbServer, config.DbUser, config.DbPassword);
+        var connectionString = strategy.BuildConnectionString(config.DbName, config.DbServer, config.DbUser, config.DbPassword);
 
         foreach (var fileName in AppSettingsFiles)
         {

@@ -6,7 +6,7 @@ namespace OpenBase.CLI.Helpers;
 [ExcludeFromCodeCoverage]
 public sealed class ConsoleProjectConfigurator(IAnsiConsole console) : IProjectConfigurator
 {
-    public ProjectSetupConfig Collect(IDbTemplateStrategy strategy)
+    public ProjectSetupConfig Collect(IDbTemplateStrategy strategy, string projectName)
     {
         console.WriteLine();
         console.MarkupLine("[bold]Configuração do projeto[/]");
@@ -24,6 +24,10 @@ public sealed class ConsoleProjectConfigurator(IAnsiConsole console) : IProjectC
             new TextPrompt<string>("Servidor do banco de dados:")
                 .DefaultValue(strategy.DefaultServer));
 
+        var dbName = console.Prompt(
+            new TextPrompt<string>("Nome do banco de dados:")
+                .DefaultValue(projectName));
+
         var user = console.Prompt(
             new TextPrompt<string>("Usuário do banco de dados:")
                 .AllowEmpty());
@@ -33,6 +37,6 @@ public sealed class ConsoleProjectConfigurator(IAnsiConsole console) : IProjectC
                 .Secret()
                 .AllowEmpty());
 
-        return new ProjectSetupConfig(mediatrLicense, automapperLicense, server, user, password);
+        return new ProjectSetupConfig(mediatrLicense, automapperLicense, server, user, password, dbName);
     }
 }

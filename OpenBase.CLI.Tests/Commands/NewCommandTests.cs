@@ -12,7 +12,7 @@ public class NewCommandTests
 
     private const string ProjectName = "MinhaApi";
 
-    private static readonly ProjectSetupConfig DefaultConfig = new("", "", ".", "", "");
+    private static readonly ProjectSetupConfig DefaultConfig = new("", "", ".", "", "", "TestDb");
 
     public NewCommandTests()
     {
@@ -21,7 +21,7 @@ public class NewCommandTests
             .Returns(true);
 
         _configurator
-            .Setup(c => c.Collect(It.IsAny<IDbTemplateStrategy>()))
+            .Setup(c => c.Collect(It.IsAny<IDbTemplateStrategy>(), It.IsAny<string>()))
             .Returns(DefaultConfig);
 
         _fileWriter
@@ -113,7 +113,7 @@ public class NewCommandTests
         await RunAsync(BuildSettings(template: "pgsql", name: ProjectName));
 
         _configurator.Verify(
-            c => c.Collect(It.Is<IDbTemplateStrategy>(s => s is PostgresTemplateStrategy)),
+            c => c.Collect(It.Is<IDbTemplateStrategy>(s => s is PostgresTemplateStrategy), It.IsAny<string>()),
             Times.Once);
     }
 
@@ -123,8 +123,8 @@ public class NewCommandTests
         var callOrder = new List<string>();
 
         _configurator
-            .Setup(c => c.Collect(It.IsAny<IDbTemplateStrategy>()))
-            .Callback<IDbTemplateStrategy>(_ => callOrder.Add("collect"))
+            .Setup(c => c.Collect(It.IsAny<IDbTemplateStrategy>(), It.IsAny<string>()))
+            .Callback<IDbTemplateStrategy, string>((_, _) => callOrder.Add("collect"))
             .Returns(DefaultConfig);
 
         _dotNetRunner
@@ -165,7 +165,7 @@ public class NewCommandTests
     {
         await RunAsync(BuildSettings(type: "web", template: "unknown"));
 
-        _configurator.Verify(c => c.Collect(It.IsAny<IDbTemplateStrategy>()), Times.Never);
+        _configurator.Verify(c => c.Collect(It.IsAny<IDbTemplateStrategy>(), It.IsAny<string>()), Times.Never);
     }
 }
 
@@ -257,7 +257,7 @@ public class NewCommandApplyConfigToJsonTests
     private const string PostgresKey  = "OpenBasePostgres";
 
     private static ProjectSetupConfig Config(string mediatr = "", string automapper = "") =>
-        new(mediatr, automapper, ".", "sa", "secret");
+        new(mediatr, automapper, ".", "sa", "secret", "TestDb");
 
     [Fact]
     public void UpdatesConnectionString()
@@ -358,7 +358,7 @@ public class NewCommandUpdateAppSettingsTests
         SetupFile(prod, json);
         SetupFile(dev, json);
 
-        NewCommand.UpdateAppSettings(ProjectName, new SqlServerTemplateStrategy(), new ProjectSetupConfig("", "", ".", "sa", "pwd"), _fileWriter.Object);
+        NewCommand.UpdateAppSettings(ProjectName, new SqlServerTemplateStrategy(), new ProjectSetupConfig("", "", ".", "sa", "pwd", ProjectName), _fileWriter.Object);
 
         _fileWriter.Verify(f => f.WriteAllText(prod, It.IsAny<string>()), Times.Once);
         _fileWriter.Verify(f => f.WriteAllText(dev,  It.IsAny<string>()), Times.Once);
@@ -369,15 +369,15 @@ public class NewCommandUpdateAppSettingsTests
     {
         _fileWriter.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
 
-        NewCommand.UpdateAppSettings(ProjectName, new SqlServerTemplateStrategy(), new ProjectSetupConfig("", "", ".", "", ""), _fileWriter.Object);
+        NewCommand.UpdateAppSettings(ProjectName, new SqlServerTemplateStrategy(), new ProjectSetupConfig("", "", ".", "", "", ProjectName), _fileWriter.Object);
 
         _fileWriter.Verify(f => f.WriteAllText(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     public static TheoryData<IDbTemplateStrategy, string, string, ProjectSetupConfig> ConnectionKeyData => new()
     {
-        { new SqlServerTemplateStrategy(), """{"ConnectionStrings":{"OpenBaseSQLServer":""}}""", "OpenBaseSQLServer", new ProjectSetupConfig("", "", ".", "sa", "pwd") },
-        { new PostgresTemplateStrategy(),  """{"ConnectionStrings":{"OpenBasePostgres":""}}""",  "OpenBasePostgres",  new ProjectSetupConfig("", "", "localhost", "pg", "pwd") },
+        { new SqlServerTemplateStrategy(), """{"ConnectionStrings":{"OpenBaseSQLServer":""}}""", "OpenBaseSQLServer", new ProjectSetupConfig("", "", ".", "sa", "pwd", "MinhaApi") },
+        { new PostgresTemplateStrategy(),  """{"ConnectionStrings":{"OpenBasePostgres":""}}""",  "OpenBasePostgres",  new ProjectSetupConfig("", "", "localhost", "pg", "pwd", "MinhaApi") },
     };
 
     [Theory]

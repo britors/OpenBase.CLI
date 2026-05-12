@@ -10,8 +10,8 @@ public sealed class PostgresTemplateStrategy : IDbTemplateStrategy
     public string ConnectionKey => PgConnectionKey;
     public string DefaultServer => PgDefaultServer;
 
-    public string BuildConnectionString(string projectName, string server, string user, string password)
+    public string BuildConnectionString(string dbName, string server, string user, string password)
         => string.IsNullOrWhiteSpace(user)
-            ? $"Host={server};Database={projectName}"
-            : $"Host={server};Database={projectName};Username={user};Password={password}";
+            ? $"Host={server};Database={dbName}"
+            : $"Host={server};Database={dbName};Username={user};Password={password}";
 }

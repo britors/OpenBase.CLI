@@ -5,10 +5,11 @@ public record ProjectSetupConfig(
     string AutomapperLicense,
     string DbServer,
     string DbUser,
-    string DbPassword
+    string DbPassword,
+    string DbName
 );
 
 public interface IProjectConfigurator
 {
-    ProjectSetupConfig Collect(IDbTemplateStrategy strategy);
+    ProjectSetupConfig Collect(IDbTemplateStrategy strategy, string projectName);
 }
