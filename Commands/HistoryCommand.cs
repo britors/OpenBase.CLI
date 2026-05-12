@@ -45,13 +45,10 @@ public class HistoryCommand : AsyncCommand<HistorySettings>
     {
         string? component = null;
 
-        if (!string.IsNullOrWhiteSpace(settings.Type))
+        if (!string.IsNullOrWhiteSpace(settings.Type) && !TypeToComponent.TryGetValue(settings.Type, out component))
         {
-            if (!TypeToComponent.TryGetValue(settings.Type, out component))
-            {
-                _console.MarkupLine($"[red]Erro:[/] Tipo inválido [yellow]{Markup.Escape(settings.Type)}[/]. Use: cli, sqlserver, postgres");
-                return 1;
-            }
+            _console.MarkupLine($"[red]Erro:[/] Tipo inválido [yellow]{Markup.Escape(settings.Type)}[/]. Use: cli, sqlserver, postgres");
+            return 1;
         }
 
         var entries = await _historyService.GetHistoryAsync(component, cancellationToken);

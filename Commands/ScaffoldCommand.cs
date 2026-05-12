@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using OpenBase.CLI.Helpers;
+using OpenBase.CLI.Models;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -38,8 +39,7 @@ public class ScaffoldCommand(
     IEntityPropertyCollector propertyCollector,
     IDbFlavorDetector dbFlavorDetector,
     IDotNetRunner dotNetRunner,
-    IDbSchemaReader dbSchemaReader,
-    IConnectionStringReader connectionStringReader)
+    IModelFirstPropertyCollector modelFirstCollector)
     : Command<ScaffoldSettings>
 {
     private const string DbContextFileName = "OneBaseDataBaseContext.cs";
@@ -64,12 +64,12 @@ public class ScaffoldCommand(
         var dbFlavor = dbFlavorDetector.Detect(solutionDir);
         var mode = AskScaffoldMode();
 
-        IReadOnlyList<OpenBase.CLI.Models.EntityProperty> properties;
+        IReadOnlyList<EntityProperty> properties;
         bool skipMigration;
 
         if (mode == ScaffoldMode.ModelFirst)
         {
-            var result = CollectFromDatabase(solutionDir, rootNamespace, dbFlavor, cancellationToken);
+            var result = modelFirstCollector.Collect(solutionDir, rootNamespace, dbFlavor);
             if (result is null) return 1;
             properties = result;
             skipMigration = true;
@@ -145,95 +145,6 @@ public class ScaffoldCommand(
         return choice.StartsWith("Model") ? ScaffoldMode.ModelFirst : ScaffoldMode.CodeFirst;
     }
 
-    private IReadOnlyList<OpenBase.CLI.Models.EntityProperty>? CollectFromDatabase(
-        string solutionDir,
-        string rootNamespace,
-        OpenBase.CLI.Models.DbFlavor dbFlavor,
-        CancellationToken cancellationToken)
-    {
-        var defaultSchema = dbFlavor == OpenBase.CLI.Models.DbFlavor.Postgres ? "public" : "dbo";
-
-        var schema = console.Prompt(
-            new TextPrompt<string>($"Schema/owner [{defaultSchema}]:")
-                .DefaultValue(defaultSchema)
-                .AllowEmpty());
-
-        if (string.IsNullOrWhiteSpace(schema))
-            schema = defaultSchema;
-
-        var tableName = console.Prompt(
-            new TextPrompt<string>("Nome da tabela:")
-                .Validate(t => string.IsNullOrWhiteSpace(t)
-                    ? ValidationResult.Error("Informe o nome da tabela.")
-                    : ValidationResult.Success()));
-
-        var connString = connectionStringReader.Read(solutionDir, rootNamespace);
-
-        if (string.IsNullOrWhiteSpace(connString))
-        {
-            connString = console.Prompt(
-                new TextPrompt<string>("[yellow]Connection string não encontrada no appsettings.json.[/]\nInforme a connection string:")
-                    .Validate(s => string.IsNullOrWhiteSpace(s)
-                        ? ValidationResult.Error("A connection string é obrigatória.")
-                        : ValidationResult.Success()));
-        }
-
-        IReadOnlyList<OpenBase.CLI.Models.EntityProperty>? properties = null;
-        Exception? readError = null;
-
-        console.Status()
-            .Spinner(Spinner.Known.Dots)
-            .Start($"Lendo estrutura da tabela [blue]{schema}.{tableName}[/]...", _ =>
-            {
-                try
-                {
-                    properties = dbSchemaReader.ReadColumns(connString!, schema, tableName, dbFlavor);
-                }
-                catch (Exception ex)
-                {
-                    readError = ex;
-                }
-            });
-
-        if (readError is not null)
-        {
-            console.MarkupLine($"[red]Erro ao ler a tabela:[/] {Markup.Escape(readError.Message)}");
-            return null;
-        }
-
-        if (properties is null || properties.Count == 0)
-        {
-            console.MarkupLine($"[red]Nenhuma coluna encontrada na tabela [bold]{schema}.{tableName}[/].[/]");
-            console.MarkupLine("Verifique se o nome do schema e da tabela estão corretos.");
-            return null;
-        }
-
-        ShowModelFirstTable(properties);
-        return properties;
-    }
-
-    private void ShowModelFirstTable(IReadOnlyList<OpenBase.CLI.Models.EntityProperty> properties)
-    {
-        console.WriteLine();
-
-        var table = new Table()
-            .AddColumn("Propriedade")
-            .AddColumn("Tipo C#")
-            .AddColumn("Not Null");
-
-        table.AddRow("Id", "int", "[green]Sim (PK)[/]");
-
-        foreach (var p in properties)
-        {
-            table.AddRow(
-                p.Name,
-                p.CsType,
-                p.IsRequired ? "[green]Sim[/]" : "[grey]Não[/]");
-        }
-
-        console.Write(table);
-        console.WriteLine();
-    }
 
     private void RunMigrations(ScaffoldContext ctx, string entity)
     {

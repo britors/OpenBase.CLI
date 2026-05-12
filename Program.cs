@@ -17,6 +17,7 @@ services.AddSingleton<IEntityPropertyCollector, ConsoleEntityPropertyCollector>(
 services.AddSingleton<IDbFlavorDetector, DbFlavorDetector>();
 services.AddSingleton<IDbSchemaReader, DbSchemaReader>();
 services.AddSingleton<IConnectionStringReader, AppSettingsConnectionStringReader>();
+services.AddSingleton<IModelFirstPropertyCollector, ConsoleModelFirstPropertyCollector>();
 
 var registrar = new TypeRegistrar(services);
 var app = new CommandApp(registrar);
