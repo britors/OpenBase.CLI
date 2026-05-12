@@ -44,7 +44,7 @@ public sealed class ConsoleEntityPropertyCollector(IAnsiConsole console) : IEnti
         return properties;
     }
 
-    private ValidationResult ValidatePropertyName(string n, List<EntityProperty> properties)
+    private static ValidationResult ValidatePropertyName(string n, List<EntityProperty> properties)
     {
         if (string.IsNullOrWhiteSpace(n))
             return ValidationResult.Error("O nome é obrigatório.");

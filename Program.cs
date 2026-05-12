@@ -19,6 +19,9 @@ services.AddSingleton<IDbSchemaReader, DbSchemaReader>();
 services.AddSingleton<IConnectionStringReader, AppSettingsConnectionStringReader>();
 services.AddSingleton<IModelFirstPropertyCollector, ConsoleModelFirstPropertyCollector>();
 
+const string TypeOpt = "--type";
+const string VersionCmd = "version";
+
 var registrar = new TypeRegistrar(services);
 var app = new CommandApp(registrar);
 
@@ -35,7 +38,7 @@ app.Configure(config =>
 
     config.AddCommand<NewCommand>("new")
         .WithDescription("Cria um novo projeto baseado em um template.")
-        .WithExample("new", "--type", "api", "--template", "sqlserver", "--name", "MeuProjeto");
+        .WithExample("new", TypeOpt, "api", "--template", "sqlserver", "--name", "MeuProjeto");
 
     config.AddCommand<ScaffoldCommand>("scaffold")
         .WithDescription("Gera todas as camadas da arquitetura para uma entidade.")
@@ -44,23 +47,23 @@ app.Configure(config =>
     config.AddCommand<HistoryCommand>("history")
         .WithDescription("Exibe o histórico de atualizações dos componentes OpenBase.")
         .WithExample("history")
-        .WithExample("history", "--type", "cli");
+        .WithExample("history", TypeOpt, "cli");
 
     config.AddCommand<HelpCommand>("help")
         .WithDescription("Exibe a ajuda para os comandos do OpenBase");
 
-    config.AddBranch<CommandSettings>("version", version =>
+    config.AddBranch<CommandSettings>(VersionCmd, version =>
     {
         version.SetDescription("Exibe e gerencia versões dos componentes OpenBase.");
 
         version.AddCommand<VersionCommand>("show")
                .WithDescription("Exibe as versões da CLI e do template do OpenBase")
-               .WithExample("version", "show");
+               .WithExample(VersionCmd, "show");
 
         version.AddCommand<VersionRestoreCommand>("restore")
                .WithDescription("Restaura um componente para uma versão específica.")
-               .WithExample("version", "restore", "10.5.9", "--type", "cli")
-               .WithExample("version", "restore", "2.0.0", "--type", "sqlserver");
+               .WithExample(VersionCmd, "restore", "10.5.9", TypeOpt, "cli")
+               .WithExample(VersionCmd, "restore", "2.0.0", TypeOpt, "sqlserver");
     });
 });
 

@@ -187,19 +187,17 @@ public class ScaffoldCommand(
 
     private (bool Success, string Error) RunEfCommand(string efArgs, string spinnerLabel, ScaffoldContext ctx)
     {
-        bool success = false;
-        string error = string.Empty;
-
         var projectArg = $"--project \"{ctx.InfraContextPath}\" --startup-project \"{ctx.PresentationPath}\"";
+        (bool Success, string Error)? result = null;
 
         console.Status()
             .Spinner(Spinner.Known.Dots)
             .Start(spinnerLabel, _ =>
             {
-                (success, error) = dotNetRunner.Run($"ef {efArgs} {projectArg}");
+                result = dotNetRunner.Run($"ef {efArgs} {projectArg}");
             });
 
-        return (success, error);
+        return result ?? (false, string.Empty);
     }
 
     public DbSetInjectionResult InjectDbSet(ScaffoldContext ctx)

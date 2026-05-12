@@ -48,7 +48,7 @@ public class UpdateCommand : AsyncCommand<UpdateSettings>
         _console.WriteLine();
 
         var newTemplateVersions = new Dictionary<string, string?>();
-        foreach (var (pkgId, success) in packageResults.Where(r => r.Success))
+        foreach (var (pkgId, _) in packageResults.Where(r => r.Success))
             newTemplateVersions[pkgId] = await _dotNetRunner.GetInstalledTemplateVersionAsync(pkgId, cancellationToken);
 
         string? newCliVersion = null;

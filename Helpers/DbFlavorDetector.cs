@@ -15,8 +15,7 @@ public sealed class DbFlavorDetector : IDbFlavorDetector
             return DbFlavor.SqlServer;
 
         var hasNpgsql = Directory.GetFiles(srcDir, "*.csproj", SearchOption.AllDirectories)
-            .Where(f => File.ReadAllText(f).Contains(NpgsqlPackage, StringComparison.OrdinalIgnoreCase))
-            .Any();
+            .Any(f => File.ReadAllText(f).Contains(NpgsqlPackage, StringComparison.OrdinalIgnoreCase));
 
         return hasNpgsql ? DbFlavor.Postgres : DbFlavor.SqlServer;
     }
