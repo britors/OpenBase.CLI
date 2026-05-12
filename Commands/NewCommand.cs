@@ -17,7 +17,7 @@ public class NewSettings : CommandSettings
 
     [CommandOption("-s|--template <TEMPLATE>")]
     [Description("O nome do template [sqlserver|pgsql]")]
-    public string TemplateName { get; set; } = "sqlserver";
+    public string? TemplateName { get; set; }
 
     [CommandOption("-n|--name <NOME>")]
     [Description("O nome do projeto a ser criado")]
@@ -25,9 +25,6 @@ public class NewSettings : CommandSettings
 
     public override ValidationResult Validate()
     {
-        if (string.IsNullOrWhiteSpace(TemplateName))
-            return ValidationResult.Error("O parâmetro --template <TEMPLATE> é obrigatório.");
-
         if (string.IsNullOrWhiteSpace(Name))
             return ValidationResult.Error("O parâmetro --name <NOME> é obrigatório.");
 
@@ -85,7 +82,16 @@ public class NewCommand : AsyncCommand<NewSettings>
             return 1;
         }
 
-        var key = $"{settings.Type}:{settings.TemplateName}";
+        var templateName = settings.TemplateName;
+        if (string.IsNullOrWhiteSpace(templateName))
+        {
+            templateName = _console.Prompt(
+                new SelectionPrompt<string>()
+                    .Title("Banco de dados da API:")
+                    .AddChoices("sqlserver", "pgsql"));
+        }
+
+        var key = $"{settings.Type}:{templateName}";
 
         if (!TemplateMap.TryGetValue(key, out var strategy))
         {

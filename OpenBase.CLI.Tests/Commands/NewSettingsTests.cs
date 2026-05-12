@@ -9,24 +9,6 @@ public class NewSettingsTests
         new() { Name = name, TemplateName = template, Type = "api" };
 
     [Fact]
-    public void Validate_EmptyTemplateName_ReturnsError()
-    {
-        var settings = Valid(template: "");
-        var result = settings.Validate();
-        Assert.False(result.Successful);
-        Assert.Contains("--template", result.Message);
-    }
-
-    [Fact]
-    public void Validate_WhitespaceTemplateName_ReturnsError()
-    {
-        var settings = Valid(template: "   ");
-        var result = settings.Validate();
-        Assert.False(result.Successful);
-        Assert.Contains("--template", result.Message);
-    }
-
-    [Fact]
     public void Validate_EmptyName_ReturnsError()
     {
         var settings = Valid(name: "");

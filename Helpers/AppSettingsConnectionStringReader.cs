@@ -25,12 +25,14 @@ public sealed class AppSettingsConnectionStringReader : IConnectionStringReader
                 var json = File.ReadAllText(path);
                 using var doc = JsonDocument.Parse(json);
 
-                if (doc.RootElement.TryGetProperty("ConnectionStrings", out var cs) &&
-                    cs.TryGetProperty("DefaultConnection", out var conn))
+                if (doc.RootElement.TryGetProperty("ConnectionStrings", out var cs))
                 {
-                    var value = conn.GetString();
-                    if (!string.IsNullOrWhiteSpace(value))
-                        return value;
+                    foreach (var prop in cs.EnumerateObject())
+                    {
+                        var value = prop.Value.GetString();
+                        if (!string.IsNullOrWhiteSpace(value))
+                            return value;
+                    }
                 }
             }
             catch { /* arquivo inválido ou sem a chave */ }
