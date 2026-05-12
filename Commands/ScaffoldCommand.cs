@@ -37,12 +37,16 @@ public class ScaffoldCommand(
     IFileWriter fileWriter,
     IEntityPropertyCollector propertyCollector,
     IDbFlavorDetector dbFlavorDetector,
-    IDotNetRunner dotNetRunner)
+    IDotNetRunner dotNetRunner,
+    IDbSchemaReader dbSchemaReader,
+    IConnectionStringReader connectionStringReader)
     : Command<ScaffoldSettings>
 {
     private const string DbContextFileName = "OneBaseDataBaseContext.cs";
 
     public enum DbSetInjectionResult { Injected, AlreadyExists, FileNotFound, Failed }
+
+    private enum ScaffoldMode { CodeFirst, ModelFirst }
 
     protected override int Execute([NotNull] CommandContext context, [NotNull] ScaffoldSettings settings, CancellationToken cancellationToken)
     {
@@ -58,7 +62,23 @@ public class ScaffoldCommand(
         }
 
         var dbFlavor = dbFlavorDetector.Detect(solutionDir);
-        var properties = propertyCollector.Collect(dbFlavor);
+        var mode = AskScaffoldMode();
+
+        IReadOnlyList<OpenBase.CLI.Models.EntityProperty> properties;
+        bool skipMigration;
+
+        if (mode == ScaffoldMode.ModelFirst)
+        {
+            var result = CollectFromDatabase(solutionDir, rootNamespace, dbFlavor, cancellationToken);
+            if (result is null) return 1;
+            properties = result;
+            skipMigration = true;
+        }
+        else
+        {
+            properties = propertyCollector.Collect(dbFlavor);
+            skipMigration = false;
+        }
 
         if (console.Profile.Capabilities.Interactive && !console.Confirm("Prosseguir com o scaffold?", defaultValue: true))
             return 0;
@@ -96,13 +116,123 @@ public class ScaffoldCommand(
         {
             console.MarkupLine("Próximos passos:");
             console.MarkupLine($"  1. Adicione [blue]DbSet<{settings.Entity}> {ctx.EPlural} {{ get; set; }}[/] ao DbContext");
-            console.MarkupLine($"  2. Execute [blue]dotnet ef migrations add Add{settings.Entity}[/]");
-            console.MarkupLine("  3. Execute [blue]dotnet ef database update[/]");
+            if (!skipMigration)
+            {
+                console.MarkupLine($"  2. Execute [blue]dotnet ef migrations add Add{settings.Entity}[/]");
+                console.MarkupLine("  3. Execute [blue]dotnet ef database update[/]");
+            }
             return 0;
         }
 
-        RunMigrations(ctx, settings.Entity);
+        if (!skipMigration)
+            RunMigrations(ctx, settings.Entity);
+
         return 0;
+    }
+
+    private ScaffoldMode AskScaffoldMode()
+    {
+        if (!console.Profile.Capabilities.Interactive)
+            return ScaffoldMode.CodeFirst;
+
+        var choice = console.Prompt(
+            new SelectionPrompt<string>()
+                .Title("\nComo deseja gerar o scaffold?")
+                .AddChoices(
+                    "Code First (definir propriedades manualmente)",
+                    "Model First (ler estrutura de uma tabela existente)"));
+
+        return choice.StartsWith("Model") ? ScaffoldMode.ModelFirst : ScaffoldMode.CodeFirst;
+    }
+
+    private IReadOnlyList<OpenBase.CLI.Models.EntityProperty>? CollectFromDatabase(
+        string solutionDir,
+        string rootNamespace,
+        OpenBase.CLI.Models.DbFlavor dbFlavor,
+        CancellationToken cancellationToken)
+    {
+        var defaultSchema = dbFlavor == OpenBase.CLI.Models.DbFlavor.Postgres ? "public" : "dbo";
+
+        var schema = console.Prompt(
+            new TextPrompt<string>($"Schema/owner [{defaultSchema}]:")
+                .DefaultValue(defaultSchema)
+                .AllowEmpty());
+
+        if (string.IsNullOrWhiteSpace(schema))
+            schema = defaultSchema;
+
+        var tableName = console.Prompt(
+            new TextPrompt<string>("Nome da tabela:")
+                .Validate(t => string.IsNullOrWhiteSpace(t)
+                    ? ValidationResult.Error("Informe o nome da tabela.")
+                    : ValidationResult.Success()));
+
+        var connString = connectionStringReader.Read(solutionDir, rootNamespace);
+
+        if (string.IsNullOrWhiteSpace(connString))
+        {
+            connString = console.Prompt(
+                new TextPrompt<string>("[yellow]Connection string não encontrada no appsettings.json.[/]\nInforme a connection string:")
+                    .Validate(s => string.IsNullOrWhiteSpace(s)
+                        ? ValidationResult.Error("A connection string é obrigatória.")
+                        : ValidationResult.Success()));
+        }
+
+        IReadOnlyList<OpenBase.CLI.Models.EntityProperty>? properties = null;
+        Exception? readError = null;
+
+        console.Status()
+            .Spinner(Spinner.Known.Dots)
+            .Start($"Lendo estrutura da tabela [blue]{schema}.{tableName}[/]...", _ =>
+            {
+                try
+                {
+                    properties = dbSchemaReader.ReadColumns(connString!, schema, tableName, dbFlavor);
+                }
+                catch (Exception ex)
+                {
+                    readError = ex;
+                }
+            });
+
+        if (readError is not null)
+        {
+            console.MarkupLine($"[red]Erro ao ler a tabela:[/] {Markup.Escape(readError.Message)}");
+            return null;
+        }
+
+        if (properties is null || properties.Count == 0)
+        {
+            console.MarkupLine($"[red]Nenhuma coluna encontrada na tabela [bold]{schema}.{tableName}[/].[/]");
+            console.MarkupLine("Verifique se o nome do schema e da tabela estão corretos.");
+            return null;
+        }
+
+        ShowModelFirstTable(properties);
+        return properties;
+    }
+
+    private void ShowModelFirstTable(IReadOnlyList<OpenBase.CLI.Models.EntityProperty> properties)
+    {
+        console.WriteLine();
+
+        var table = new Table()
+            .AddColumn("Propriedade")
+            .AddColumn("Tipo C#")
+            .AddColumn("Not Null");
+
+        table.AddRow("Id", "int", "[green]Sim (PK)[/]");
+
+        foreach (var p in properties)
+        {
+            table.AddRow(
+                p.Name,
+                p.CsType,
+                p.IsRequired ? "[green]Sim[/]" : "[grey]Não[/]");
+        }
+
+        console.Write(table);
+        console.WriteLine();
     }
 
     private void RunMigrations(ScaffoldContext ctx, string entity)

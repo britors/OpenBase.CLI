@@ -12,6 +12,8 @@ public class ScaffoldCommandTests
     private readonly Mock<IEntityPropertyCollector> _propertyCollector = new();
     private readonly Mock<IDbFlavorDetector> _dbFlavorDetector = new();
     private readonly Mock<IDotNetRunner> _dotNetRunner = new();
+    private readonly Mock<IDbSchemaReader> _dbSchemaReader = new();
+    private readonly Mock<IConnectionStringReader> _connectionStringReader = new();
 
     public ScaffoldCommandTests()
     {
@@ -30,7 +32,8 @@ public class ScaffoldCommandTests
 
     private ScaffoldCommand CreateCommand() =>
         new(CommandTestHelper.CreateConsole(), _locator.Object, _fileWriter.Object,
-            _propertyCollector.Object, _dbFlavorDetector.Object, _dotNetRunner.Object);
+            _propertyCollector.Object, _dbFlavorDetector.Object, _dotNetRunner.Object,
+            _dbSchemaReader.Object, _connectionStringReader.Object);
 
     private static ScaffoldSettings BuildSettings(string entity = "Produto", string? ns = null) =>
         new() { Entity = entity, RootNamespace = ns };
@@ -162,7 +165,8 @@ public class ScaffoldCommandTests
             Out = new AnsiConsoleOutput(writer)
         });
         return (new ScaffoldCommand(console, _locator.Object, _fileWriter.Object,
-            _propertyCollector.Object, _dbFlavorDetector.Object, _dotNetRunner.Object), writer);
+            _propertyCollector.Object, _dbFlavorDetector.Object, _dotNetRunner.Object,
+            _dbSchemaReader.Object, _connectionStringReader.Object), writer);
     }
 
     private Task<int> RunWithOutput(ScaffoldCommand command, ScaffoldSettings settings) =>

@@ -8,7 +8,7 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>openbase</ToolCommandName>
     <PackageId>w3ti.OpenBase.CLI</PackageId>
-    <Version>10.6.7</Version>
+    <Version>10.6.8</Version>
     <Authors>Rodrigo Brito</Authors>
     <Description>CLI para o projeto OpenBase — "Andromeda". Adiciona comando scaffold para geração automática de todas as camadas da Arquitetura Limpa (Domain, Application, Infra, Presentation) a partir de uma entidade, sem métodos Dapper.</Description>
   </PropertyGroup>
@@ -24,7 +24,9 @@
   </PropertyGroup>
   
   <ItemGroup>
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.7" />
+    <PackageReference Include="Npgsql" Version="9.0.4" />
     <PackageReference Include="Spectre.Console.Cli" Version="0.55.0" />
   </ItemGroup>
 
