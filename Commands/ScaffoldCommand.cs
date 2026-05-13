@@ -67,11 +67,14 @@ public class ScaffoldCommand(
         IReadOnlyList<EntityProperty> properties;
         bool skipMigration;
 
+        string? modelFirstTableName = null;
+
         if (mode == ScaffoldMode.ModelFirst)
         {
             var result = modelFirstCollector.Collect(solutionDir, rootNamespace, dbFlavor);
             if (result is null) return 1;
-            properties = result;
+            properties = result.Value.Properties;
+            modelFirstTableName = result.Value.TableName;
             skipMigration = true;
         }
         else
@@ -88,7 +91,8 @@ public class ScaffoldCommand(
         {
             Properties = properties,
             DbFlavor = dbFlavor,
-            TestsPath = testsPath
+            TestsPath = testsPath,
+            TableName = modelFirstTableName
         };
 
         var files = new ScaffoldGenerator(ctx).GetFiles().ToList();

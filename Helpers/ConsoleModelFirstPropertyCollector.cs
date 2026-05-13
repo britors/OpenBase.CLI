@@ -11,7 +11,7 @@ public sealed class ConsoleModelFirstPropertyCollector(
     IConnectionStringReader connectionStringReader)
     : IModelFirstPropertyCollector
 {
-    public IReadOnlyList<EntityProperty>? Collect(string solutionDir, string rootNamespace, DbFlavor dbFlavor)
+    public (IReadOnlyList<EntityProperty> Properties, string TableName)? Collect(string solutionDir, string rootNamespace, DbFlavor dbFlavor)
     {
         var defaultSchema = dbFlavor == DbFlavor.Postgres ? "public" : "dbo";
 
@@ -72,7 +72,7 @@ public sealed class ConsoleModelFirstPropertyCollector(
         }
 
         ShowSummaryTable(properties);
-        return properties;
+        return (properties, tableName);
     }
 
     private void ShowSummaryTable(IReadOnlyList<EntityProperty> properties)

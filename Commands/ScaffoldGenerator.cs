@@ -13,6 +13,7 @@ public sealed record ScaffoldContext(string Entity, string RootNamespace, string
 
     public IReadOnlyList<EntityProperty> Properties { get; init; } = DefaultProperties;
     public DbFlavor DbFlavor { get; init; } = DbFlavor.SqlServer;
+    public string? TableName { get; init; }
 
     public EntityProperty? FilterProperty =>
         Properties.FirstOrDefault(p => p.IsStringType && p.Name.Equals("Name", StringComparison.OrdinalIgnoreCase))
@@ -672,7 +673,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         {
             public void Configure(EntityTypeBuilder<{{ctx.Entity}}> builder)
             {
-                builder.ToTable("{{ctx.EPlural}}");
+                builder.ToTable("{{ctx.TableName ?? ctx.EPlural}}");
 
                 builder.HasKey(x => x.Id);
 
