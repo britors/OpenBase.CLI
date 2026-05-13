@@ -115,7 +115,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
 
     private string FindByArgumentsCallArgs()
     {
-        var parts = FilterableProperties.Select(p => $"request.{p.Name}").ToList();
+        var parts = FilterableProperties.Select(p => $"request.{ToCamel(p.Name)}").ToList();
         parts.Add("request.Page");
         parts.Add("request.PageSize");
         parts.Add("cancellationToken");
