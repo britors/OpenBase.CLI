@@ -1,4 +1,6 @@
-namespace OpenBase.CLI.Helpers;
+using OpenBase.CLI.Helpers.Database;
+
+namespace OpenBase.CLI.Helpers.Interactive;
 
 public record ProjectSetupConfig(
     string MediatrLicense,

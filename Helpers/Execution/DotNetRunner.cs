@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 
-namespace OpenBase.CLI.Helpers;
+namespace OpenBase.CLI.Helpers.Execution;
 
 [ExcludeFromCodeCoverage]
 public sealed class DotNetRunner : IDotNetRunner

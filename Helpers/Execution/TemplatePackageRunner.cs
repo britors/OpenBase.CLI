@@ -1,7 +1,7 @@
 using OpenBase.CLI.Localization;
 using Spectre.Console;
 
-namespace OpenBase.CLI.Helpers;
+namespace OpenBase.CLI.Helpers.Execution;
 
 public sealed class TemplatePackageRunner : ITemplatePackageRunner
 {

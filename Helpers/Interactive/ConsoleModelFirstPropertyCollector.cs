@@ -1,9 +1,10 @@
 using System.Diagnostics.CodeAnalysis;
+using OpenBase.CLI.Helpers.Database;
 using OpenBase.CLI.Localization;
 using OpenBase.CLI.Models;
 using Spectre.Console;
 
-namespace OpenBase.CLI.Helpers;
+namespace OpenBase.CLI.Helpers.Interactive;
 
 [ExcludeFromCodeCoverage]
 public sealed class ConsoleModelFirstPropertyCollector(

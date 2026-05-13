@@ -1,6 +1,6 @@
 using OpenBase.CLI.Models;
 
-namespace OpenBase.CLI.Helpers;
+namespace OpenBase.CLI.Helpers.Interactive;
 
 public interface IModelFirstPropertyCollector
 {

@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 
-namespace OpenBase.CLI.Helpers;
+namespace OpenBase.CLI.Helpers.IO;
 
 [ExcludeFromCodeCoverage]
 public sealed class FileWriter : IFileWriter

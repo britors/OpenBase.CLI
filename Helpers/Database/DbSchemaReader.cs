@@ -4,7 +4,7 @@ using Microsoft.Data.SqlClient;
 using Npgsql;
 using OpenBase.CLI.Models;
 
-namespace OpenBase.CLI.Helpers;
+namespace OpenBase.CLI.Helpers.Database;
 
 [ExcludeFromCodeCoverage]
 public sealed class DbSchemaReader : IDbSchemaReader

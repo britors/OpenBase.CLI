@@ -1,5 +1,6 @@
 using System.Text;
-using OpenBase.CLI.Helpers;
+using OpenBase.CLI.Helpers.Database;
+using OpenBase.CLI.Helpers.IO;
 using OpenBase.CLI.Models;
 
 namespace OpenBase.CLI.Commands;

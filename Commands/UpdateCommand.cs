@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using OpenBase.CLI.Helpers;
+using OpenBase.CLI.Helpers.IO;
+using OpenBase.CLI.Helpers.Execution;
 using OpenBase.CLI.Localization;
 using OpenBase.CLI.Models;
 using Spectre.Console;

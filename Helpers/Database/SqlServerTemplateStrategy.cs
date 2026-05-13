@@ -1,4 +1,4 @@
-namespace OpenBase.CLI.Helpers;
+namespace OpenBase.CLI.Helpers.Database;
 
 public sealed class SqlServerTemplateStrategy : IDbTemplateStrategy
 {

@@ -1,5 +1,5 @@
 using OpenBase.CLI.Commands;
-using OpenBase.CLI.Helpers;
+using OpenBase.CLI.Helpers.Execution;
 using Spectre.Console.Cli;
 
 namespace OpenBase.CLI.Tests.Commands;

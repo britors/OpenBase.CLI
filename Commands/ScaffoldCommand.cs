@@ -1,6 +1,9 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using OpenBase.CLI.Helpers;
+using OpenBase.CLI.Helpers.Database;
+using OpenBase.CLI.Helpers.Interactive;
+using OpenBase.CLI.Helpers.IO;
+using OpenBase.CLI.Helpers.Execution;
 using OpenBase.CLI.Localization;
 using OpenBase.CLI.Models;
 using Spectre.Console;

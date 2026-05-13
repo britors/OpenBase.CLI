@@ -1,6 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
 using OpenBase.CLI.Commands;
-using OpenBase.CLI.Helpers;
+using OpenBase.CLI.Helpers.Database;
+using OpenBase.CLI.Helpers.Interactive;
+using OpenBase.CLI.Helpers.IO;
+using OpenBase.CLI.Helpers.Execution;
 using OpenBase.CLI.Infrastructure;
 using OpenBase.CLI.Localization;
 using Spectre.Console;

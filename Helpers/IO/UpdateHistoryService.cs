@@ -1,7 +1,7 @@
 using System.Text.Json;
 using OpenBase.CLI.Models;
 
-namespace OpenBase.CLI.Helpers;
+namespace OpenBase.CLI.Helpers.IO;
 
 public sealed class UpdateHistoryService : IUpdateHistoryService
 {

@@ -1,4 +1,4 @@
-namespace OpenBase.CLI.Helpers;
+namespace OpenBase.CLI.Helpers.Database;
 
 public interface IConnectionStringReader
 {
