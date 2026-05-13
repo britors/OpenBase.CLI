@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using OpenBase.CLI.Helpers;
+using OpenBase.CLI.Localization;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -47,7 +48,7 @@ public class HistoryCommand : AsyncCommand<HistorySettings>
 
         if (!string.IsNullOrWhiteSpace(settings.Type) && !TypeToComponent.TryGetValue(settings.Type, out component))
         {
-            _console.MarkupLine($"[red]Erro:[/] Tipo inválido [yellow]{Markup.Escape(settings.Type)}[/]. Use: cli, sqlserver, postgres");
+            _console.MarkupLine(string.Format(SR.Current.InvalidTypeHistory, Markup.Escape(settings.Type)));
             return 1;
         }
 
@@ -55,16 +56,16 @@ public class HistoryCommand : AsyncCommand<HistorySettings>
 
         if (entries.Count == 0)
         {
-            _console.MarkupLine("[grey]Nenhum histórico de atualização encontrado.[/]");
+            _console.MarkupLine(SR.Current.NoHistoryFound);
             return 0;
         }
 
         var table = new Table().Border(TableBorder.Rounded);
-        table.AddColumn("[bold]Data[/]");
-        table.AddColumn("[bold]Componente[/]");
-        table.AddColumn("[bold]Versão Anterior[/]");
-        table.AddColumn("[bold]Nova Versão[/]");
-        table.AddColumn("[bold]Status[/]");
+        table.AddColumn(SR.Current.ColDate);
+        table.AddColumn(SR.Current.ColComponent);
+        table.AddColumn(SR.Current.ColPreviousVersion);
+        table.AddColumn(SR.Current.ColNewVersion);
+        table.AddColumn(SR.Current.ColStatus);
 
         foreach (var entry in entries)
         {

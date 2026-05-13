@@ -1,4 +1,5 @@
 using OpenBase.CLI.Commands;
+using OpenBase.CLI.Localization;
 
 namespace OpenBase.CLI.Tests.Commands;
 
@@ -41,7 +42,7 @@ public class ScaffoldSettingsTests
     {
         var result = Valid(entity: entity).Validate();
         Assert.False(result.Successful);
-        Assert.Contains("letras e números", result.Message);
+        Assert.Equal(SR.Current.EntityMustBeAlphanumeric, result.Message);
     }
 
     [Theory]

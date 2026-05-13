@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using OpenBase.CLI.Helpers;
+using OpenBase.CLI.Localization;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -45,8 +46,8 @@ public class VersionCommand(
         console.Write(new FigletText("OpenBase").Color(Color.Blue));
 
         var table = new Table().Border(TableBorder.Rounded);
-        table.AddColumn("[bold]Componente[/]");
-        table.AddColumn("[bold]Versão[/]");
+        table.AddColumn(SR.Current.ColVersionComponent);
+        table.AddColumn(SR.Current.ColVersion);
 
         table.AddRow("OS", $"[green]{Markup.Escape(osDescription)} ({architecture})[/]");
         table.AddRow("DotNet", $"[green]{Markup.Escape(dotnetVersion)}[/]");

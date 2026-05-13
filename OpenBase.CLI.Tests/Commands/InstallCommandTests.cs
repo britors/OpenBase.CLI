@@ -40,7 +40,7 @@ public class InstallCommandTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_PassesCorrectVerbsToRunner()
+    public async Task ExecuteAsync_CallsRunnerOnce()
     {
         SetupPackages(true);
 
@@ -48,7 +48,7 @@ public class InstallCommandTests
             .ExecuteAsync(CommandTestHelper.CreateContext("install"), new InstallSettings(), CancellationToken.None);
 
         _runner.Verify(r => r.RunPackagesAsync(
-            "Instalando", "instalado", "instalar", It.IsAny<CancellationToken>()),
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 }

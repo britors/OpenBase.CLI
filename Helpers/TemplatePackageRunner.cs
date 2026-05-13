@@ -1,3 +1,4 @@
+using OpenBase.CLI.Localization;
 using Spectre.Console;
 
 namespace OpenBase.CLI.Helpers;
@@ -30,13 +31,13 @@ public sealed class TemplatePackageRunner : ITemplatePackageRunner
                     success = ok;
                     if (!ok)
                     {
-                        _console.MarkupLine($"[red]Erro:[/] Falha ao {errorLabel} [yellow]{packageId}[/].");
+                        _console.MarkupLine(string.Format(SR.Current.PackageOperationFailed, errorLabel, Markup.Escape(packageId)));
                         if (!string.IsNullOrWhiteSpace(error))
                             _console.MarkupLine($"[grey]{Markup.Escape(error)}[/]");
                     }
                     else
                     {
-                        _console.MarkupLine($"[green]✓[/] {packageId} {successLabel}.");
+                        _console.MarkupLine(string.Format(SR.Current.PackageOperationSuccess, Markup.Escape(packageId), successLabel));
                     }
                 });
 

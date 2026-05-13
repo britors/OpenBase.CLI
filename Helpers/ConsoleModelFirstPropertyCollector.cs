@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using OpenBase.CLI.Localization;
 using OpenBase.CLI.Models;
 using Spectre.Console;
 
@@ -16,7 +17,7 @@ public sealed class ConsoleModelFirstPropertyCollector(
         var defaultSchema = dbFlavor == DbFlavor.Postgres ? "public" : "dbo";
 
         var schema = console.Prompt(
-            new TextPrompt<string>($"Schema/owner [[{defaultSchema}]]:")
+            new TextPrompt<string>(string.Format(SR.Current.SchemaOwnerPrompt, defaultSchema))
                 .DefaultValue(defaultSchema)
                 .AllowEmpty());
 
@@ -24,9 +25,9 @@ public sealed class ConsoleModelFirstPropertyCollector(
             schema = defaultSchema;
 
         var tableName = console.Prompt(
-            new TextPrompt<string>("Nome da tabela:")
+            new TextPrompt<string>(SR.Current.TableNamePrompt)
                 .Validate(t => string.IsNullOrWhiteSpace(t)
-                    ? ValidationResult.Error("Informe o nome da tabela.")
+                    ? ValidationResult.Error(SR.Current.TableNameRequired)
                     : ValidationResult.Success()));
 
         var connString = connectionStringReader.Read(solutionDir, rootNamespace);
@@ -34,9 +35,9 @@ public sealed class ConsoleModelFirstPropertyCollector(
         if (string.IsNullOrWhiteSpace(connString))
         {
             connString = console.Prompt(
-                new TextPrompt<string>("[yellow]Connection string não encontrada no appsettings.json.[/]\nInforme a connection string:")
+                new TextPrompt<string>(SR.Current.ConnectionStringNotFound)
                     .Validate(s => string.IsNullOrWhiteSpace(s)
-                        ? ValidationResult.Error("A connection string é obrigatória.")
+                        ? ValidationResult.Error(SR.Current.ConnectionStringRequired)
                         : ValidationResult.Success()));
         }
 
@@ -44,7 +45,7 @@ public sealed class ConsoleModelFirstPropertyCollector(
 
         console.Status()
             .Spinner(Spinner.Known.Dots)
-            .Start($"Lendo estrutura da tabela [blue]{schema}.{tableName}[/]...", _ =>
+            .Start(string.Format(SR.Current.ReadingTableStructure, schema, tableName), _ =>
             {
                 try
                 {
@@ -58,7 +59,7 @@ public sealed class ConsoleModelFirstPropertyCollector(
 
         if (result?.Error is { } error)
         {
-            console.MarkupLine($"[red]Erro ao ler a tabela:[/] {Markup.Escape(error.Message)}");
+            console.MarkupLine(string.Format(SR.Current.ErrorReadingTable, Markup.Escape(error.Message)));
             return null;
         }
 
@@ -66,8 +67,8 @@ public sealed class ConsoleModelFirstPropertyCollector(
 
         if (properties is null || properties.Count == 0)
         {
-            console.MarkupLine($"[red]Nenhuma coluna encontrada na tabela [bold]{schema}.{tableName}[/].[/]");
-            console.MarkupLine("Verifique se o nome do schema e da tabela estão corretos.");
+            console.MarkupLine(string.Format(SR.Current.NoColumnsFound, schema, tableName));
+            console.MarkupLine(SR.Current.CheckSchemaAndTableName);
             return null;
         }
 
@@ -80,18 +81,18 @@ public sealed class ConsoleModelFirstPropertyCollector(
         console.WriteLine();
 
         var table = new Table()
-            .AddColumn("Propriedade")
-            .AddColumn("Tipo C#")
-            .AddColumn("Not Null");
+            .AddColumn(SR.Current.ColProperty)
+            .AddColumn(SR.Current.ColCsType)
+            .AddColumn(SR.Current.ColNotNull);
 
-        table.AddRow("Id", "int", "[green]Sim (PK)[/]");
+        table.AddRow("Id", "int", "[green]✓ (PK)[/]");
 
         foreach (var p in properties)
         {
             table.AddRow(
                 p.Name,
                 p.CsType,
-                p.IsRequired ? "[green]Sim[/]" : "[grey]Não[/]");
+                p.IsRequired ? "[green]✓[/]" : "[grey]-[/]");
         }
 
         console.Write(table);

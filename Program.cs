@@ -2,8 +2,11 @@ using Microsoft.Extensions.DependencyInjection;
 using OpenBase.CLI.Commands;
 using OpenBase.CLI.Helpers;
 using OpenBase.CLI.Infrastructure;
+using OpenBase.CLI.Localization;
 using Spectre.Console;
 using Spectre.Console.Cli;
+
+SR.Configure();
 
 var services = new ServiceCollection();
 services.AddSingleton<IAnsiConsole>(AnsiConsole.Console);
@@ -30,38 +33,38 @@ app.Configure(config =>
     config.SetApplicationName("openbase");
 
     config.AddCommand<InstallCommand>("install")
-        .WithDescription("Instala o ecossistema de templates OpenBase.")
+        .WithDescription(SR.Current.CmdInstallDescription)
         .WithExample("install");
 
     config.AddCommand<UpdateCommand>("update")
-        .WithDescription("Sincroniza e atualiza todos os templates OpenBase.");
+        .WithDescription(SR.Current.CmdUpdateDescription);
 
     config.AddCommand<NewCommand>("new")
-        .WithDescription("Cria um novo projeto baseado em um template.")
+        .WithDescription(SR.Current.CmdNewDescription)
         .WithExample("new", TypeOpt, "api", "--template", "sqlserver", "--name", "MeuProjeto");
 
     config.AddCommand<ScaffoldCommand>("scaffold")
-        .WithDescription("Gera todas as camadas da arquitetura para uma entidade.")
+        .WithDescription(SR.Current.CmdScaffoldDescription)
         .WithExample("scaffold", "--entity", "Produto");
 
     config.AddCommand<HistoryCommand>("history")
-        .WithDescription("Exibe o histórico de atualizações dos componentes OpenBase.")
+        .WithDescription(SR.Current.CmdHistoryDescription)
         .WithExample("history")
         .WithExample("history", TypeOpt, "cli");
 
     config.AddCommand<HelpCommand>("help")
-        .WithDescription("Exibe a ajuda para os comandos do OpenBase");
+        .WithDescription(SR.Current.CmdHelpDescription);
 
     config.AddBranch<CommandSettings>(VersionCmd, version =>
     {
-        version.SetDescription("Exibe e gerencia versões dos componentes OpenBase.");
+        version.SetDescription(SR.Current.CmdVersionDescription);
 
         version.AddCommand<VersionCommand>("show")
-               .WithDescription("Exibe as versões da CLI e do template do OpenBase")
+               .WithDescription(SR.Current.CmdVersionShowDescription)
                .WithExample(VersionCmd, "show");
 
         version.AddCommand<VersionRestoreCommand>("restore")
-               .WithDescription("Restaura um componente para uma versão específica.")
+               .WithDescription(SR.Current.CmdVersionRestoreDescription)
                .WithExample(VersionCmd, "restore", "10.5.9", TypeOpt, "cli")
                .WithExample(VersionCmd, "restore", "2.0.0", TypeOpt, "sqlserver");
     });

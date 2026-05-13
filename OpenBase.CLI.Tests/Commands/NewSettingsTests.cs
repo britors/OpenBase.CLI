@@ -1,4 +1,5 @@
 using OpenBase.CLI.Commands;
+using OpenBase.CLI.Localization;
 using Spectre.Console.Cli;
 
 namespace OpenBase.CLI.Tests.Commands;
@@ -40,7 +41,7 @@ public class NewSettingsTests
         var settings = Valid(name: name);
         var result = settings.Validate();
         Assert.False(result.Successful);
-        Assert.Contains("caracteres inválidos", result.Message);
+        Assert.Equal(SR.Current.ProjectNameInvalid, result.Message);
     }
 
     [Theory]

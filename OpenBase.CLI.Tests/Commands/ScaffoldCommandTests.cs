@@ -1,5 +1,6 @@
 using OpenBase.CLI.Commands;
 using OpenBase.CLI.Helpers;
+using OpenBase.CLI.Localization;
 using OpenBase.CLI.Models;
 using Spectre.Console.Cli;
 
@@ -181,7 +182,7 @@ public class ScaffoldCommandTests
 
         await RunWithOutput(cmd, BuildSettings("Produto"));
 
-        Assert.Contains("arquivo(s) criado(s):", output.ToString());
+        Assert.Contains(SR.Current.FilesCreated.Replace("{0} ", string.Empty), output.ToString());
     }
 
     [Fact]
@@ -205,7 +206,7 @@ public class ScaffoldCommandTests
 
         await RunWithOutput(cmd, BuildSettings("Produto"));
 
-        Assert.Contains("já existente(s) ignorado(s):", output.ToString());
+        Assert.Contains(SR.Current.FilesSkipped.Replace("{0} ", string.Empty), output.ToString());
     }
 
     [Fact]
@@ -217,7 +218,7 @@ public class ScaffoldCommandTests
 
         await RunWithOutput(cmd, BuildSettings("Produto"));
 
-        Assert.DoesNotContain("arquivo(s) criado(s):", output.ToString());
+        Assert.DoesNotContain(SR.Current.FilesCreated.Replace("{0} ", string.Empty), output.ToString());
     }
 
     [Fact]
@@ -232,7 +233,7 @@ public class ScaffoldCommandTests
 
         await RunWithOutput(cmd, BuildSettings("Produto"));
 
-        Assert.Contains("erro(s):", output.ToString());
+        Assert.Contains(SR.Current.FilesErrors.Replace("{0} ", string.Empty), output.ToString());
     }
 
     [Fact]

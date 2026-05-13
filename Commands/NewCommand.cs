@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using OpenBase.CLI.Helpers;
+using OpenBase.CLI.Localization;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -26,14 +27,14 @@ public class NewSettings : CommandSettings
     public override ValidationResult Validate()
     {
         if (string.IsNullOrWhiteSpace(Name))
-            return ValidationResult.Error("O parâmetro --name <NOME> é obrigatório.");
+            return ValidationResult.Error(SR.Current.NameParamRequired);
 
         var invalidChars = Path.GetInvalidFileNameChars()
             .Concat([' ', '&', '|', ';', '`', '$', '(', ')'])
             .ToArray();
 
         return Name.IndexOfAny(invalidChars) >= 0
-            ? ValidationResult.Error("O nome do projeto contém caracteres inválidos. Use apenas letras, números, '-' e '_'.")
+            ? ValidationResult.Error(SR.Current.ProjectNameInvalid)
             : ValidationResult.Success();
     }
 }
@@ -77,8 +78,8 @@ public class NewCommand : AsyncCommand<NewSettings>
     {
         if (!_dotNetRunner.IsSdkVersionSufficient(RequiredSdkMajorVersion))
         {
-            _console.MarkupLine($"[red]Erro:[/] O .NET SDK instalado é incompatível com esta versão do OpenBase.");
-            _console.MarkupLine($"É necessário o [blue].NET {RequiredSdkMajorVersion}[/] ou superior. Atualize o SDK em: [blue]https://dot.net[/]");
+            _console.MarkupLine(SR.Current.SdkIncompatible);
+            _console.MarkupLine(string.Format(SR.Current.SdkUpdateRequired, RequiredSdkMajorVersion));
             return 1;
         }
 
@@ -87,7 +88,7 @@ public class NewCommand : AsyncCommand<NewSettings>
         {
             templateName = _console.Prompt(
                 new SelectionPrompt<string>()
-                    .Title("Banco de dados da API:")
+                    .Title(SR.Current.ApiDatabasePrompt)
                     .AddChoices("sqlserver", "pgsql"));
         }
 
@@ -95,9 +96,8 @@ public class NewCommand : AsyncCommand<NewSettings>
 
         if (!TemplateMap.TryGetValue(key, out var strategy))
         {
-            _console.MarkupLine(
-                $"[red]Erro:[/] A combinação Tipo '[yellow]{settings.Type}[/]' + Template '[yellow]{settings.TemplateName}[/]' não é válida.");
-            _console.MarkupLine("Combinações disponíveis: [blue]--type api --template sqlserver[/]");
+            _console.MarkupLine(string.Format(SR.Current.InvalidTypeCombination, settings.Type, settings.TemplateName));
+            _console.MarkupLine(SR.Current.AvailableCombinations);
             return 1;
         }
 
@@ -107,7 +107,7 @@ public class NewCommand : AsyncCommand<NewSettings>
 
         await _console.Status()
             .Spinner(Spinner.Known.Dots)
-            .StartAsync($"Criando projeto [blue]{settings.Name}[/]...", async _ =>
+            .StartAsync(string.Format(SR.Current.CreatingProject, settings.Name), async _ =>
             {
                 var (success, error) = await _dotNetRunner.RunAsync(
                     $"new {strategy.ShortName} -n {settings.Name} -o {settings.Name}", cancellationToken);
@@ -115,7 +115,7 @@ public class NewCommand : AsyncCommand<NewSettings>
                 if (!success)
                 {
                     exitCode = 1;
-                    _console.MarkupLine("[red]Erro:[/] Falha ao criar o projeto. Verifique se o template está instalado com [blue]openbase install[/].");
+                    _console.MarkupLine(SR.Current.CreateProjectFailed);
                     if (!string.IsNullOrWhiteSpace(error))
                         _console.MarkupLine($"[grey]{Markup.Escape(error)}[/]");
                 }

@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using OpenBase.CLI.Helpers;
+using OpenBase.CLI.Localization;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -19,10 +20,10 @@ public class VersionRestoreSettings : CommandSettings
     public override ValidationResult Validate()
     {
         if (string.IsNullOrWhiteSpace(Type))
-            return ValidationResult.Error("Use --type para especificar o componente: cli, sqlserver, postgres");
+            return ValidationResult.Error(SR.Current.UseTypeToSpecify);
 
         if (!ValidTypes.Contains(Type, StringComparer.OrdinalIgnoreCase))
-            return ValidationResult.Error($"Tipo inválido '{Type}'. Use: cli, sqlserver, postgres");
+            return ValidationResult.Error(string.Format(SR.Current.InvalidType, Type));
 
         return ValidationResult.Success();
     }
@@ -64,7 +65,7 @@ public class VersionRestoreCommand : AsyncCommand<VersionRestoreSettings>
         var displayName = PackageDisplayName[packageId];
         var version = settings.Version;
 
-        _console.MarkupLine($"[blue]Restaurando {Markup.Escape(displayName)} para a versão {Markup.Escape(version)}...[/]");
+        _console.MarkupLine(string.Format(SR.Current.RestoringToVersion, Markup.Escape(displayName), Markup.Escape(version)));
 
         var arguments = packageId == "w3ti.OpenBase.CLI"
             ? $"tool update -g {packageId} --version {version}"
@@ -74,20 +75,20 @@ public class VersionRestoreCommand : AsyncCommand<VersionRestoreSettings>
 
         await _console.Status()
             .Spinner(Spinner.Known.Dots)
-            .StartAsync($"Aplicando versão {Markup.Escape(version)}...", async _ =>
+            .StartAsync(string.Format(SR.Current.ApplyingVersion, Markup.Escape(version)), async _ =>
             {
                 var (ok, error) = await _dotNetRunner.RunAsync(arguments, cancellationToken);
                 succeeded = ok;
 
                 if (!ok)
                 {
-                    _console.MarkupLine($"[red]Erro:[/] Falha ao restaurar {Markup.Escape(displayName)} para a versão {Markup.Escape(version)}.");
+                    _console.MarkupLine(string.Format(SR.Current.RestoreFailed, Markup.Escape(displayName), Markup.Escape(version)));
                     if (!string.IsNullOrWhiteSpace(error))
                         _console.MarkupLine($"[grey]{Markup.Escape(error)}[/]");
                 }
                 else
                 {
-                    _console.MarkupLine($"[green]✓[/] {Markup.Escape(displayName)} restaurado para a versão {Markup.Escape(version)}.");
+                    _console.MarkupLine(string.Format(SR.Current.RestoreSuccess, Markup.Escape(displayName), Markup.Escape(version)));
                 }
             });
 

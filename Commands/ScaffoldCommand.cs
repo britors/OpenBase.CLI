@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using OpenBase.CLI.Helpers;
+using OpenBase.CLI.Localization;
 using OpenBase.CLI.Models;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -20,13 +21,13 @@ public class ScaffoldSettings : CommandSettings
     public override ValidationResult Validate()
     {
         if (string.IsNullOrWhiteSpace(Entity))
-            return ValidationResult.Error("O parâmetro --entity <ENTIDADE> é obrigatório.");
+            return ValidationResult.Error(SR.Current.EntityParamRequired);
 
         if (!char.IsUpper(Entity[0]))
-            return ValidationResult.Error("O nome da entidade deve começar com letra maiúscula (PascalCase).");
+            return ValidationResult.Error(SR.Current.EntityMustBePascalCase);
 
         if (!Entity.All(char.IsLetterOrDigit))
-            return ValidationResult.Error("O nome da entidade deve conter apenas letras e números.");
+            return ValidationResult.Error(SR.Current.EntityMustBeAlphanumeric);
 
         return ValidationResult.Success();
     }
@@ -55,9 +56,9 @@ public class ScaffoldCommand(
 
         if (solutionDir is null || rootNamespace is null)
         {
-            console.MarkupLine("[red]Erro:[/] Estrutura de projeto OpenBase não encontrada.");
-            console.MarkupLine("Execute este comando na raiz de um projeto criado com [blue]openbase new[/].");
-            console.MarkupLine("Ou informe o namespace com [blue]--namespace <NAMESPACE>[/].");
+            console.MarkupLine(SR.Current.ProjectStructureNotFound);
+            console.MarkupLine(SR.Current.RunInProjectRoot);
+            console.MarkupLine(SR.Current.OrProvideNamespace);
             return 1;
         }
 
@@ -83,7 +84,7 @@ public class ScaffoldCommand(
             skipMigration = false;
         }
 
-        if (console.Profile.Capabilities.Interactive && !console.Confirm("Prosseguir com o scaffold?", defaultValue: true))
+        if (console.Profile.Capabilities.Interactive && !console.Confirm(SR.Current.ProceedWithScaffold, defaultValue: true))
             return 0;
 
         var testsPath = DetectTestsPath(solutionDir, rootNamespace);
@@ -100,30 +101,30 @@ public class ScaffoldCommand(
         AddTestProjectToSolution(ctx.TestsCsprojPath, solutionDir);
         var dbSetResult = InjectDbSet(ctx);
 
-        PrintFileList($"{created.Count} arquivo(s) criado(s):", created, "green");
-        PrintFileList($"{skipped.Count} arquivo(s) já existente(s) ignorado(s):", skipped, "yellow");
+        PrintFileList(string.Format(SR.Current.FilesCreated, created.Count), created, "green");
+        PrintFileList(string.Format(SR.Current.FilesSkipped, skipped.Count), skipped, "yellow");
 
         if (failed.Count > 0)
         {
-            PrintFileList($"{failed.Count} erro(s):", failed, "red", "red");
+            PrintFileList(string.Format(SR.Current.FilesErrors, failed.Count), failed, "red", "red");
             return 1;
         }
 
         if (created.Count == 0)
             return 0;
 
-        console.MarkupLine($"\n[green]Scaffold da entidade [bold]{settings.Entity}[/] gerado com sucesso![/]");
+        console.MarkupLine(string.Format(SR.Current.ScaffoldSuccess, settings.Entity));
 
         var autoInjected = dbSetResult is DbSetInjectionResult.Injected or DbSetInjectionResult.AlreadyExists;
 
         if (!autoInjected)
         {
-            console.MarkupLine("Próximos passos:");
-            console.MarkupLine($"  1. Adicione [blue]DbSet<{settings.Entity}> {ctx.EPlural} {{ get; set; }}[/] ao DbContext");
+            console.MarkupLine(SR.Current.NextSteps);
+            console.MarkupLine(string.Format(SR.Current.AddDbSet, settings.Entity, ctx.EPlural));
             if (!skipMigration)
             {
-                console.MarkupLine($"  2. Execute [blue]dotnet ef migrations add Add{settings.Entity}[/]");
-                console.MarkupLine("  3. Execute [blue]dotnet ef database update[/]");
+                console.MarkupLine(string.Format(SR.Current.RunMigrationsAdd, settings.Entity));
+                console.MarkupLine(SR.Current.RunDatabaseUpdate);
             }
             return 0;
         }
@@ -141,12 +142,10 @@ public class ScaffoldCommand(
 
         var choice = console.Prompt(
             new SelectionPrompt<string>()
-                .Title("\nComo deseja gerar o scaffold?")
-                .AddChoices(
-                    "Code First (definir propriedades manualmente)",
-                    "Model First (ler estrutura de uma tabela existente)"));
+                .Title(SR.Current.HowToGenerateScaffold)
+                .AddChoices(SR.Current.CodeFirstChoice, SR.Current.ModelFirstChoice));
 
-        return choice.StartsWith("Model") ? ScaffoldMode.ModelFirst : ScaffoldMode.CodeFirst;
+        return choice == SR.Current.ModelFirstChoice ? ScaffoldMode.ModelFirst : ScaffoldMode.CodeFirst;
     }
 
 
@@ -155,53 +154,53 @@ public class ScaffoldCommand(
         (bool Success, string Error)? restoreResult = null;
         console.Status()
             .Spinner(Spinner.Known.Dots)
-            .Start("Restaurando pacotes NuGet...", _ =>
+            .Start(SR.Current.RestoringNuGetPackages, _ =>
             {
                 restoreResult = dotNetRunner.Run($"restore \"{ctx.InfraContextPath}\"");
             });
 
         if (restoreResult is { Success: false })
         {
-            console.MarkupLine("[yellow]Aviso:[/] Falha ao restaurar pacotes. Tentando gerar a migration mesmo assim...");
+            console.MarkupLine(SR.Current.RestorePackagesWarning);
             if (!string.IsNullOrWhiteSpace(restoreResult.Value.Error))
                 console.MarkupLine($"[grey]{Markup.Escape(restoreResult.Value.Error)}[/]");
         }
 
         var (migrationOk, migrationError) = RunEfCommand(
             $"migrations add Add{entity}",
-            $"Gerando migration [blue]Add{entity}[/]...",
+            string.Format(SR.Current.GeneratingMigration, entity),
             ctx);
 
         if (!migrationOk)
         {
-            console.MarkupLine("[red]Erro:[/] Falha ao gerar a migration.");
+            console.MarkupLine(SR.Current.MigrationFailed);
             if (!string.IsNullOrWhiteSpace(migrationError))
                 console.MarkupLine($"[grey]{Markup.Escape(migrationError)}[/]");
-            console.MarkupLine($"Execute manualmente: [blue]dotnet ef migrations add Add{entity}[/]");
+            console.MarkupLine(string.Format(SR.Current.RunMigrationManually, entity));
             return;
         }
 
-        console.MarkupLine($"[green]Migration Add{entity} gerada.[/]");
+        console.MarkupLine(string.Format(SR.Current.MigrationGenerated, entity));
 
         if (!console.Profile.Capabilities.Interactive ||
-            !console.Confirm("Executar [blue]database update[/] agora?", defaultValue: true))
+            !console.Confirm(SR.Current.RunDatabaseUpdateNow, defaultValue: true))
             return;
 
         var (updateOk, updateError) = RunEfCommand(
             "database update",
-            "Executando [blue]database update[/]...",
+            SR.Current.ExecutingDatabaseUpdate,
             ctx);
 
         if (!updateOk)
         {
-            console.MarkupLine("[red]Erro:[/] Falha ao executar database update.");
+            console.MarkupLine(SR.Current.DatabaseUpdateFailed);
             if (!string.IsNullOrWhiteSpace(updateError))
                 console.MarkupLine($"[grey]{Markup.Escape(updateError)}[/]");
-            console.MarkupLine("[blue]dotnet ef database update[/]");
+            console.MarkupLine(SR.Current.DotnetEfDatabaseUpdate);
             return;
         }
 
-        console.MarkupLine("[green]Banco de dados atualizado com sucesso.[/]");
+        console.MarkupLine(SR.Current.DatabaseUpdatedSuccess);
     }
 
     private (bool Success, string Error) RunEfCommand(string efArgs, string spinnerLabel, ScaffoldContext ctx)
@@ -308,7 +307,7 @@ public class ScaffoldCommand(
 
         console.Status()
             .Spinner(Spinner.Known.Dots)
-            .Start($"Gerando scaffold para [blue]{entityName}[/]...", _ =>
+            .Start(string.Format(SR.Current.GeneratingScaffold, entityName), _ =>
             {
                 foreach (var (path, content) in files)
                 {

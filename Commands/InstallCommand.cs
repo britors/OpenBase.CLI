@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using OpenBase.CLI.Helpers;
+using OpenBase.CLI.Localization;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -23,10 +24,10 @@ public class InstallCommand : AsyncCommand<InstallSettings>
         [NotNull] InstallSettings settings,
         CancellationToken cancellationToken)
     {
-        AnsiConsole.MarkupLine("[blue]Iniciando a instalação dos pacotes OpenBase...[/]");
+        AnsiConsole.MarkupLine(SR.Current.InstallStarting);
 
         var results = await _runner.RunPackagesAsync(
-            "Instalando", "instalado", "instalar", cancellationToken);
+            SR.Current.InstallStatusVerb, SR.Current.InstallSuccessLabel, SR.Current.InstallErrorLabel, cancellationToken);
 
         return results.Any(r => !r.Success) ? 1 : 0;
     }

@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using OpenBase.CLI.Helpers;
+using OpenBase.CLI.Localization;
 using OpenBase.CLI.Models;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -43,8 +44,8 @@ public class UpdateCommand : AsyncCommand<UpdateSettings>
         foreach (var pkg in DotNet.TemplatePackages)
             previousTemplateVersions[pkg] = await _dotNetRunner.GetInstalledTemplateVersionAsync(pkg, cancellationToken);
 
-        _console.MarkupLine("[blue]Sincronizando templates OpenBase...[/]");
-        var packageResults = await _packageRunner.RunPackagesAsync("Atualizando", "atualizado", "atualizar", cancellationToken);
+        _console.MarkupLine(SR.Current.SyncingTemplates);
+        var packageResults = await _packageRunner.RunPackagesAsync(SR.Current.PackageStatusVerb, SR.Current.PackageSuccessLabel, SR.Current.PackageErrorLabel, cancellationToken);
         _console.WriteLine();
 
         var newTemplateVersions = new Dictionary<string, string?>();
@@ -56,21 +57,21 @@ public class UpdateCommand : AsyncCommand<UpdateSettings>
 
         await _console.Status()
             .Spinner(Spinner.Known.Dots)
-            .StartAsync("Atualizando OpenBase CLI...", async _ =>
+            .StartAsync(SR.Current.UpdatingCli, async _ =>
             {
                 var (success, error) = await _dotNetRunner.RunAsync("tool update -g w3ti.OpenBase.CLI", cancellationToken);
                 if (!success)
                 {
                     cliFailed = true;
-                    _console.MarkupLine("[red]Erro:[/] Falha ao atualizar a OpenBase CLI.");
+                    _console.MarkupLine(SR.Current.UpdateCliFailed);
                     if (!string.IsNullOrWhiteSpace(error))
                         _console.MarkupLine($"[grey]{Markup.Escape(error)}[/]");
-                    _console.MarkupLine("[yellow]Aviso:[/] Alguns componentes não puderam ser atualizados.");
+                    _console.MarkupLine(SR.Current.SomeComponentsUpdateFailed);
                 }
                 else
                 {
                     newCliVersion = await _dotNetRunner.GetInstalledToolVersionAsync("w3ti.openbase.cli", cancellationToken);
-                    _console.MarkupLine("[green]✓[/] OpenBase CLI atualizada.");
+                    _console.MarkupLine(SR.Current.CliUpdated);
                 }
             });
 

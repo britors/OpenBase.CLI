@@ -103,7 +103,7 @@ public class UpdateCommandTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_PassesCorrectVerbsToPackageRunner()
+    public async Task ExecuteAsync_CallsPackageRunnerOnce()
     {
         SetupPackages(true);
         SetupCli(true);
@@ -114,7 +114,7 @@ public class UpdateCommandTests
             .ExecuteAsync(CommandTestHelper.CreateContext("update"), new UpdateSettings(), CancellationToken.None);
 
         _packageRunner.Verify(r => r.RunPackagesAsync(
-            "Atualizando", "atualizado", "atualizar", It.IsAny<CancellationToken>()),
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 

@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using OpenBase.CLI.Localization;
 using Spectre.Console;
 
 namespace OpenBase.CLI.Helpers;
@@ -9,31 +10,31 @@ public sealed class ConsoleProjectConfigurator(IAnsiConsole console) : IProjectC
     public ProjectSetupConfig Collect(IDbTemplateStrategy strategy, string projectName)
     {
         console.WriteLine();
-        console.MarkupLine("[bold]Configuração do projeto[/]");
+        console.MarkupLine(SR.Current.ProjectConfiguration);
         console.WriteLine();
 
         var mediatrLicense = console.Prompt(
-            new TextPrompt<string>("Licença do [blue]MediatR[/] [grey](deixe em branco se não tiver)[/]:")
+            new TextPrompt<string>(SR.Current.MediatRLicense)
                 .AllowEmpty());
 
         var automapperLicense = console.Prompt(
-            new TextPrompt<string>("Licença do [blue]AutoMapper[/] [grey](deixe em branco se não tiver)[/]:")
+            new TextPrompt<string>(SR.Current.AutoMapperLicense)
                 .AllowEmpty());
 
         var server = console.Prompt(
-            new TextPrompt<string>("Servidor do banco de dados:")
+            new TextPrompt<string>(SR.Current.DatabaseServer)
                 .DefaultValue(strategy.DefaultServer));
 
         var dbName = console.Prompt(
-            new TextPrompt<string>("Nome do banco de dados:")
+            new TextPrompt<string>(SR.Current.DatabaseName)
                 .DefaultValue(projectName));
 
         var user = console.Prompt(
-            new TextPrompt<string>("Usuário do banco de dados:")
+            new TextPrompt<string>(SR.Current.DatabaseUser)
                 .AllowEmpty());
 
         var password = console.Prompt(
-            new TextPrompt<string>("Senha do banco de dados:")
+            new TextPrompt<string>(SR.Current.DatabasePassword)
                 .Secret()
                 .AllowEmpty());
 
