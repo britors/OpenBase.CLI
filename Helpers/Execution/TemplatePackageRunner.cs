@@ -19,7 +19,7 @@ public sealed class TemplatePackageRunner : ITemplatePackageRunner
     {
         var results = new List<(string PackageId, bool Success)>();
 
-        foreach (var packageId in DotNet.TemplatePackages)
+        foreach (var packageId in PackageIds.Templates)
         {
             var success = false;
 

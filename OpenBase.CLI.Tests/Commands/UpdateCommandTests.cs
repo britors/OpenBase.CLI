@@ -23,12 +23,12 @@ public class UpdateCommandTests
 
     private void SetupCli(bool success, string error = "") =>
         _dotNetRunner
-            .Setup(r => r.RunAsync("tool update -g w3ti.OpenBase.CLI", It.IsAny<CancellationToken>()))
+            .Setup(r => r.RunAsync($"tool update -g {PackageIds.Cli}", It.IsAny<CancellationToken>()))
             .ReturnsAsync((success, error));
 
     private void SetupToolVersion(string? version) =>
         _dotNetRunner
-            .Setup(r => r.GetInstalledToolVersionAsync("w3ti.openbase.cli", It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetInstalledToolVersionAsync(PackageIds.Cli, It.IsAny<CancellationToken>()))
             .ReturnsAsync(version);
 
     private void SetupTemplateVersion(string? version) =>

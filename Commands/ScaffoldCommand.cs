@@ -65,20 +65,10 @@ public class ScaffoldCommand(
         var dbFlavor = dbFlavorDetector.Detect(solutionDir);
         var mode = AskScaffoldMode();
 
-        IReadOnlyList<EntityProperty> properties;
-        string? modelFirstTableName = null;
+        var collected = CollectProperties(solutionDir, rootNamespace, dbFlavor, mode);
+        if (collected is null) return 1;
 
-        if (mode == ScaffoldMode.ModelFirst)
-        {
-            var result = modelFirstCollector.Collect(solutionDir, rootNamespace, dbFlavor);
-            if (result is null) return 1;
-            properties = result.Value.Properties;
-            modelFirstTableName = result.Value.TableName;
-        }
-        else
-        {
-            properties = propertyCollector.Collect(dbFlavor);
-        }
+        var (properties, modelFirstTableName) = collected.Value;
 
         if (console.Profile.Capabilities.Interactive && !console.Confirm(SR.Current.ProceedWithScaffold, defaultValue: true))
             return 0;
@@ -141,6 +131,16 @@ public class ScaffoldCommand(
     public static string EmptyMigrationUpMethod(string content) =>
         DbContextEditor.EmptyMigrationUpMethod(content);
 
+
+    private (IReadOnlyList<EntityProperty> Properties, string? TableName)? CollectProperties(
+        string solutionDir, string rootNamespace, DbFlavor dbFlavor, ScaffoldMode mode)
+    {
+        if (mode != ScaffoldMode.ModelFirst)
+            return (propertyCollector.Collect(dbFlavor), null);
+
+        var result = modelFirstCollector.Collect(solutionDir, rootNamespace, dbFlavor);
+        return result is null ? null : (result.Value.Properties, result.Value.TableName);
+    }
 
     private ScaffoldMode AskScaffoldMode()
     {

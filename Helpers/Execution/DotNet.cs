@@ -9,11 +9,7 @@ public static class DotNet
 {
     private const string DotnetExecutable = "dotnet";
 
-    public static readonly string[] TemplatePackages =
-    [
-        "w3ti.OpenBaseNET.SQLServer.Template",
-        "w3ti.OpenBaseNET.Postgres.Template",
-    ];
+    public static readonly string[] TemplatePackages = PackageIds.Templates;
 
     private static readonly string[] WindowsKnownPaths =
     [

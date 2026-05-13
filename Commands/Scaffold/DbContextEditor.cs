@@ -23,37 +23,14 @@ public sealed class DbContextEditor(IFileWriter fileWriter)
             if (content.Contains($"DbSet<{ctx.Entity}>"))
                 return DbSetInjectionResult.AlreadyExists;
 
-            var sep = content.Contains("\r\n") ? "\r\n" : "\n";
+            var sep   = content.Contains("\r\n") ? "\r\n" : "\n";
             var lines = content.Split(["\r\n", "\n"], StringSplitOptions.None).ToList();
 
-            var entitiesUsing = $"using {ctx.NS}.Domain.Entities;";
-            if (!content.Contains(entitiesUsing))
-            {
-                var lastUsing = lines.FindLastIndex(l => l.TrimStart().StartsWith("using "));
-                if (lastUsing >= 0)
-                    lines.Insert(lastUsing + 1, entitiesUsing);
-                else
-                    lines.Insert(0, entitiesUsing);
-            }
+            EnsureEntityUsing(lines, content, ctx.NS);
 
             var dbSetLine = $"    public DbSet<{ctx.Entity}> {ctx.EPlural} {{ get; set; }}";
-            var lastDbSet = lines.FindLastIndex(l => l.Contains("DbSet<"));
-
-            if (lastDbSet >= 0)
-            {
-                lines.Insert(lastDbSet + 1, dbSetLine);
-            }
-            else
-            {
-                var classIdx = lines.FindIndex(l => l.Contains("class OneBaseDataBaseContext"));
-                if (classIdx < 0) return DbSetInjectionResult.Failed;
-
-                var braceIdx = lines.FindIndex(classIdx, l => l.Trim() == "{");
-                if (braceIdx < 0) return DbSetInjectionResult.Failed;
-
-                lines.Insert(braceIdx + 1, dbSetLine);
-                lines.Insert(braceIdx + 2, string.Empty);
-            }
+            if (!TryInsertDbSetLine(lines, dbSetLine))
+                return DbSetInjectionResult.Failed;
 
             fileWriter.WriteAllText(path, string.Join(sep, lines));
             return DbSetInjectionResult.Injected;
@@ -85,5 +62,37 @@ public sealed class DbContextEditor(IFileWriter fileWriter)
 
         var closeBraceIdx = i - 1;
         return content[..(openBraceIdx + 1)] + "\n        " + content[closeBraceIdx..];
+    }
+
+    private static void EnsureEntityUsing(List<string> lines, string content, string ns)
+    {
+        var entitiesUsing = $"using {ns}.Domain.Entities;";
+        if (content.Contains(entitiesUsing)) return;
+
+        var lastUsing = lines.FindLastIndex(l => l.TrimStart().StartsWith("using "));
+        if (lastUsing >= 0)
+            lines.Insert(lastUsing + 1, entitiesUsing);
+        else
+            lines.Insert(0, entitiesUsing);
+    }
+
+    private static bool TryInsertDbSetLine(List<string> lines, string dbSetLine)
+    {
+        var lastDbSet = lines.FindLastIndex(l => l.Contains("DbSet<"));
+        if (lastDbSet >= 0)
+        {
+            lines.Insert(lastDbSet + 1, dbSetLine);
+            return true;
+        }
+
+        var classIdx = lines.FindIndex(l => l.Contains("class OneBaseDataBaseContext"));
+        if (classIdx < 0) return false;
+
+        var braceIdx = lines.FindIndex(classIdx, l => l.Trim() == "{");
+        if (braceIdx < 0) return false;
+
+        lines.Insert(braceIdx + 1, dbSetLine);
+        lines.Insert(braceIdx + 2, string.Empty);
+        return true;
     }
 }

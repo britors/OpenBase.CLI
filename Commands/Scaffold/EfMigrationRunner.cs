@@ -9,20 +9,7 @@ internal sealed class EfMigrationRunner(IDotNetRunner dotNetRunner, IFileWriter 
 {
     public void RunMigrations(ScaffoldContext ctx, string entity)
     {
-        (bool Success, string Error)? restoreResult = null;
-        console.Status()
-            .Spinner(Spinner.Known.Dots)
-            .Start(SR.Current.RestoringNuGetPackages, _ =>
-            {
-                restoreResult = dotNetRunner.Run($"restore \"{ctx.SolutionDir}\"");
-            });
-
-        if (restoreResult is { Success: false })
-        {
-            console.MarkupLine(SR.Current.RestorePackagesWarning);
-            if (!string.IsNullOrWhiteSpace(restoreResult.Value.Error))
-                console.MarkupLine($"[grey]{Markup.Escape(restoreResult.Value.Error)}[/]");
-        }
+        RestorePackages(ctx);
 
         var (migrationOk, migrationError) = RunEfCommand(
             $"migrations add Add{entity}",
@@ -44,10 +31,7 @@ internal sealed class EfMigrationRunner(IDotNetRunner dotNetRunner, IFileWriter 
             !console.Confirm(SR.Current.RunDatabaseUpdateNow, defaultValue: true))
             return;
 
-        var (updateOk, updateError) = RunEfCommand(
-            "database update",
-            SR.Current.ExecutingDatabaseUpdate,
-            ctx);
+        var (updateOk, updateError) = RunEfCommand("database update", SR.Current.ExecutingDatabaseUpdate, ctx);
 
         if (!updateOk)
         {
@@ -63,12 +47,7 @@ internal sealed class EfMigrationRunner(IDotNetRunner dotNetRunner, IFileWriter 
 
     public void RunReconciliationMigration(ScaffoldContext ctx, string entity)
     {
-        console.Status()
-            .Spinner(Spinner.Known.Dots)
-            .Start(SR.Current.RestoringNuGetPackages, _ =>
-            {
-                dotNetRunner.Run($"restore \"{ctx.SolutionDir}\"");
-            });
+        RestorePackages(ctx);
 
         var (migOk, migError) = RunEfCommand(
             $"migrations add Add{entity}",
@@ -92,10 +71,7 @@ internal sealed class EfMigrationRunner(IDotNetRunner dotNetRunner, IFileWriter 
             fileWriter.WriteAllText(migFile, patched);
         }
 
-        var (updateOk, updateError) = RunEfCommand(
-            "database update",
-            SR.Current.ExecutingDatabaseUpdate,
-            ctx);
+        var (updateOk, updateError) = RunEfCommand("database update", SR.Current.ExecutingDatabaseUpdate, ctx);
 
         if (!updateOk)
         {
@@ -106,6 +82,24 @@ internal sealed class EfMigrationRunner(IDotNetRunner dotNetRunner, IFileWriter 
         }
 
         console.MarkupLine(SR.Current.ModelFirstReconciliationSuccess);
+    }
+
+    private void RestorePackages(ScaffoldContext ctx)
+    {
+        (bool Success, string Error)? result = null;
+        console.Status()
+            .Spinner(Spinner.Known.Dots)
+            .Start(SR.Current.RestoringNuGetPackages, _ =>
+            {
+                result = dotNetRunner.Run($"restore \"{ctx.SolutionDir}\"");
+            });
+
+        if (result is { Success: false })
+        {
+            console.MarkupLine(SR.Current.RestorePackagesWarning);
+            if (!string.IsNullOrWhiteSpace(result.Value.Error))
+                console.MarkupLine($"[grey]{Markup.Escape(result.Value.Error)}[/]");
+        }
     }
 
     private (bool Success, string Error) RunEfCommand(string efArgs, string spinnerLabel, ScaffoldContext ctx)

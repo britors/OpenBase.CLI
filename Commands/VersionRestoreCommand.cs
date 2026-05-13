@@ -22,7 +22,7 @@ public class VersionRestoreSettings : CommandSettings
         if (string.IsNullOrWhiteSpace(Type))
             return ValidationResult.Error(SR.Current.UseTypeToSpecify);
 
-        if (!ValidTypes.Contains(Type, StringComparer.OrdinalIgnoreCase))
+        if (!PackageIds.TypeToId.ContainsKey(Type))
             return ValidationResult.Error(string.Format(SR.Current.InvalidType, Type));
 
         return ValidationResult.Success();
@@ -33,20 +33,6 @@ public class VersionRestoreSettings : CommandSettings
 
 public class VersionRestoreCommand : AsyncCommand<VersionRestoreSettings>
 {
-    private static readonly Dictionary<string, string> TypeToPackage = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["cli"] = "w3ti.OpenBase.CLI",
-        ["sqlserver"] = "w3ti.OpenBaseNET.SQLServer.Template",
-        ["postgres"] = "w3ti.OpenBaseNET.Postgres.Template",
-    };
-
-    private static readonly Dictionary<string, string> PackageDisplayName = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["w3ti.OpenBase.CLI"] = "OpenBase CLI",
-        ["w3ti.OpenBaseNET.SQLServer.Template"] = "Template SQLServer",
-        ["w3ti.OpenBaseNET.Postgres.Template"] = "Template Postgres",
-    };
-
     private readonly IDotNetRunner _dotNetRunner;
     private readonly IAnsiConsole _console;
 
@@ -61,13 +47,13 @@ public class VersionRestoreCommand : AsyncCommand<VersionRestoreSettings>
         [NotNull] VersionRestoreSettings settings,
         CancellationToken cancellationToken)
     {
-        var packageId = TypeToPackage[settings.Type!];
-        var displayName = PackageDisplayName[packageId];
-        var version = settings.Version;
+        var packageId   = PackageIds.TypeToId[settings.Type!];
+        var displayName = PackageIds.DisplayNames[packageId];
+        var version     = settings.Version;
 
         _console.MarkupLine(string.Format(SR.Current.RestoringToVersion, Markup.Escape(displayName), Markup.Escape(version)));
 
-        var arguments = packageId == "w3ti.OpenBase.CLI"
+        var arguments = packageId == PackageIds.Cli
             ? $"tool update -g {packageId} --version {version}"
             : $"new install {packageId}::{version}";
 
