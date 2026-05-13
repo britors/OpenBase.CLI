@@ -77,9 +77,18 @@ public static class DotNet
         if (process == null)
             return (false, "Não foi possível iniciar o processo dotnet.");
 
-        var errorOutput = process.StandardError.ReadToEndAsync(cancellationToken);
-        await process.WaitForExitAsync(cancellationToken);
-        return (process.ExitCode == 0, (await errorOutput).Trim());
+        // Ambos os streams devem ser lidos concorrentemente para evitar deadlock
+        // quando o buffer do stdout encher (ex: dotnet ef com build output verboso)
+        var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+        var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
+        await Task.WhenAll(process.WaitForExitAsync(cancellationToken), stdoutTask, stderrTask);
+
+        var stderr = (await stderrTask).Trim();
+        var stdout = (await stdoutTask).Trim();
+
+        // Prefere stderr como mensagem de erro; cai para stdout se stderr estiver vazio
+        var error = string.IsNullOrEmpty(stderr) ? stdout : stderr;
+        return (process.ExitCode == 0, error);
     }
 
     public static string GetDotnetVersion()
