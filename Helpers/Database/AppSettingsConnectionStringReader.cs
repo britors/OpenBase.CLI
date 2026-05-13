@@ -1,9 +1,7 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
 namespace OpenBase.CLI.Helpers.Database;
 
-[ExcludeFromCodeCoverage]
 public sealed class AppSettingsConnectionStringReader : IConnectionStringReader
 {
     public string? Read(string solutionDir, string rootNamespace)

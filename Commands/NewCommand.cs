@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using OpenBase.CLI.Helpers.Database;
@@ -75,8 +74,8 @@ public class NewCommand : AsyncCommand<NewSettings>
     private const int RequiredSdkMajorVersion = 10;
 
     protected override async Task<int> ExecuteAsync(
-        [NotNull] CommandContext context,
-        [NotNull] NewSettings settings,
+        CommandContext context,
+        NewSettings settings,
         CancellationToken cancellationToken)
     {
         if (!_dotNetRunner.IsSdkVersionSufficient(RequiredSdkMajorVersion))

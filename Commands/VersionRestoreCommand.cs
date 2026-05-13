@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using OpenBase.CLI.Helpers.Execution;
 using OpenBase.CLI.Localization;
 using Spectre.Console;
@@ -43,8 +42,8 @@ public class VersionRestoreCommand : AsyncCommand<VersionRestoreSettings>
     }
 
     protected override async Task<int> ExecuteAsync(
-        [NotNull] CommandContext context,
-        [NotNull] VersionRestoreSettings settings,
+        CommandContext context,
+        VersionRestoreSettings settings,
         CancellationToken cancellationToken)
     {
         var packageId   = PackageIds.TypeToId[settings.Type!];

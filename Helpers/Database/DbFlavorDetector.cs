@@ -1,9 +1,7 @@
-using System.Diagnostics.CodeAnalysis;
 using OpenBase.CLI.Models;
 
 namespace OpenBase.CLI.Helpers.Database;
 
-[ExcludeFromCodeCoverage]
 public sealed class DbFlavorDetector : IDbFlavorDetector
 {
     private const string NpgsqlPackage = "Npgsql.EntityFrameworkCore.PostgreSQL";

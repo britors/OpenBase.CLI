@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using OpenBase.CLI.Helpers.Execution;
 using OpenBase.CLI.Helpers.IO;
@@ -33,8 +32,8 @@ public class UpdateCommand : AsyncCommand<UpdateSettings>
     }
 
     protected override async Task<int> ExecuteAsync(
-        [NotNull] CommandContext context,
-        [NotNull] UpdateSettings settings,
+        CommandContext context,
+        UpdateSettings settings,
         CancellationToken cancellationToken)
     {
         var previousCliVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3);

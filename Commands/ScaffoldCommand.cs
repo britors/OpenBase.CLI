@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using OpenBase.CLI.Commands.Scaffold;
 using OpenBase.CLI.Helpers.Database;
 using OpenBase.CLI.Helpers.Execution;
@@ -49,7 +48,7 @@ public class ScaffoldCommand(
 {
     private enum ScaffoldMode { CodeFirst, ModelFirst }
 
-    protected override int Execute([NotNull] CommandContext context, [NotNull] ScaffoldSettings settings, CancellationToken cancellationToken)
+    protected override int Execute(CommandContext context, ScaffoldSettings settings, CancellationToken cancellationToken)
     {
         var (solutionDir, rootNamespace) = projectLocator.Detect(
             Directory.GetCurrentDirectory(), settings.RootNamespace);

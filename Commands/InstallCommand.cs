@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using OpenBase.CLI.Helpers.Execution;
 using OpenBase.CLI.Localization;
 using Spectre.Console;
@@ -20,8 +19,8 @@ public class InstallCommand : AsyncCommand<InstallSettings>
     }
 
     protected override async Task<int> ExecuteAsync(
-        [NotNull] CommandContext context,
-        [NotNull] InstallSettings settings,
+        CommandContext context,
+        InstallSettings settings,
         CancellationToken cancellationToken)
     {
         AnsiConsole.MarkupLine(SR.Current.InstallStarting);

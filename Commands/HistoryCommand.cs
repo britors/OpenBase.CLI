@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using OpenBase.CLI.Helpers.Execution;
 using OpenBase.CLI.Helpers.IO;
 using OpenBase.CLI.Localization;
@@ -35,8 +34,8 @@ public class HistoryCommand : AsyncCommand<HistorySettings>
     }
 
     protected override async Task<int> ExecuteAsync(
-        [NotNull] CommandContext context,
-        [NotNull] HistorySettings settings,
+        CommandContext context,
+        HistorySettings settings,
         CancellationToken cancellationToken)
     {
         string? component = null;

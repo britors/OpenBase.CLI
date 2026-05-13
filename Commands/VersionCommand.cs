@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using OpenBase.CLI.Helpers.Execution;
@@ -19,8 +18,8 @@ public class VersionCommand(
     private const string Codename = "Andromeda";
 
     protected override async Task<int> ExecuteAsync(
-        [NotNull] CommandContext context,
-        [NotNull] VersionSettings settings,
+        CommandContext context,
+        VersionSettings settings,
         CancellationToken cancellationToken)
     {
         var dotnetVersion  = dotNetRunner.GetDotnetVersion();

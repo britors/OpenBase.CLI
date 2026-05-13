@@ -1,10 +1,8 @@
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 
 namespace OpenBase.CLI.Helpers.Execution;
 
-[ExcludeFromCodeCoverage]
 public static class DotNet
 {
     private const string DotnetExecutable = "dotnet";

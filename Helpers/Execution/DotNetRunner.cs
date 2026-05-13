@@ -1,8 +1,6 @@
-using System.Diagnostics.CodeAnalysis;
 
 namespace OpenBase.CLI.Helpers.Execution;
 
-[ExcludeFromCodeCoverage]
 public sealed class DotNetRunner : IDotNetRunner
 {
     public Task<(bool Success, string Error)> RunAsync(string arguments, CancellationToken cancellationToken)

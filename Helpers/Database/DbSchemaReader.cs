@@ -1,12 +1,10 @@
 using System.Data.Common;
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.Data.SqlClient;
 using Npgsql;
 using OpenBase.CLI.Models;
 
 namespace OpenBase.CLI.Helpers.Database;
 
-[ExcludeFromCodeCoverage]
 public sealed class DbSchemaReader : IDbSchemaReader
 {
     private const string ColumnQuery = """

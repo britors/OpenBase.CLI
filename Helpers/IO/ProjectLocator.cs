@@ -1,8 +1,6 @@
-using System.Diagnostics.CodeAnalysis;
 
 namespace OpenBase.CLI.Helpers.IO;
 
-[ExcludeFromCodeCoverage]
 public sealed class ProjectLocator : IProjectLocator
 {
     public (string? SolutionDir, string? RootNamespace) Detect(string workingDir, string? overrideNamespace)

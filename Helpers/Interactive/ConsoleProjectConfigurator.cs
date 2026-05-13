@@ -1,11 +1,9 @@
-using System.Diagnostics.CodeAnalysis;
 using OpenBase.CLI.Helpers.Database;
 using OpenBase.CLI.Localization;
 using Spectre.Console;
 
 namespace OpenBase.CLI.Helpers.Interactive;
 
-[ExcludeFromCodeCoverage]
 public sealed class ConsoleProjectConfigurator(IAnsiConsole console) : IProjectConfigurator
 {
     public ProjectSetupConfig Collect(IDbTemplateStrategy strategy, string projectName)
