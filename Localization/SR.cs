@@ -4,7 +4,6 @@ namespace OpenBase.CLI.Localization;
 
 public interface IStrings
 {
-    // ── Scaffold ──────────────────────────────────────────────────────────────
     string EntityParamRequired { get; }
     string EntityMustBePascalCase { get; }
     string EntityMustBeAlphanumeric { get; }
@@ -39,7 +38,6 @@ public interface IStrings
     string ModelFirstReconciliationSuccess { get; }
     string ModelFirstReconciliationWarn { get; }   // {0}=entity
 
-    // ── New ───────────────────────────────────────────────────────────────────
     string NameParamRequired { get; }
     string ProjectNameInvalid { get; }
     string SdkIncompatible { get; }
@@ -50,7 +48,6 @@ public interface IStrings
     string CreatingProject { get; }           // {0}=name
     string CreateProjectFailed { get; }
 
-    // ── Project Configurator ──────────────────────────────────────────────────
     string ProjectConfiguration { get; }
     string MediatRLicense { get; }
     string AutoMapperLicense { get; }
@@ -59,7 +56,6 @@ public interface IStrings
     string DatabaseUser { get; }
     string DatabasePassword { get; }
 
-    // ── Entity Property Collector ─────────────────────────────────────────────
     string EntityProperties { get; }
     string DatabaseAndTypes { get; }          // {0}=dbFlavor {1}=types
     string PropertyNamePrompt { get; }        // {0}=count
@@ -77,7 +73,6 @@ public interface IStrings
     string PropNameIdReserved { get; }
     string PropNameAlreadyAdded { get; }      // {0}=name
 
-    // ── Model First Collector ─────────────────────────────────────────────────
     string SchemaOwnerPrompt { get; }         // {0}=defaultSchema
     string TableNamePrompt { get; }
     string TableNameRequired { get; }
@@ -89,7 +84,6 @@ public interface IStrings
     string CheckSchemaAndTableName { get; }
     string ColCsType { get; }
 
-    // ── Update / Install ──────────────────────────────────────────────────────
     string SyncingTemplates { get; }
     string PackageStatusVerb { get; }
     string PackageSuccessLabel { get; }
@@ -105,7 +99,6 @@ public interface IStrings
     string SomeComponentsUpdateFailed { get; }
     string CliUpdated { get; }
 
-    // ── Version Restore ───────────────────────────────────────────────────────
     string UseTypeToSpecify { get; }
     string InvalidType { get; }               // {0}=type
     string RestoringToVersion { get; }        // {0}=displayName {1}=version
@@ -113,7 +106,6 @@ public interface IStrings
     string RestoreFailed { get; }             // {0}=displayName {1}=version
     string RestoreSuccess { get; }            // {0}=displayName {1}=version
 
-    // ── History ───────────────────────────────────────────────────────────────
     string InvalidTypeHistory { get; }        // {0}=type
     string NoHistoryFound { get; }
     string ColDate { get; }
@@ -122,7 +114,6 @@ public interface IStrings
     string ColNewVersion { get; }
     string ColStatus { get; }
 
-    // ── Help ──────────────────────────────────────────────────────────────────
     string HelpSubtitle { get; }
     string HelpColCommand { get; }
     string HelpColDescription { get; }
@@ -137,11 +128,9 @@ public interface IStrings
     string HelpTip { get; }
     string HelpSupport { get; }
 
-    // ── Version ───────────────────────────────────────────────────────────────
     string ColVersionComponent { get; }
     string ColVersion { get; }
 
-    // ── Program descriptions ──────────────────────────────────────────────────
     string CmdInstallDescription { get; }
     string CmdUpdateDescription { get; }
     string CmdNewDescription { get; }
@@ -153,7 +142,6 @@ public interface IStrings
     string CmdVersionRestoreDescription { get; }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 
 public sealed class EnStrings : IStrings
 {
@@ -295,7 +283,6 @@ public sealed class EnStrings : IStrings
     public string CmdVersionRestoreDescription => "Restores a component to a specific version.";
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 
 public sealed class PtBrStrings : IStrings
 {
@@ -437,7 +424,6 @@ public sealed class PtBrStrings : IStrings
     public string CmdVersionRestoreDescription => "Restaura um componente para uma versão específica.";
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 
 public sealed class EsStrings : IStrings
 {
@@ -579,7 +565,6 @@ public sealed class EsStrings : IStrings
     public string CmdVersionRestoreDescription => "Restaura un componente a una versión específica.";
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 
 public static class SR
 {

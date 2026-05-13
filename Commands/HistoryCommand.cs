@@ -1,6 +1,6 @@
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
-using OpenBase.CLI.Helpers;
+using OpenBase.CLI.Helpers.Execution;
+using OpenBase.CLI.Helpers.IO;
 using OpenBase.CLI.Localization;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -16,19 +16,13 @@ public class HistorySettings : CommandSettings
 
 public class HistoryCommand : AsyncCommand<HistorySettings>
 {
-    private static readonly Dictionary<string, string> TypeToComponent = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["cli"] = "w3ti.OpenBase.CLI",
-        ["sqlserver"] = "w3ti.OpenBaseNET.SQLServer.Template",
-        ["postgres"] = "w3ti.OpenBaseNET.Postgres.Template",
-    };
-
-    private static readonly Dictionary<string, string> ComponentDisplayName = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["w3ti.OpenBase.CLI"] = "CLI",
-        ["w3ti.OpenBaseNET.SQLServer.Template"] = "SQLServer",
-        ["w3ti.OpenBaseNET.Postgres.Template"] = "Postgres",
-    };
+    private static readonly IReadOnlyDictionary<string, string> ShortDisplayNames =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            [PackageIds.Cli]       = "CLI",
+            [PackageIds.SqlServer] = "SQLServer",
+            [PackageIds.Postgres]  = "Postgres",
+        };
 
     private readonly IUpdateHistoryService _historyService;
     private readonly IAnsiConsole _console;
@@ -40,13 +34,14 @@ public class HistoryCommand : AsyncCommand<HistorySettings>
     }
 
     protected override async Task<int> ExecuteAsync(
-        [NotNull] CommandContext context,
-        [NotNull] HistorySettings settings,
+        CommandContext context,
+        HistorySettings settings,
         CancellationToken cancellationToken)
     {
         string? component = null;
 
-        if (!string.IsNullOrWhiteSpace(settings.Type) && !TypeToComponent.TryGetValue(settings.Type, out component))
+        if (!string.IsNullOrWhiteSpace(settings.Type) &&
+            !PackageIds.TypeToId.TryGetValue(settings.Type, out component))
         {
             _console.MarkupLine(string.Format(SR.Current.InvalidTypeHistory, Markup.Escape(settings.Type)));
             return 1;
@@ -69,13 +64,13 @@ public class HistoryCommand : AsyncCommand<HistorySettings>
 
         foreach (var entry in entries)
         {
-            var displayName = entry.Component is not null && ComponentDisplayName.TryGetValue(entry.Component, out var name)
+            var displayName = entry.Component is not null && ShortDisplayNames.TryGetValue(entry.Component, out var name)
                 ? name
                 : entry.Component ?? "-";
 
-            var date = entry.Date.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
-            var prev = entry.PreviousVersion ?? "[grey]-[/]";
-            var next = entry.NewVersion ?? "[grey]-[/]";
+            var date   = entry.Date.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
+            var prev   = entry.PreviousVersion ?? "[grey]-[/]";
+            var next   = entry.NewVersion ?? "[grey]-[/]";
             var status = entry.Success ? "[green]✓[/]" : "[red]✗[/]";
 
             table.AddRow(date, displayName, prev, next, status);

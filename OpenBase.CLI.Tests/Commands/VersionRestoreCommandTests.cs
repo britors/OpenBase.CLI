@@ -1,5 +1,5 @@
 using OpenBase.CLI.Commands;
-using OpenBase.CLI.Helpers;
+using OpenBase.CLI.Helpers.Execution;
 using Spectre.Console.Cli;
 
 namespace OpenBase.CLI.Tests.Commands;
@@ -19,7 +19,6 @@ public class VersionRestoreCommandTests
     private static VersionRestoreSettings MakeSettings(string version, string? type) =>
         new() { Version = version, Type = type };
 
-    // --- Validate() ---
 
     [Theory]
     [InlineData("cli")]
@@ -54,7 +53,6 @@ public class VersionRestoreCommandTests
         Assert.False(result.Successful);
     }
 
-    // --- ExecuteAsync ---
 
     [Fact]
     public async Task ExecuteAsync_CliSucceeds_ReturnsZero()

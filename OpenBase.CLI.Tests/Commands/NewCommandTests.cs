@@ -1,5 +1,8 @@
 using OpenBase.CLI.Commands;
-using OpenBase.CLI.Helpers;
+using OpenBase.CLI.Helpers.Database;
+using OpenBase.CLI.Helpers.Execution;
+using OpenBase.CLI.Helpers.Interactive;
+using OpenBase.CLI.Helpers.IO;
 using Spectre.Console.Cli;
 
 namespace OpenBase.CLI.Tests.Commands;
@@ -169,7 +172,6 @@ public class NewCommandTests
     }
 }
 
-// ── Strategy: SQL Server ──────────────────────────────────────────────────────
 
 public class SqlServerTemplateStrategyTests
 {
@@ -210,7 +212,6 @@ public class SqlServerTemplateStrategyTests
     }
 }
 
-// ── Strategy: PostgreSQL ──────────────────────────────────────────────────────
 
 public class PostgresTemplateStrategyTests
 {
@@ -249,7 +250,6 @@ public class PostgresTemplateStrategyTests
     }
 }
 
-// ── ApplyConfigToJson ─────────────────────────────────────────────────────────
 
 public class NewCommandApplyConfigToJsonTests
 {
@@ -331,7 +331,6 @@ public class NewCommandApplyConfigToJsonTests
     }
 }
 
-// ── UpdateAppSettings ─────────────────────────────────────────────────────────
 
 public class NewCommandUpdateAppSettingsTests
 {

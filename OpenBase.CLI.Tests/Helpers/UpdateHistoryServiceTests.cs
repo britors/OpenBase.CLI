@@ -1,5 +1,5 @@
 using System.Text.Json;
-using OpenBase.CLI.Helpers;
+using OpenBase.CLI.Helpers.IO;
 using OpenBase.CLI.Models;
 
 namespace OpenBase.CLI.Tests.Helpers;

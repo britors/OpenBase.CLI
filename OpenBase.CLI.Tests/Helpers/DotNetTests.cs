@@ -1,4 +1,4 @@
-using OpenBase.CLI.Helpers;
+using OpenBase.CLI.Helpers.Execution;
 
 namespace OpenBase.CLI.Tests.Helpers;
 

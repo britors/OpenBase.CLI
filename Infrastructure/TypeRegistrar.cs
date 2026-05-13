@@ -1,10 +1,8 @@
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console.Cli;
 
 namespace OpenBase.CLI.Infrastructure;
 
-[ExcludeFromCodeCoverage]
 public sealed class TypeRegistrar : ITypeRegistrar
 {
     private readonly IServiceCollection _services;
@@ -23,7 +21,6 @@ public sealed class TypeRegistrar : ITypeRegistrar
         => _services.AddSingleton(service, _ => factory());
 }
 
-[ExcludeFromCodeCoverage]
 public sealed class TypeResolver : ITypeResolver, IDisposable
 {
     private readonly IServiceProvider _provider;

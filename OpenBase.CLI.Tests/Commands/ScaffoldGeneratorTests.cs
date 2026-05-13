@@ -1,4 +1,5 @@
 using OpenBase.CLI.Commands;
+using OpenBase.CLI.Commands.Scaffold;
 
 namespace OpenBase.CLI.Tests.Commands;
 
@@ -138,7 +139,6 @@ public class ScaffoldGeneratorTests
         Assert.Contains("CreateMap<PaginatedQueryResult<Produto>, PaginatedResponse<ProdutoResponse>>", mapper.Content);
     }
 
-    // ── ValidatorTemplate ─────────────────────────────────────────────────────
 
     [Fact]
     public void GetFiles_ExactlyFiveValidatorFiles()
@@ -237,7 +237,6 @@ public class ScaffoldGeneratorTests
         Assert.Contains("string.IsNullOrWhiteSpace", v.Content);
     }
 
-    // ── TestFiles ─────────────────────────────────────────────────────────────
 
     [Fact]
     public void GetFiles_AssemblyInfo_HasInternalsVisibleTo()

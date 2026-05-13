@@ -1,5 +1,6 @@
 using OpenBase.CLI.Commands;
-using OpenBase.CLI.Helpers;
+using OpenBase.CLI.Helpers.IO;
+using OpenBase.CLI.Helpers.Execution;
 using OpenBase.CLI.Models;
 using Spectre.Console.Cli;
 
@@ -22,12 +23,12 @@ public class UpdateCommandTests
 
     private void SetupCli(bool success, string error = "") =>
         _dotNetRunner
-            .Setup(r => r.RunAsync("tool update -g w3ti.OpenBase.CLI", It.IsAny<CancellationToken>()))
+            .Setup(r => r.RunAsync($"tool update -g {PackageIds.Cli}", It.IsAny<CancellationToken>()))
             .ReturnsAsync((success, error));
 
     private void SetupToolVersion(string? version) =>
         _dotNetRunner
-            .Setup(r => r.GetInstalledToolVersionAsync("w3ti.openbase.cli", It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetInstalledToolVersionAsync(PackageIds.Cli, It.IsAny<CancellationToken>()))
             .ReturnsAsync(version);
 
     private void SetupTemplateVersion(string? version) =>
@@ -129,7 +130,6 @@ public class UpdateCommandTests
         await ((ICommand<UpdateSettings>)CreateCommand())
             .ExecuteAsync(CommandTestHelper.CreateContext("update"), new UpdateSettings(), CancellationToken.None);
 
-        // 1 per template package + 1 for CLI
         var expectedCount = DotNet.TemplatePackages.Length + 1;
         _historyService.Verify(h => h.AddEntryAsync(
             It.IsAny<UpdateHistoryEntry>(), It.IsAny<CancellationToken>()),

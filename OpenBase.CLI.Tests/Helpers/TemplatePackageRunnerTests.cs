@@ -1,4 +1,4 @@
-using OpenBase.CLI.Helpers;
+using OpenBase.CLI.Helpers.Execution;
 using Spectre.Console;
 
 namespace OpenBase.CLI.Tests.Helpers;

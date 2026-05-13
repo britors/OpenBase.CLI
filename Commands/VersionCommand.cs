@@ -1,7 +1,6 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using OpenBase.CLI.Helpers;
+using OpenBase.CLI.Helpers.Execution;
 using OpenBase.CLI.Localization;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -18,29 +17,22 @@ public class VersionCommand(
 {
     private const string Codename = "Andromeda";
 
-    private static readonly (string Component, string Label)[] TrackedComponents =
-    [
-        ("w3ti.OpenBase.CLI",                     "OpenBase CLI"),
-        ("w3ti.OpenBaseNET.SQLServer.Template",   "Template SQLServer"),
-        ("w3ti.OpenBaseNET.Postgres.Template",    "Template Postgres"),
-    ];
-
     protected override async Task<int> ExecuteAsync(
-        [NotNull] CommandContext context,
-        [NotNull] VersionSettings settings,
+        CommandContext context,
+        VersionSettings settings,
         CancellationToken cancellationToken)
     {
-        var dotnetVersion = dotNetRunner.GetDotnetVersion();
+        var dotnetVersion  = dotNetRunner.GetDotnetVersion();
         var assemblyVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "--";
-        var osDescription = RuntimeInformation.OSDescription;
-        var architecture = RuntimeInformation.OSArchitecture.ToString().ToLower();
+        var osDescription  = RuntimeInformation.OSDescription;
+        var architecture   = RuntimeInformation.OSArchitecture.ToString().ToLower();
 
         var installedVersions = new Dictionary<string, string?>();
-        foreach (var (component, _) in TrackedComponents)
+        foreach (var id in PackageIds.All)
         {
-            installedVersions[component] = component == "w3ti.OpenBase.CLI"
-                ? await dotNetRunner.GetInstalledToolVersionAsync(component, cancellationToken)
-                : await dotNetRunner.GetInstalledTemplateVersionAsync(component, cancellationToken);
+            installedVersions[id] = id == PackageIds.Cli
+                ? await dotNetRunner.GetInstalledToolVersionAsync(id, cancellationToken)
+                : await dotNetRunner.GetInstalledTemplateVersionAsync(id, cancellationToken);
         }
 
         console.Write(new FigletText("OpenBase").Color(Color.Blue));
@@ -49,29 +41,22 @@ public class VersionCommand(
         table.AddColumn(SR.Current.ColVersionComponent);
         table.AddColumn(SR.Current.ColVersion);
 
-        table.AddRow("OS", $"[green]{Markup.Escape(osDescription)} ({architecture})[/]");
+        table.AddRow("OS",     $"[green]{Markup.Escape(osDescription)} ({architecture})[/]");
         table.AddRow("DotNet", $"[green]{Markup.Escape(dotnetVersion)}[/]");
 
-        foreach (var (component, label) in TrackedComponents)
-        {
-            var version = installedVersions[component];
-            var isCli = component == "w3ti.OpenBase.CLI";
-
-            string display;
-            if (version != null)
-                display = isCli
-                    ? $"[green]{Markup.Escape(version)} \"{Codename}\"[/]"
-                    : $"[green]{Markup.Escape(version)}[/]";
-            else
-                display = isCli
-                    ? $"[yellow]{Markup.Escape(assemblyVersion)} \"{Codename}\"[/]"
-                    : "[grey]--[/]";
-
-            table.AddRow(label, display);
-        }
+        foreach (var id in PackageIds.All)
+            table.AddRow(PackageIds.DisplayNames[id], FormatVersionDisplay(id, installedVersions[id], assemblyVersion));
 
         console.Write(table);
-
         return 0;
     }
+
+    private string FormatVersionDisplay(string id, string? version, string assemblyVersion) =>
+        (version, id == PackageIds.Cli) switch
+        {
+            (not null, true)  => $"[green]{Markup.Escape(version)} \"{Codename}\"[/]",
+            (not null, false) => $"[green]{Markup.Escape(version)}[/]",
+            (null,     true)  => $"[yellow]{Markup.Escape(assemblyVersion)} \"{Codename}\"[/]",
+            _                 => "[grey]--[/]"
+        };
 }
