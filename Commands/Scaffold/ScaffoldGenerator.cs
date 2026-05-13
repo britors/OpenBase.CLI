@@ -2,7 +2,7 @@ using System.Text;
 using OpenBase.CLI.Helpers.Database;
 using OpenBase.CLI.Models;
 
-namespace OpenBase.CLI.Commands;
+namespace OpenBase.CLI.Commands.Scaffold;
 
 public sealed partial class ScaffoldGenerator(ScaffoldContext ctx)
 {

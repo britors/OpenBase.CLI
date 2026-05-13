@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using OpenBase.CLI.Commands.Scaffold;
 using OpenBase.CLI.Helpers.Database;
 using OpenBase.CLI.Helpers.Execution;
 using OpenBase.CLI.Helpers.Interactive;

@@ -1,4 +1,4 @@
-namespace OpenBase.CLI.Commands;
+namespace OpenBase.CLI.Commands.Scaffold;
 
 public sealed partial class ScaffoldGenerator
 {

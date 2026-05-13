@@ -3,7 +3,7 @@ using OpenBase.CLI.Helpers.IO;
 using OpenBase.CLI.Localization;
 using Spectre.Console;
 
-namespace OpenBase.CLI.Commands;
+namespace OpenBase.CLI.Commands.Scaffold;
 
 internal sealed class EfMigrationRunner(IDotNetRunner dotNetRunner, IFileWriter fileWriter, IAnsiConsole console)
 {

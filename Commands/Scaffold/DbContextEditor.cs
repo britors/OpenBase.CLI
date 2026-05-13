@@ -1,6 +1,6 @@
 using OpenBase.CLI.Helpers.IO;
 
-namespace OpenBase.CLI.Commands;
+namespace OpenBase.CLI.Commands.Scaffold;
 
 public enum DbSetInjectionResult { Injected, AlreadyExists, FileNotFound, Failed }
 

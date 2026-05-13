@@ -1,8 +1,8 @@
 using OpenBase.CLI.Commands;
 using OpenBase.CLI.Helpers.Database;
+using OpenBase.CLI.Helpers.Execution;
 using OpenBase.CLI.Helpers.Interactive;
 using OpenBase.CLI.Helpers.IO;
-using OpenBase.CLI.Helpers.Execution;
 using Spectre.Console.Cli;
 
 namespace OpenBase.CLI.Tests.Commands;

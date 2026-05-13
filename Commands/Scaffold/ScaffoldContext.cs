@@ -1,6 +1,6 @@
 using OpenBase.CLI.Models;
 
-namespace OpenBase.CLI.Commands;
+namespace OpenBase.CLI.Commands.Scaffold;
 
 public sealed record ScaffoldContext(string Entity, string RootNamespace, string SolutionDir)
 {

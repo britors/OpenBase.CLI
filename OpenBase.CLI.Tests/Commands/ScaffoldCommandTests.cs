@@ -1,8 +1,9 @@
 using OpenBase.CLI.Commands;
+using OpenBase.CLI.Commands.Scaffold;
 using OpenBase.CLI.Helpers.Database;
+using OpenBase.CLI.Helpers.Execution;
 using OpenBase.CLI.Helpers.Interactive;
 using OpenBase.CLI.Helpers.IO;
-using OpenBase.CLI.Helpers.Execution;
 using OpenBase.CLI.Localization;
 using OpenBase.CLI.Models;
 using Spectre.Console.Cli;

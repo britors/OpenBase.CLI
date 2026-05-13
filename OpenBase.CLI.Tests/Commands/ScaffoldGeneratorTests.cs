@@ -1,4 +1,5 @@
 using OpenBase.CLI.Commands;
+using OpenBase.CLI.Commands.Scaffold;
 
 namespace OpenBase.CLI.Tests.Commands;
 
