@@ -161,7 +161,7 @@ public class ScaffoldCommand(
             .Spinner(Spinner.Known.Dots)
             .Start(SR.Current.RestoringNuGetPackages, _ =>
             {
-                restoreResult = dotNetRunner.Run($"restore \"{ctx.InfraContextPath}\"");
+                restoreResult = dotNetRunner.Run($"restore \"{ctx.SolutionDir}\"");
             });
 
         if (restoreResult is { Success: false })
@@ -214,7 +214,7 @@ public class ScaffoldCommand(
             .Spinner(Spinner.Known.Dots)
             .Start(SR.Current.RestoringNuGetPackages, _ =>
             {
-                dotNetRunner.Run($"restore \"{ctx.InfraContextPath}\"");
+                dotNetRunner.Run($"restore \"{ctx.SolutionDir}\"");
             });
 
         var (migOk, migError) = RunEfCommand(
