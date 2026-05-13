@@ -1,18 +1,18 @@
 # OpenBase CLI
 
-A interface de linha de comando oficial para o ecossistema **OpenBase**.
+The official command-line interface for the **OpenBase** ecosystem.
 
 ---
 
-## Instalação
+## Installation
 
-Distribuída como ferramenta global do .NET:
+Distributed as a .NET global tool:
 
 ```bash
 dotnet tool install -g w3ti.OpenBase.Cli
 ```
 
-Para atualizar:
+To update:
 
 ```bash
 dotnet tool update -g w3ti.OpenBase.Cli
@@ -20,88 +20,88 @@ dotnet tool update -g w3ti.OpenBase.Cli
 
 ---
 
-## Como usar
+## Usage
 
-### 1. Instalar os templates
+### 1. Install the templates
 
 ```bash
 openbase install
 ```
 
-### 2. Criar um novo projeto
+### 2. Create a new project
 
 ```bash
 # SQL Server
-openbase new --type api --template sqlserver --name MeuProjeto
+openbase new --type api --template sqlserver --name MyProject
 
 # PostgreSQL
-openbase new --type api --template pgsql --name MeuProjeto
+openbase new --type api --template pgsql --name MyProject
 ```
 
-O assistente irá solicitar as informações de configuração do projeto:
+The wizard will prompt for project configuration:
 
 ```
-Configuração do projeto
+Project configuration
 
-Licença do MediatR (deixe em branco se não tiver): <sua-licença>
-Licença do AutoMapper (deixe em branco se não tiver): <sua-licença>
-Servidor do banco de dados [.]: .
-Usuário do banco de dados:
-Senha do banco de dados:
+MediatR license (leave blank if you don't have one): <your-license>
+AutoMapper license (leave blank if you don't have one): <your-license>
+Database server [.]: .
+Database user:
+Database password:
 ```
 
-As informações são gravadas automaticamente nos arquivos `appsettings.json` e `appsettings.Development.json` do projeto gerado.
+The settings are automatically written to the `appsettings.json` and `appsettings.Development.json` files of the generated project.
 
-### 3. Gerar scaffold de uma entidade
+### 3. Scaffold an entity
 
-Dentro da raiz do projeto criado:
+From the root of the created project:
 
 ```bash
-openbase scaffold --entity Produto
+openbase scaffold --entity Product
 ```
 
-O comando detecta automaticamente se o projeto usa **SQL Server** ou **PostgreSQL** e abre um assistente interativo para definir as propriedades da entidade:
+The command automatically detects whether the project uses **SQL Server** or **PostgreSQL** and opens an interactive wizard to define the entity's properties:
 
 ```
-Propriedades da entidade
-Banco: SqlServer | Tipos disponíveis: int, long, short, string, bool, decimal, ...
+Entity properties
+Database: SqlServer | Available types: int, long, short, string, bool, decimal, ...
 
-Prop 1 — Nome (PascalCase): Nome
-  Tipo: string
-  Not null (obrigatório)? [s/n] (s): s
-  + Nome (string)
+Prop 1 — Name (PascalCase): Name
+  Type: string
+  Not null (required)? [y/n] (y): y
+  + Name (string)
 
-Adicionar outra propriedade? [s/n] (n): s
+Add another property? [y/n] (n): y
 
-Prop 2 — Nome (PascalCase): Preco
-  Tipo: decimal
-  Not null (obrigatório)? [s/n] (s): s
-  + Preco (decimal)
+Prop 2 — Name (PascalCase): Price
+  Type: decimal
+  Not null (required)? [y/n] (y): y
+  + Price (decimal)
 
-Adicionar outra propriedade? [s/n] (n): n
+Add another property? [y/n] (n): n
 
-┌────────────┬─────────┬─────┬──────────┐
-│ Propriedade│ Tipo    │ PK  │ Not Null │
-├────────────┼─────────┼─────┼──────────┤
-│ Id         │ int     │ Sim │ Sim      │
-│ Nome       │ string  │ Não │ Sim      │
-│ Preco      │ decimal │ Não │ Sim      │
-└────────────┴─────────┴─────┴──────────┘
+┌────────────┬─────────┬────┬──────────┐
+│ Property   │ Type    │ PK │ Not Null │
+├────────────┼─────────┼────┼──────────┤
+│ Id         │ int     │ ✓  │ ✓        │
+│ Name       │ string  │ -  │ ✓        │
+│ Price      │ decimal │ -  │ ✓        │
+└────────────┴─────────┴────┴──────────┘
 ```
 
-Ao final, são gerados **47 arquivos** cobrindo todas as camadas da Clean Architecture e o `DbSet` da entidade é **inserido automaticamente** no `OneBaseDataBaseContext`:
+At the end, **47 files** are generated covering all Clean Architecture layers, and the entity's `DbSet` is **automatically injected** into `OneBaseDataBaseContext`:
 
-| Camada         | O que é gerado                                               |
-|----------------|--------------------------------------------------------------|
-| Domain         | Entity, IRepository, IDomainService, DomainService           |
-| Application    | DTOs, Commands/Queries, Handlers, Validators, Mapper, Service|
-| Infrastructure | EF Core Configuration, Repository                            |
-| Presentation   | Controller com endpoints CRUD completos                       |
-| Tests          | Testes unitários para handlers, validators e services        |
+| Layer          | What is generated                                             |
+|----------------|---------------------------------------------------------------|
+| Domain         | Entity, IRepository, IDomainService, DomainService            |
+| Application    | DTOs, Commands/Queries, Handlers, Validators, Mapper, Service |
+| Infrastructure | EF Core Configuration, Repository                             |
+| Presentation   | Controller with full CRUD endpoints                           |
+| Tests          | Unit tests for handlers, validators and services              |
 
-#### Tipos de propriedades disponíveis
+#### Available property types
 
-| Tipo            | SQL Server | PostgreSQL |
+| Type            | SQL Server | PostgreSQL |
 |-----------------|:----------:|:----------:|
 | `int`           | ✓          | ✓          |
 | `long`          | ✓          | ✓          |
@@ -119,87 +119,87 @@ Ao final, são gerados **47 arquivos** cobrindo todas as camadas da Clean Archit
 | `byte[]`        | ✓          | ✓          |
 | `JsonDocument`  |            | ✓          |
 
-#### Regras geradas automaticamente nos Validators
+#### Validation rules auto-generated in Validators
 
 - `string` required → `NotEmpty().MinimumLength(1).MaximumLength(255)`
 - `Guid` required → `NotEmpty()`
-- Campos string no Update → regra com `.When(x => !string.IsNullOrWhiteSpace(x.Prop))`
+- String fields on Update → rule with `.When(x => !string.IsNullOrWhiteSpace(x.Prop))`
 
-#### Próximos passos após o scaffold
+#### Next steps after scaffold
 
-O `DbSet` é injetado automaticamente no `OneBaseDataBaseContext.cs`. Basta executar as migrations:
+The `DbSet` is automatically injected into `OneBaseDataBaseContext.cs`. Just run the migrations:
 
 ```bash
-dotnet ef migrations add AddProduto
+dotnet ef migrations add AddProduct
 dotnet ef database update
 ```
 
 ---
 
-## Comandos disponíveis
+## Available commands
 
-| Comando                  | Descrição                                              | Exemplo                                                        |
-|--------------------------|--------------------------------------------------------|----------------------------------------------------------------|
-| `install`                | Instala os templates NuGet necessários                 | `openbase install`                                             |
-| `new`                    | Cria um novo projeto a partir dos templates            | `openbase new --type api --template sqlserver --name X`        |
-| `scaffold`               | Gera todas as camadas para uma entidade (interativo)   | `openbase scaffold --entity Produto`                           |
-| `update`                 | Atualiza a CLI e os templates para a última versão     | `openbase update`                                              |
-| `history`                | Exibe o histórico de atualizações por componente       | `openbase history --type cli`                                  |
-| `version show`           | Exibe as versões da CLI e do template instalados       | `openbase version show`                                        |
-| `version restore`        | Restaura um componente para uma versão específica      | `openbase version restore 10.5.9 --type cli`                   |
-| `help`                   | Guia completo de argumentos e flags                    | `openbase help`                                                |
+| Command                  | Description                                              | Example                                                        |
+|--------------------------|----------------------------------------------------------|----------------------------------------------------------------|
+| `install`                | Installs the required NuGet templates                    | `openbase install`                                             |
+| `new`                    | Creates a new project from the templates                 | `openbase new --type api --template sqlserver --name X`        |
+| `scaffold`               | Generates all layers for an entity (interactive)         | `openbase scaffold --entity Product`                           |
+| `update`                 | Updates the CLI and templates to the latest version      | `openbase update`                                              |
+| `history`                | Shows the update history per component                   | `openbase history --type cli`                                  |
+| `version show`           | Shows the installed CLI and template versions            | `openbase version show`                                        |
+| `version restore`        | Restores a component to a specific version               | `openbase version restore 10.5.9 --type cli`                   |
+| `help`                   | Full guide to arguments and flags                        | `openbase help`                                                |
 
-### Histórico de atualizações
+### Update history
 
 ```bash
-# Exibir histórico completo
+# Show full history
 openbase history
 
-# Filtrar por componente
+# Filter by component
 openbase history --type cli
 openbase history --type sqlserver
 openbase history --type postgres
 ```
 
-### Restaurar versão
+### Restore a version
 
-Restaura um componente para uma versão específica. Útil para reverter uma atualização problemática.
+Restores a component to a specific version. Useful to roll back a problematic update.
 
 ```bash
-# Restaurar a CLI para uma versão anterior
+# Restore the CLI to a previous version
 openbase version restore 10.5.9 --type cli
 
-# Restaurar um template
+# Restore a template
 openbase version restore 2.0.0 --type sqlserver
 openbase version restore 1.5.3 --type postgres
 ```
 
-O argumento `--type` é obrigatório e aceita:
+The `--type` argument is required and accepts:
 
-| Valor       | Componente                              |
+| Value       | Component                               |
 |-------------|----------------------------------------|
 | `cli`       | OpenBase CLI (`w3ti.OpenBase.CLI`)     |
-| `sqlserver` | Template SQL Server                    |
-| `postgres`  | Template PostgreSQL                    |
+| `sqlserver` | SQL Server Template                    |
+| `postgres`  | PostgreSQL Template                    |
 
 ---
 
-## Requisitos
+## Requirements
 
-- .NET SDK 10 ou superior
-
----
-
-## Segurança e compatibilidade
-
-- **Multiplataforma**: Windows, macOS (Intel/Apple Silicon) e Linux
-- **Segurança**: Execução de processos protegida contra injeção de comandos (S4036 compliance)
-- Monitorado pelo **SonarCloud**
+- .NET SDK 10 or higher
 
 ---
 
-## Licença
+## Security & compatibility
 
-Distribuído sob a licença MIT. Veja `LICENSE.txt` para mais informações.
+- **Cross-platform**: Windows, macOS (Intel/Apple Silicon) and Linux
+- **Security**: Process execution protected against command injection (S4036 compliance)
+- Monitored by **SonarCloud**
 
-Desenvolvido por Rodrigo Brito <rodrigo@w3ti.com.br>.
+---
+
+## License
+
+Distributed under the MIT License. See `LICENSE.txt` for more information.
+
+Developed by Rodrigo Brito <rodrigo@w3ti.com.br>.
