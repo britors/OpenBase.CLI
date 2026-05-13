@@ -124,7 +124,7 @@ public class ScaffoldGeneratorTests
         var svc = files.First(f => f.Path.EndsWith("ProdutoDomainService.cs"));
 
         Assert.Contains("IProdutoDomainService", svc.Content);
-        Assert.Contains("FindByNamePagedAsync", svc.Content);
+        Assert.Contains("FindByArgumentsPagedAsync", svc.Content);
     }
 
     [Fact]
@@ -250,12 +250,12 @@ public class ScaffoldGeneratorTests
     }
 
     [Fact]
-    public void GetFiles_DomainServiceTests_HasFindByNamePagedAsyncTests()
+    public void GetFiles_DomainServiceTests_HasFindByArgumentsPagedAsyncTests()
     {
         var files = MakeGenerator("Produto").GetFiles().ToList();
         var f = files.First(f => f.Path.EndsWith("ProdutoDomainServiceTests.cs"));
 
-        Assert.Contains("FindByNamePagedAsync", f.Content);
+        Assert.Contains("FindByArgumentsPagedAsync", f.Content);
         Assert.Contains("Moq", f.Content);
     }
 

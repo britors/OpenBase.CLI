@@ -92,6 +92,80 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         return sb.ToString();
     }
 
+    private static string ToCamel(string s) => char.ToLowerInvariant(s[0]) + s[1..];
+
+    private IEnumerable<EntityProperty> FilterableProperties =>
+        ctx.Properties.Where(p => p.CsType is not ("byte[]" or "JsonDocument"));
+
+    private string FilterParamsWithDefaults() =>
+        string.Join(", ", FilterableProperties.Select(p =>
+            p.IsStringType ? $"string? {ToCamel(p.Name)} = null"
+                           : $"{p.CsType}? {ToCamel(p.Name)} = null"));
+
+    private string FilterParamsNoDefaults() =>
+        string.Join(", ", FilterableProperties.Select(p =>
+            p.IsStringType ? $"string? {ToCamel(p.Name)}"
+                           : $"{p.CsType}? {ToCamel(p.Name)}"));
+
+    private string FilterNullArgs() =>
+        string.Join(", ", FilterableProperties.Select(_ => "null"));
+
+    private string FilterNullArgsWithComma =>
+        FilterableProperties.Any() ? FilterNullArgs() + ", " : "";
+
+    private string FindByArgumentsCallArgs()
+    {
+        var parts = FilterableProperties.Select(p => $"request.{p.Name}").ToList();
+        parts.Add("request.Page");
+        parts.Add("request.PageSize");
+        parts.Add("cancellationToken");
+        return string.Join(", ", parts);
+    }
+
+    private string FindByArgumentsSignatureParams()
+    {
+        var parts = FilterableProperties.Select(p =>
+            p.IsStringType ? $"string? {ToCamel(p.Name)} = null"
+                           : $"{p.CsType}? {ToCamel(p.Name)} = null").ToList();
+        parts.Add("int page = 1");
+        parts.Add("int pageSize = 5");
+        parts.Add("CancellationToken cancellationToken = default");
+        return string.Join(", ", parts);
+    }
+
+    private string FindByArgumentsNullTestArgs(int page = 1, int pageSize = 5)
+    {
+        var parts = FilterableProperties.Select(_ => "null").ToList();
+        parts.Add(page.ToString());
+        parts.Add(pageSize.ToString());
+        parts.Add("CancellationToken.None");
+        return string.Join(", ", parts);
+    }
+
+    private string FindByArgumentsOneFilterTestArgs(int page = 1, int pageSize = 5)
+    {
+        var stringProp = FilterableProperties.FirstOrDefault(p => p.IsStringType);
+        var parts = FilterableProperties.Select(p => p == stringProp ? "\"Test\"" : "null").ToList();
+        parts.Add(page.ToString());
+        parts.Add(pageSize.ToString());
+        parts.Add("CancellationToken.None");
+        return string.Join(", ", parts);
+    }
+
+    private string FilterBodyCode()
+    {
+        var sb = new StringBuilder();
+        sb.Append($"Expression<Func<{ctx.Entity}, bool>>? filter = null;");
+        foreach (var p in FilterableProperties)
+        {
+            var param = ToCamel(p.Name);
+            var check = p.IsStringType ? $"!string.IsNullOrWhiteSpace({param})" : $"{param}.HasValue";
+            var cond  = p.IsStringType ? $"x.{p.Name}.Contains({param}!)" : $"x.{p.Name} == {param}.Value";
+            sb.Append($"\n{I8}if ({check}) filter = And(filter, x => {cond});");
+        }
+        return sb.ToString();
+    }
+
     private string DomainServiceFilterBody() =>
         ctx.FilterProperty is null ? string.Empty
             : $"\n{I8}if (!string.IsNullOrWhiteSpace(name))\n{I12}query = x => x.{ctx.FilterProperty.Name}.Contains(name);";
@@ -251,8 +325,8 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
 
         public interface I{{ctx.Entity}}DomainService : IDomainService<{{ctx.Entity}}, int>
         {
-            Task<PaginatedQueryResult<{{ctx.Entity}}>> FindByNamePagedAsync(
-                string name, int page, int pageSize, CancellationToken cancellationToken);
+            Task<PaginatedQueryResult<{{ctx.Entity}}>> FindByArgumentsPagedAsync(
+                {{FindByArgumentsSignatureParams()}});
         }
         """;
 
@@ -268,20 +342,39 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         public sealed class {{ctx.Entity}}DomainService(I{{ctx.Entity}}Repository {{ctx.ECamel}}Repository)
             : DomainService<{{ctx.Entity}}, int>({{ctx.ECamel}}Repository), I{{ctx.Entity}}DomainService
         {
-            public async Task<PaginatedQueryResult<{{ctx.Entity}}>> FindByNamePagedAsync(
-                string name, int page, int pageSize, CancellationToken cancellationToken)
+            public async Task<PaginatedQueryResult<{{ctx.Entity}}>> FindByArgumentsPagedAsync(
+                {{FindByArgumentsSignatureParams()}})
             {
-                Expression<Func<{{ctx.Entity}}, bool>>? query = null;{{DomainServiceFilterBody()}}
+                {{FilterBodyCode()}}
 
-                var totalRecords = await {{ctx.ECamel}}Repository.CountAsync(cancellationToken, query);
+                var totalRecords = await {{ctx.ECamel}}Repository.CountAsync(cancellationToken, filter);
                 var resultPaginated = await {{ctx.ECamel}}Repository.FindAsync(
                     cancellationToken,
                     noTracking: true,
-                    query,
+                    filter,
                     pageNumber: page,
                     pageSize: pageSize);
 
                 return new PaginatedQueryResult<{{ctx.Entity}}>(page, pageSize, totalRecords, resultPaginated);
+            }
+
+            private static Expression<Func<{{ctx.Entity}}, bool>>? And(
+                Expression<Func<{{ctx.Entity}}, bool>>? left,
+                Expression<Func<{{ctx.Entity}}, bool>> right)
+            {
+                if (left is null) return right;
+                var param = left.Parameters[0];
+                var body = Expression.AndAlso(
+                    left.Body,
+                    new ReplaceParamVisitor(right.Parameters[0], param).Visit(right.Body)!);
+                return Expression.Lambda<Func<{{ctx.Entity}}, bool>>(body, param);
+            }
+
+            private sealed class ReplaceParamVisitor(ParameterExpression from, ParameterExpression to)
+                : ExpressionVisitor
+            {
+                protected override Expression VisitParameter(ParameterExpression node)
+                    => node == from ? to : base.VisitParameter(node);
             }
         }
         """;
@@ -353,7 +446,11 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
     private string UpdateRequestTemplate() => DtoTemplate(Requests, $"Update{ctx.Entity}Request", IdAndPropertiesParams());
     private string DeleteRequestTemplate() => DtoTemplate(Requests, $"Delete{ctx.Entity}Request", IntId);
     private string FindByIdRequestTemplate() => DtoTemplate(Requests, $"Find{ctx.Entity}ByIdRequest", IntId);
-    private string GetRequestTemplate() => DtoTemplate(Requests, $"Get{ctx.Entity}Request", "string Name = \"\", int Page = 1, int PageSize = 5");
+    private string GetRequestTemplate()
+    {
+        var filterPart = FilterableProperties.Any() ? FilterParamsWithDefaults() + ", " : "";
+        return DtoTemplate(Requests, $"Get{ctx.Entity}Request", $"{filterPart}int Page = 1, int PageSize = 5");
+    }
     private string ResponseTemplate() => DtoTemplate(Responses, $"{ctx.Entity}Response", IdAndPropertiesParams());
     private string CreateResponseTemplate() => DtoTemplate(Responses, $"Create{ctx.Entity}Response", IdAndPropertiesParams());
     private string UpdateResponseTemplate() => DtoTemplate(Responses, $"Update{ctx.Entity}Response", IdAndPropertiesParams());
@@ -477,16 +574,20 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
         $"Find{ctx.Entity}ByIdQuery",
         "RuleFor(x => x.Id).NotEmpty();");
 
-    private string GetQueryTemplate() => $$"""
-        using MediatR;
-        using {{ctx.NS}}.Application.DTOs.Base.Response;
-        using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
+    private string GetQueryTemplate()
+    {
+        var filterPart = FilterableProperties.Any() ? FilterParamsNoDefaults() + ", " : "";
+        return $$"""
+            using MediatR;
+            using {{ctx.NS}}.Application.DTOs.Base.Response;
+            using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
 
-        namespace {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Get{{ctx.EPlural}}Feature;
+            namespace {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Get{{ctx.EPlural}}Feature;
 
-        public sealed record Get{{ctx.Entity}}Query(string Name, int Page, int PageSize)
-            : IRequest<PaginatedResponse<{{ctx.Entity}}Response>>;
-        """;
+            public sealed record Get{{ctx.Entity}}Query({{filterPart}}int Page, int PageSize)
+                : IRequest<PaginatedResponse<{{ctx.Entity}}Response>>;
+            """;
+    }
 
     private string GetQueryHandlerTemplate() => $$"""
         using AutoMapper;
@@ -505,8 +606,8 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
             public async Task<PaginatedResponse<{{ctx.Entity}}Response>>
                 Handle(Get{{ctx.Entity}}Query request, CancellationToken cancellationToken)
             {
-                var queryResult = await {{ctx.ECamel}}DomainService.FindByNamePagedAsync(
-                    request.Name, request.Page, request.PageSize, cancellationToken);
+                var queryResult = await {{ctx.ECamel}}DomainService.FindByArgumentsPagedAsync(
+                    {{FindByArgumentsCallArgs()}});
                 return mapper.Map<PaginatedResponse<{{ctx.Entity}}Response>>(queryResult);
             }
         }
@@ -755,7 +856,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
             }
 
             [Fact]
-            public async Task FindByNamePagedAsync_ReturnsResult_WhenNameIsProvided()
+            public async Task FindByArgumentsPagedAsync_ReturnsResult_WhenNoFilterProvided()
             {
                 var entities = new List<{{ctx.Entity}}> { new() { Id = 1, {{EntityTestInitializer()}} } };
                 _{{ctx.ECamel}}RepositoryMock
@@ -766,13 +867,13 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
                         It.IsAny<Expression<Func<{{ctx.Entity}}, bool>>?>(), It.IsAny<int>(), It.IsAny<int>()))
                     .ReturnsAsync(entities);
 
-                var result = await _service.FindByNamePagedAsync("Test", 1, 5, CancellationToken.None);
+                var result = await _service.FindByArgumentsPagedAsync({{FindByArgumentsNullTestArgs()}});
 
                 Assert.Equal(1, result.TotalRecords);
             }
 
             [Fact]
-            public async Task FindByNamePagedAsync_ReturnsResult_WhenNameIsEmpty()
+            public async Task FindByArgumentsPagedAsync_ReturnsResult_WhenFilterProvided()
             {
                 var entities = new List<{{ctx.Entity}}> { new() { Id = 1, {{EntityTestInitializer()}} } };
                 _{{ctx.ECamel}}RepositoryMock
@@ -783,7 +884,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
                         It.IsAny<Expression<Func<{{ctx.Entity}}, bool>>?>(), It.IsAny<int>(), It.IsAny<int>()))
                     .ReturnsAsync(entities);
 
-                var result = await _service.FindByNamePagedAsync(string.Empty, 1, 5, CancellationToken.None);
+                var result = await _service.FindByArgumentsPagedAsync({{FindByArgumentsOneFilterTestArgs()}});
 
                 Assert.Equal(1, result.TotalRecords);
             }
@@ -978,12 +1079,12 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
             [Fact]
             public async Task Handle_CallsServiceWithCorrectParameters()
             {
-                var query = new Get{{ctx.Entity}}Query("Search", 2, 10);
+                var query = new Get{{ctx.Entity}}Query({{FilterNullArgsWithComma}}2, 10);
 
                 await _handler.Handle(query, CancellationToken.None);
 
                 _{{ctx.ECamel}}DomainServiceMock.Verify(
-                    s => s.FindByNamePagedAsync("Search", 2, 10, It.IsAny<CancellationToken>()),
+                    s => s.FindByArgumentsPagedAsync({{FilterNullArgsWithComma}}2, 10, It.IsAny<CancellationToken>()),
                     Times.Once());
             }
         }
@@ -1053,14 +1154,14 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
             [Fact]
             public void Validate_IsValid_WhenPageAndPageSizeAreValid()
             {
-                var result = _validator.Validate(new Get{{ctx.Entity}}Query("", 1, 5));
+                var result = _validator.Validate(new Get{{ctx.Entity}}Query({{FilterNullArgsWithComma}}1, 5));
                 Assert.True(result.IsValid);
             }
 
             [Fact]
             public void Validate_IsInvalid_WhenPageIsZero()
             {
-                var result = _validator.Validate(new Get{{ctx.Entity}}Query("", 0, 5));
+                var result = _validator.Validate(new Get{{ctx.Entity}}Query({{FilterNullArgsWithComma}}0, 5));
                 Assert.False(result.IsValid);
                 Assert.Contains(result.Errors, e => e.PropertyName == "Page");
             }
@@ -1068,7 +1169,7 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
             [Fact]
             public void Validate_IsInvalid_WhenPageSizeIsBelowMinimum()
             {
-                var result = _validator.Validate(new Get{{ctx.Entity}}Query("", 1, 4));
+                var result = _validator.Validate(new Get{{ctx.Entity}}Query({{FilterNullArgsWithComma}}1, 4));
                 Assert.False(result.IsValid);
                 Assert.Contains(result.Errors, e => e.PropertyName == "PageSize");
             }
@@ -1152,8 +1253,8 @@ public sealed class ScaffoldGenerator(ScaffoldContext ctx)
             [Fact]
             public async Task GetAsync_SendsQuery_ToMediator()
             {
-                var request = new Get{{ctx.Entity}}Request("", 1, 5);
-                var query = new Get{{ctx.Entity}}Query("", 1, 5);
+                var request = new Get{{ctx.Entity}}Request({{FilterNullArgsWithComma}}1, 5);
+                var query = new Get{{ctx.Entity}}Query({{FilterNullArgsWithComma}}1, 5);
                 _mapperMock.Setup(m => m.Map<Get{{ctx.Entity}}Query>(request)).Returns(query);
 
                 await _service.GetAsync(request, CancellationToken.None);
