@@ -156,7 +156,6 @@ public class ScaffoldCommandTests
         _propertyCollector.Verify(c => c.Collect(DbFlavor.Postgres), Times.Once);
     }
 
-    // ── PrintFileList ─────────────────────────────────────────────────────────
 
     private (ScaffoldCommand Command, StringWriter Output) CreateCommandWithOutput()
     {
@@ -255,7 +254,6 @@ public class ScaffoldCommandTests
         Assert.Contains("Disco cheio", output.ToString());
     }
 
-    // ── AddTestProjectToSolution ──────────────────────────────────────────────
 
     [Fact]
     public async Task Execute_ValidProject_AddsCsprojToSolution()
@@ -299,7 +297,6 @@ public class ScaffoldCommandTests
         _dotNetRunner.Verify(r => r.Run(It.IsAny<string>()), Times.Never);
     }
 
-    // ── InjectDbSet ───────────────────────────────────────────────────────────
 
     private static string DbContextPath(string ns = "OpenBaseNET") =>
         Path.Combine("/solution", "src", $"{ns}.Infra.Data.Context", "OneBaseDataBaseContext.cs");
@@ -422,7 +419,6 @@ public class ScaffoldCommandTests
         Assert.Equal(DbSetInjectionResult.Failed, result);
     }
 
-    // ── EF Migrations ─────────────────────────────────────────────────────────
 
     private void SetupForMigration()
     {
@@ -491,7 +487,6 @@ public class ScaffoldCommandTests
         _dotNetRunner.Verify(r => r.Run(It.Is<string>(a => a.Contains("database update"))), Times.Never);
     }
 
-    // ── EmptyMigrationUpMethod ────────────────────────────────────────────────
 
     [Fact]
     public void EmptyMigrationUpMethod_RemovesUpBody()

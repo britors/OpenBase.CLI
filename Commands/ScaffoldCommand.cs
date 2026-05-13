@@ -134,7 +134,6 @@ public class ScaffoldCommand(
         return 0;
     }
 
-    // ── Kept public for backward-compat with tests ────────────────────────────
 
     public DbSetInjectionResult InjectDbSet(ScaffoldContext ctx) =>
         new DbContextEditor(fileWriter).InjectDbSet(ctx);
@@ -142,7 +141,6 @@ public class ScaffoldCommand(
     public static string EmptyMigrationUpMethod(string content) =>
         DbContextEditor.EmptyMigrationUpMethod(content);
 
-    // ── Private helpers ───────────────────────────────────────────────────────
 
     private ScaffoldMode AskScaffoldMode()
     {

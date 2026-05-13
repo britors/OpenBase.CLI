@@ -35,7 +35,7 @@ public sealed class AppSettingsConnectionStringReader : IConnectionStringReader
                     }
                 }
             }
-            catch { /* arquivo inválido ou sem a chave */ }
+            catch { }
         }
 
         return null;

@@ -8,56 +8,47 @@ public sealed partial class ScaffoldGenerator
         var dtoRes = Path.Combine(ctx.AppPath, "DTOs", ctx.Entity, Responses);
         var feat   = Path.Combine(ctx.AppPath, "Features", $"{ctx.Entity}Features");
 
-        // DTOs – Requests
         yield return (Path.Combine(dtoReq, $"Create{ctx.Entity}Request.cs"), CreateRequestTemplate());
         yield return (Path.Combine(dtoReq, $"Update{ctx.Entity}Request.cs"), UpdateRequestTemplate());
         yield return (Path.Combine(dtoReq, $"Delete{ctx.Entity}Request.cs"), DeleteRequestTemplate());
         yield return (Path.Combine(dtoReq, $"Find{ctx.Entity}ByIdRequest.cs"), FindByIdRequestTemplate());
         yield return (Path.Combine(dtoReq, $"Get{ctx.Entity}Request.cs"), GetRequestTemplate());
 
-        // DTOs – Responses
         yield return (Path.Combine(dtoRes, $"{ctx.Entity}Response.cs"), ResponseTemplate());
         yield return (Path.Combine(dtoRes, $"Create{ctx.Entity}Response.cs"), CreateResponseTemplate());
         yield return (Path.Combine(dtoRes, $"Update{ctx.Entity}Response.cs"), UpdateResponseTemplate());
         yield return (Path.Combine(dtoRes, $"Delete{ctx.Entity}Response.cs"), DeleteResponseTemplate());
 
-        // Create feature
         var create = Path.Combine(feat, $"Create{ctx.Entity}Feature");
         yield return (Path.Combine(create, $"Create{ctx.Entity}Command.cs"), CreateCommandTemplate());
         yield return (Path.Combine(create, $"Create{ctx.Entity}CommandHandler.cs"), CreateCommandHandlerTemplate());
         yield return (Path.Combine(create, $"Create{ctx.Entity}CommandValidator.cs"), CreateCommandValidatorTemplate());
 
-        // Delete feature
         var delete = Path.Combine(feat, $"Delete{ctx.Entity}Feature");
         yield return (Path.Combine(delete, $"Delete{ctx.Entity}Command.cs"), DeleteCommandTemplate());
         yield return (Path.Combine(delete, $"Delete{ctx.Entity}CommandHandler.cs"), DeleteCommandHandlerTemplate());
         yield return (Path.Combine(delete, $"Delete{ctx.Entity}CommandValidator.cs"), DeleteCommandValidatorTemplate());
 
-        // FindById feature
         var findById = Path.Combine(feat, $"Find{ctx.Entity}ByIdFeature");
         yield return (Path.Combine(findById, $"Find{ctx.Entity}ByIdQuery.cs"), FindByIdQueryTemplate());
         yield return (Path.Combine(findById, $"Find{ctx.Entity}ByIdQueryHandler.cs"), FindByIdQueryHandlerTemplate());
         yield return (Path.Combine(findById, $"Find{ctx.Entity}ByIdQueryValidator.cs"), FindByIdQueryValidatorTemplate());
 
-        // Get (paginated) feature
         var get = Path.Combine(feat, $"Get{ctx.EPlural}Feature");
         yield return (Path.Combine(get, $"Get{ctx.Entity}Query.cs"), GetQueryTemplate());
         yield return (Path.Combine(get, $"Get{ctx.Entity}QueryHandler.cs"), GetQueryHandlerTemplate());
         yield return (Path.Combine(get, $"Get{ctx.Entity}QueryValidator.cs"), GetQueryValidatorTemplate());
 
-        // Update feature
         var update = Path.Combine(feat, $"Update{ctx.Entity}Feature");
         yield return (Path.Combine(update, $"Update{ctx.Entity}Command.cs"), UpdateCommandTemplate());
         yield return (Path.Combine(update, $"Update{ctx.Entity}CommandHandler.cs"), UpdateCommandHandlerTemplate());
         yield return (Path.Combine(update, $"Update{ctx.Entity}CommandValidator.cs"), UpdateCommandValidatorTemplate());
 
-        // Application service
         yield return (Path.Combine(ctx.AppPath, "Interfaces", Services, $"I{ctx.Entity}ApplicationService.cs"), IApplicationServiceTemplate());
         yield return (Path.Combine(ctx.AppPath, "Mappers", $"{ctx.Entity}MapperProfile.cs"), MapperProfileTemplate());
         yield return (Path.Combine(ctx.AppPath, Services, $"{ctx.Entity}ApplicationService.cs"), ApplicationServiceTemplate());
     }
 
-    // ── DTOs ──────────────────────────────────────────────────────────────────
 
     private string DtoTemplate(string subNs, string typeName, string body) => $$"""
         namespace {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.{{subNs}};
@@ -80,7 +71,6 @@ public sealed partial class ScaffoldGenerator
         return DtoTemplate(Requests, $"Get{ctx.Entity}Request", $"{filterPart}int Page = 1, int PageSize = 5");
     }
 
-    // ── Commands ──────────────────────────────────────────────────────────────
 
     private string CommandTemplate(string feature, string name, string parameters, string response) => $$"""
         using MediatR;
@@ -100,7 +90,6 @@ public sealed partial class ScaffoldGenerator
     private string UpdateCommandTemplate() => CommandTemplate(
         $"Update{ctx.Entity}Feature", $"Update{ctx.Entity}Command", IdAndPropertiesParams(), $"Update{ctx.Entity}Response");
 
-    // ── Handlers ──────────────────────────────────────────────────────────────
 
     private string CreateCommandHandlerTemplate() => $$"""
         using AutoMapper;
@@ -215,7 +204,6 @@ public sealed partial class ScaffoldGenerator
         }
         """;
 
-    // ── Queries ───────────────────────────────────────────────────────────────
 
     private string FindByIdQueryTemplate() => $$"""
         using MediatR;
@@ -241,7 +229,6 @@ public sealed partial class ScaffoldGenerator
             """;
     }
 
-    // ── Validators ────────────────────────────────────────────────────────────
 
     private string ValidatorTemplate(string feature, string typeName, string rules) => $$"""
         using FluentValidation;
@@ -275,7 +262,6 @@ public sealed partial class ScaffoldGenerator
     private string UpdateCommandValidatorTemplate() => ValidatorTemplate(
         $"Update{ctx.Entity}Feature", $"Update{ctx.Entity}Command", UpdateValidatorRules());
 
-    // ── Service & Mapper ──────────────────────────────────────────────────────
 
     private string IApplicationServiceTemplate() => $$"""
         using {{ctx.NS}}.Application.DTOs.Base.Response;

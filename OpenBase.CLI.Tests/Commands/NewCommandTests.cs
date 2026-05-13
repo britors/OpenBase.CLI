@@ -172,7 +172,6 @@ public class NewCommandTests
     }
 }
 
-// ── Strategy: SQL Server ──────────────────────────────────────────────────────
 
 public class SqlServerTemplateStrategyTests
 {
@@ -213,7 +212,6 @@ public class SqlServerTemplateStrategyTests
     }
 }
 
-// ── Strategy: PostgreSQL ──────────────────────────────────────────────────────
 
 public class PostgresTemplateStrategyTests
 {
@@ -252,7 +250,6 @@ public class PostgresTemplateStrategyTests
     }
 }
 
-// ── ApplyConfigToJson ─────────────────────────────────────────────────────────
 
 public class NewCommandApplyConfigToJsonTests
 {
@@ -334,7 +331,6 @@ public class NewCommandApplyConfigToJsonTests
     }
 }
 
-// ── UpdateAppSettings ─────────────────────────────────────────────────────────
 
 public class NewCommandUpdateAppSettingsTests
 {

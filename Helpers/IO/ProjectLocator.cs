@@ -25,7 +25,7 @@ public sealed class ProjectLocator : IProjectLocator
                 break;
 
             var folderName = Path.GetFileName(domainDir);
-            var ns = overrideNamespace ?? folderName[..^7]; // remove ".Domain"
+            var ns = overrideNamespace ?? folderName[..^7];
             return (dir.FullName, ns);
         }
 

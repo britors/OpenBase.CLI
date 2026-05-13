@@ -11,7 +11,6 @@ public sealed partial class ScaffoldGenerator(ScaffoldContext ctx)
     private const string Responses = "Responses";
     private const string IntId     = "int Id";
 
-    // Indentation levels used verbatim in generated files
     private const string I4  = "    ";
     private const string I8  = "        ";
     private const string I12 = "            ";
@@ -23,7 +22,6 @@ public sealed partial class ScaffoldGenerator(ScaffoldContext ctx)
             .Concat(PresentationFiles())
             .Concat(TestFiles());
 
-    // ── Property helpers ──────────────────────────────────────────────────────
 
     private string EntityPropertyDeclarations() =>
         string.Join($"\n{I4}", ctx.Properties.Select(PropertyDeclaration));
@@ -59,7 +57,6 @@ public sealed partial class ScaffoldGenerator(ScaffoldContext ctx)
         return sb.ToString();
     }
 
-    // ── Filter helpers ────────────────────────────────────────────────────────
 
     private static string ToCamel(string s) => char.ToLowerInvariant(s[0]) + s[1..];
 
@@ -116,7 +113,6 @@ public sealed partial class ScaffoldGenerator(ScaffoldContext ctx)
         return sb.ToString();
     }
 
-    // ── Validator helpers ─────────────────────────────────────────────────────
 
     private string CreateValidatorRules()
     {
@@ -142,7 +138,6 @@ public sealed partial class ScaffoldGenerator(ScaffoldContext ctx)
     private static string BuildUpdateStringRule(EntityProperty p) =>
         $"RuleFor(x => x.{p.Name})\n{I12}.MinimumLength(1)\n{I12}.MaximumLength(255)\n{I12}.When(x => !string.IsNullOrWhiteSpace(x.{p.Name}));";
 
-    // ── Test argument helpers ─────────────────────────────────────────────────
 
     private string EntityTestInitializer() =>
         string.Join(", ", ctx.Properties.Select(p => $"{p.Name} = {DbPropertyTypes.GetTestValue(p)}"));
@@ -181,7 +176,6 @@ public sealed partial class ScaffoldGenerator(ScaffoldContext ctx)
         return string.Join(", ", parts);
     }
 
-    // ── Validator test helpers ────────────────────────────────────────────────
 
     private string BuildCreateValidatorTestMethods()
     {

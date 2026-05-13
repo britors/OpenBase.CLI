@@ -130,7 +130,6 @@ public class UpdateCommandTests
         await ((ICommand<UpdateSettings>)CreateCommand())
             .ExecuteAsync(CommandTestHelper.CreateContext("update"), new UpdateSettings(), CancellationToken.None);
 
-        // 1 per template package + 1 for CLI
         var expectedCount = DotNet.TemplatePackages.Length + 1;
         _historyService.Verify(h => h.AddEntryAsync(
             It.IsAny<UpdateHistoryEntry>(), It.IsAny<CancellationToken>()),
