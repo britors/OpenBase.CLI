@@ -321,7 +321,7 @@ public class ScaffoldCommandTests
         _fileWriter.Setup(f => f.ReadAllText(path)).Returns(content);
     }
 
-    private ScaffoldCommand.DbSetInjectionResult RunInjectDbSet(string entity = "Produto", string ns = "OpenBaseNET")
+    private DbSetInjectionResult RunInjectDbSet(string entity = "Produto", string ns = "OpenBaseNET")
     {
         var ctx = new ScaffoldContext(entity, ns, "/solution");
         return CreateCommand().InjectDbSet(ctx);
@@ -334,7 +334,7 @@ public class ScaffoldCommandTests
 
         var result = RunInjectDbSet();
 
-        Assert.Equal(ScaffoldCommand.DbSetInjectionResult.FileNotFound, result);
+        Assert.Equal(DbSetInjectionResult.FileNotFound, result);
     }
 
     [Fact]
@@ -344,7 +344,7 @@ public class ScaffoldCommandTests
 
         var result = RunInjectDbSet();
 
-        Assert.Equal(ScaffoldCommand.DbSetInjectionResult.AlreadyExists, result);
+        Assert.Equal(DbSetInjectionResult.AlreadyExists, result);
         _fileWriter.Verify(f => f.WriteAllText(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
@@ -358,7 +358,7 @@ public class ScaffoldCommandTests
 
         var result = RunInjectDbSet();
 
-        Assert.Equal(ScaffoldCommand.DbSetInjectionResult.Injected, result);
+        Assert.Equal(DbSetInjectionResult.Injected, result);
         Assert.Contains("DbSet<Produto>", written);
         Assert.Contains("Produtos", written);
     }
@@ -418,7 +418,7 @@ public class ScaffoldCommandTests
 
         var result = RunInjectDbSet();
 
-        Assert.Equal(ScaffoldCommand.DbSetInjectionResult.Failed, result);
+        Assert.Equal(DbSetInjectionResult.Failed, result);
     }
 
     // ── EF Migrations ─────────────────────────────────────────────────────────
@@ -510,7 +510,7 @@ public class ScaffoldCommandTests
             }
             """;
 
-        var result = ScaffoldCommand.EmptyMigrationUpMethod(content);
+        var result = DbContextEditor.EmptyMigrationUpMethod(content);
 
         Assert.Contains("protected override void Up(MigrationBuilder migrationBuilder)", result);
         Assert.DoesNotContain("CreateTable", result);
@@ -521,7 +521,7 @@ public class ScaffoldCommandTests
     public void EmptyMigrationUpMethod_ReturnsOriginal_WhenUpNotFound()
     {
         var content = "public class Foo { }";
-        var result = ScaffoldCommand.EmptyMigrationUpMethod(content);
+        var result = DbContextEditor.EmptyMigrationUpMethod(content);
         Assert.Equal(content, result);
     }
 
@@ -538,7 +538,7 @@ public class ScaffoldCommandTests
             }
             """;
 
-        var result = ScaffoldCommand.EmptyMigrationUpMethod(content);
+        var result = DbContextEditor.EmptyMigrationUpMethod(content);
 
         Assert.DoesNotContain("CreateTable", result);
     }
