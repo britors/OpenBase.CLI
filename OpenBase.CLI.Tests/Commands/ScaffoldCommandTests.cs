@@ -487,4 +487,57 @@ public class ScaffoldCommandTests
         _dotNetRunner.Verify(r => r.Run(It.Is<string>(a => a.Contains("database update"))), Times.Never);
     }
 
+    // ── EmptyMigrationUpMethod ────────────────────────────────────────────────
+
+    [Fact]
+    public void EmptyMigrationUpMethod_RemovesUpBody()
+    {
+        var content = """
+            protected override void Up(MigrationBuilder migrationBuilder)
+            {
+                migrationBuilder.CreateTable(
+                    name: "Customer",
+                    columns: table => new { Id = table.Column<int>() },
+                    constraints: table => { table.PrimaryKey("PK_Customer", x => x.Id); });
+            }
+
+            protected override void Down(MigrationBuilder migrationBuilder)
+            {
+                migrationBuilder.DropTable(name: "Customer");
+            }
+            """;
+
+        var result = ScaffoldCommand.EmptyMigrationUpMethod(content);
+
+        Assert.Contains("protected override void Up(MigrationBuilder migrationBuilder)", result);
+        Assert.DoesNotContain("CreateTable", result);
+        Assert.Contains("DropTable", result);
+    }
+
+    [Fact]
+    public void EmptyMigrationUpMethod_ReturnsOriginal_WhenUpNotFound()
+    {
+        var content = "public class Foo { }";
+        var result = ScaffoldCommand.EmptyMigrationUpMethod(content);
+        Assert.Equal(content, result);
+    }
+
+    [Fact]
+    public void EmptyMigrationUpMethod_HandlesNestedBraces()
+    {
+        var content = """
+            protected override void Up(MigrationBuilder migrationBuilder)
+            {
+                migrationBuilder.CreateTable("T", t => new
+                {
+                    Id = t.Column<int>()
+                }, c => { c.PrimaryKey("PK", x => x.Id); });
+            }
+            """;
+
+        var result = ScaffoldCommand.EmptyMigrationUpMethod(content);
+
+        Assert.DoesNotContain("CreateTable", result);
+    }
+
 }

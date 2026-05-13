@@ -76,7 +76,7 @@ public class ScaffoldCommand(
             if (result is null) return 1;
             properties = result.Value.Properties;
             modelFirstTableName = result.Value.TableName;
-            skipMigration = true;
+            skipMigration = false;
         }
         else
         {
@@ -130,7 +130,12 @@ public class ScaffoldCommand(
         }
 
         if (!skipMigration)
-            RunMigrations(ctx, settings.Entity);
+        {
+            if (mode == ScaffoldMode.ModelFirst)
+                RunReconciliationMigration(ctx, settings.Entity);
+            else
+                RunMigrations(ctx, settings.Entity);
+        }
 
         return 0;
     }
@@ -201,6 +206,76 @@ public class ScaffoldCommand(
         }
 
         console.MarkupLine(SR.Current.DatabaseUpdatedSuccess);
+    }
+
+    private void RunReconciliationMigration(ScaffoldContext ctx, string entity)
+    {
+        console.Status()
+            .Spinner(Spinner.Known.Dots)
+            .Start(SR.Current.RestoringNuGetPackages, _ =>
+            {
+                dotNetRunner.Run($"restore \"{ctx.InfraContextPath}\"");
+            });
+
+        var (migOk, migError) = RunEfCommand(
+            $"migrations add Add{entity}",
+            string.Format(SR.Current.ModelFirstReconciliationInfo, entity),
+            ctx);
+
+        if (!migOk)
+        {
+            console.MarkupLine(string.Format(SR.Current.ModelFirstReconciliationWarn, entity));
+            if (!string.IsNullOrWhiteSpace(migError))
+                console.MarkupLine($"[grey]{Markup.Escape(migError)}[/]");
+            return;
+        }
+
+        var migrationsDir = Path.Combine(ctx.InfraContextPath, "Migrations");
+        var migFile = fileWriter.FindFile(migrationsDir, $"*_Add{entity}.cs");
+
+        if (migFile is not null)
+        {
+            var patched = EmptyMigrationUpMethod(fileWriter.ReadAllText(migFile));
+            fileWriter.WriteAllText(migFile, patched);
+        }
+
+        var (updateOk, updateError) = RunEfCommand(
+            "database update",
+            SR.Current.ExecutingDatabaseUpdate,
+            ctx);
+
+        if (!updateOk)
+        {
+            console.MarkupLine(string.Format(SR.Current.ModelFirstReconciliationWarn, entity));
+            if (!string.IsNullOrWhiteSpace(updateError))
+                console.MarkupLine($"[grey]{Markup.Escape(updateError)}[/]");
+            return;
+        }
+
+        console.MarkupLine(SR.Current.ModelFirstReconciliationSuccess);
+    }
+
+    public static string EmptyMigrationUpMethod(string content)
+    {
+        const string upSignature = "protected override void Up(MigrationBuilder migrationBuilder)";
+        var signatureIdx = content.IndexOf(upSignature, StringComparison.Ordinal);
+        if (signatureIdx < 0) return content;
+
+        var openBraceIdx = content.IndexOf('{', signatureIdx + upSignature.Length);
+        if (openBraceIdx < 0) return content;
+
+        var depth = 1;
+        var i = openBraceIdx + 1;
+        while (i < content.Length && depth > 0)
+        {
+            if (content[i] == '{') depth++;
+            else if (content[i] == '}') depth--;
+            i++;
+        }
+        if (depth != 0) return content;
+
+        var closeBraceIdx = i - 1;
+        return content[..(openBraceIdx + 1)] + "\n        " + content[closeBraceIdx..];
     }
 
     private (bool Success, string Error) RunEfCommand(string efArgs, string spinnerLabel, ScaffoldContext ctx)

@@ -35,6 +35,9 @@ public interface IStrings
     string HowToGenerateScaffold { get; }
     string CodeFirstChoice { get; }
     string ModelFirstChoice { get; }
+    string ModelFirstReconciliationInfo { get; }   // {0}=entity
+    string ModelFirstReconciliationSuccess { get; }
+    string ModelFirstReconciliationWarn { get; }   // {0}=entity
 
     // ── New ───────────────────────────────────────────────────────────────────
     string NameParamRequired { get; }
@@ -184,6 +187,9 @@ public sealed class EnStrings : IStrings
     public string HowToGenerateScaffold => "\nHow would you like to generate the scaffold?";
     public string CodeFirstChoice => "Code First (define properties manually)";
     public string ModelFirstChoice => "Model First (read structure from an existing table)";
+    public string ModelFirstReconciliationInfo => "Registering [blue]Add{0}[/] in EF migration history (table already exists)...";
+    public string ModelFirstReconciliationSuccess => "[green]✓[/] Existing table registered. Future Code First migrations will not try to recreate it.";
+    public string ModelFirstReconciliationWarn => "[yellow]Warning:[/] Could not register the existing table. Before running [blue]database update[/] in the future, manually empty the Up() body in the migration for Add{0}.";
 
     public string NameParamRequired => "The --name <NAME> parameter is required.";
     public string ProjectNameInvalid => "The project name contains invalid characters. Use only letters, numbers, '-' and '_'.";
@@ -323,6 +329,9 @@ public sealed class PtBrStrings : IStrings
     public string HowToGenerateScaffold => "\nComo deseja gerar o scaffold?";
     public string CodeFirstChoice => "Code First (definir propriedades manualmente)";
     public string ModelFirstChoice => "Model First (ler estrutura de uma tabela existente)";
+    public string ModelFirstReconciliationInfo => "Registrando [blue]Add{0}[/] no histórico de migrations do EF (tabela já existe)...";
+    public string ModelFirstReconciliationSuccess => "[green]✓[/] Tabela existente registrada. Migrations futuras do Code First não tentarão recriá-la.";
+    public string ModelFirstReconciliationWarn => "[yellow]Aviso:[/] Não foi possível registrar a tabela existente. Antes de executar [blue]database update[/] no futuro, esvazie manualmente o corpo do Up() na migration Add{0}.";
 
     public string NameParamRequired => "O parâmetro --name <NOME> é obrigatório.";
     public string ProjectNameInvalid => "O nome do projeto contém caracteres inválidos. Use apenas letras, números, '-' e '_'.";
@@ -462,6 +471,9 @@ public sealed class EsStrings : IStrings
     public string HowToGenerateScaffold => "\n¿Cómo desea generar el scaffold?";
     public string CodeFirstChoice => "Code First (definir propiedades manualmente)";
     public string ModelFirstChoice => "Model First (leer estructura de una tabla existente)";
+    public string ModelFirstReconciliationInfo => "Registrando [blue]Add{0}[/] en el historial de migraciones de EF (la tabla ya existe)...";
+    public string ModelFirstReconciliationSuccess => "[green]✓[/] Tabla existente registrada. Las migraciones futuras de Code First no intentarán recrearla.";
+    public string ModelFirstReconciliationWarn => "[yellow]Aviso:[/] No se pudo registrar la tabla existente. Antes de ejecutar [blue]database update[/] en el futuro, vacíe manualmente el cuerpo de Up() en la migración Add{0}.";
 
     public string NameParamRequired => "El parámetro --name <NOMBRE> es obligatorio.";
     public string ProjectNameInvalid => "El nombre del proyecto contiene caracteres no válidos. Use solo letras, números, '-' y '_'.";
