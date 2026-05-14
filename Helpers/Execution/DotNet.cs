@@ -103,6 +103,7 @@ public static class DotNet
         }
         catch
         {
+            return "--";
         }
 
         return "--";

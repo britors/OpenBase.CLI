@@ -88,10 +88,10 @@ public class NewCommand : AsyncCommand<NewSettings>
         var templateName = settings.TemplateName;
         if (string.IsNullOrWhiteSpace(templateName))
         {
-            templateName = _console.Prompt(
+            templateName = await _console.PromptAsync(
                 new SelectionPrompt<string>()
                     .Title(SR.Current.ApiDatabasePrompt)
-                    .AddChoices("sqlserver", "pgsql"));
+                    .AddChoices("sqlserver", "pgsql"), cancellationToken);
         }
 
         var key = $"{settings.Type}:{templateName}";

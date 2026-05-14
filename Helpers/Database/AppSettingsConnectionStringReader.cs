@@ -33,7 +33,10 @@ public sealed class AppSettingsConnectionStringReader : IConnectionStringReader
                     }
                 }
             }
-            catch { }
+            catch
+            {
+                return "";
+            }
         }
 
         return null;

@@ -51,7 +51,7 @@ public class VersionCommand(
         return 0;
     }
 
-    private string FormatVersionDisplay(string id, string? version, string assemblyVersion) =>
+    private static string FormatVersionDisplay(string id, string? version, string assemblyVersion) =>
         (version, id == PackageIds.Cli) switch
         {
             (not null, true)  => $"[green]{Markup.Escape(version)} \"{Codename}\"[/]",
