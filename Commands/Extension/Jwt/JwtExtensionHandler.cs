@@ -17,19 +17,19 @@ public sealed class JwtExtensionHandler(
     public string Name => "jwt";
     public IReadOnlyList<string> SupportedProviders => [];
 
-    public ExtensionApplyResult Apply(ExtensionContext ctx)
+    public ExtensionApplyResult Apply(ExtensionContext context)
     {
-        if (ctx.SolutionDir is null || ctx.RootNamespace is null)
+        if (context.SolutionDir is null || context.RootNamespace is null)
             return new ExtensionApplyResult(false, SR.Current.ExtensionRequiresOpenBaseProject);
 
-        var ns = ctx.RootNamespace;
-        var src = Path.Combine(ctx.SolutionDir, "src");
+        var ns = context.RootNamespace;
+        var src = Path.Combine(context.SolutionDir, "src");
         var appPath = Path.Combine(src, $"{ns}.Application");
         var infraDataPath = Path.Combine(src, $"{ns}.Infra.Data");
         var presentationPath = Path.Combine(src, $"{ns}.Presentation.Api");
 
         AddNuGetPackages(ns, infraDataPath, presentationPath);
-        CreateFiles(ns, appPath, infraDataPath, presentationPath, ctx.SolutionDir);
+        CreateFiles(ns, appPath, infraDataPath, presentationPath, context.SolutionDir);
         InjectAppSettings(presentationPath, ns);
 
         console.MarkupLine(SR.Current.JwtNextSteps);
