@@ -58,20 +58,21 @@ public sealed partial class ScaffoldGenerator(ScaffoldContext ctx)
     }
 
 
-    private static string ToCamel(string s) => char.ToLowerInvariant(s[0]) + s[1..];
+    private static string ToCamel(string s)  => char.ToLowerInvariant(s[0]) + s[1..];
+    private static string ToPascal(string s) => char.ToUpperInvariant(s[0]) + s[1..];
 
     private IEnumerable<EntityProperty> FilterableProperties =>
         ctx.Properties.Where(p => p.CsType is not ("byte[]" or "JsonDocument"));
 
     private string FilterParamsWithDefaults() =>
         string.Join(", ", FilterableProperties.Select(p =>
-            p.IsStringType ? $"string? {ToCamel(p.Name)} = null"
-                           : $"{p.CsType}? {ToCamel(p.Name)} = null"));
+            p.IsStringType ? $"string? {ToPascal(p.Name)} = null"
+                           : $"{p.CsType}? {ToPascal(p.Name)} = null"));
 
     private string FilterParamsNoDefaults() =>
         string.Join(", ", FilterableProperties.Select(p =>
-            p.IsStringType ? $"string? {ToCamel(p.Name)}"
-                           : $"{p.CsType}? {ToCamel(p.Name)}"));
+            p.IsStringType ? $"string? {ToPascal(p.Name)}"
+                           : $"{p.CsType}? {ToPascal(p.Name)}"));
 
     private string FilterNullArgs() =>
         string.Join(", ", FilterableProperties.Select(_ => "null"));
@@ -81,7 +82,7 @@ public sealed partial class ScaffoldGenerator(ScaffoldContext ctx)
 
     private string FindByArgumentsCallArgs()
     {
-        var parts = FilterableProperties.Select(p => $"request.{ToCamel(p.Name)}").ToList();
+        var parts = FilterableProperties.Select(p => $"request.{p.Name}").ToList();
         parts.Add("request.Page");
         parts.Add("request.PageSize");
         parts.Add("cancellationToken");
