@@ -140,6 +140,15 @@ public interface IStrings
     string CmdVersionDescription { get; }
     string CmdVersionShowDescription { get; }
     string CmdVersionRestoreDescription { get; }
+
+    string ExtensionNoCsprojFound { get; }
+    string ExtensionAlreadyInstalled { get; }   // {0}=name
+    string ExtensionNotFound { get; }            // {0}=name
+    string ExtensionInvalidProvider { get; }     // {0}=provider {1}=name {2}=available
+    string ExtensionApplyFailed { get; }         // {0}=name {1}=error
+    string ExtensionAddSuccess { get; }          // {0}=name
+    string CmdExtensionDescription { get; }
+    string CmdExtensionAddDescription { get; }
 }
 
 
@@ -281,6 +290,15 @@ public sealed class EnStrings : IStrings
     public string CmdVersionDescription => "Displays and manages versions of OpenBase components.";
     public string CmdVersionShowDescription => "Displays the versions of the OpenBase CLI and template.";
     public string CmdVersionRestoreDescription => "Restores a component to a specific version.";
+
+    public string ExtensionNoCsprojFound => "[red]Error:[/] No .csproj file found in the current directory or its parents.";
+    public string ExtensionAlreadyInstalled => "[yellow]Warning:[/] Extension [blue]{0}[/] is already installed in this project.";
+    public string ExtensionNotFound => "[red]Error:[/] Extension [yellow]{0}[/] not found. Run [blue]openbase extension list[/] to see available extensions.";
+    public string ExtensionInvalidProvider => "[red]Error:[/] Provider [yellow]{0}[/] is not valid for extension [yellow]{1}[/]. Available: [blue]{2}[/].";
+    public string ExtensionApplyFailed => "[red]Error:[/] Failed to apply extension [yellow]{0}[/]: {1}";
+    public string ExtensionAddSuccess => "[green]✓[/] Extension [blue]{0}[/] added successfully.";
+    public string CmdExtensionDescription => "Manages installable extensions for an OpenBase project.";
+    public string CmdExtensionAddDescription => "Adds an extension to the current project.";
 }
 
 
@@ -422,6 +440,15 @@ public sealed class PtBrStrings : IStrings
     public string CmdVersionDescription => "Exibe e gerencia versões dos componentes OpenBase.";
     public string CmdVersionShowDescription => "Exibe as versões da CLI e do template do OpenBase.";
     public string CmdVersionRestoreDescription => "Restaura um componente para uma versão específica.";
+
+    public string ExtensionNoCsprojFound => "[red]Erro:[/] Nenhum arquivo .csproj encontrado no diretório atual ou em seus pais.";
+    public string ExtensionAlreadyInstalled => "[yellow]Aviso:[/] A extensão [blue]{0}[/] já está instalada neste projeto.";
+    public string ExtensionNotFound => "[red]Erro:[/] Extensão [yellow]{0}[/] não encontrada. Execute [blue]openbase extension list[/] para ver as extensões disponíveis.";
+    public string ExtensionInvalidProvider => "[red]Erro:[/] O provider [yellow]{0}[/] não é válido para a extensão [yellow]{1}[/]. Disponíveis: [blue]{2}[/].";
+    public string ExtensionApplyFailed => "[red]Erro:[/] Falha ao aplicar a extensão [yellow]{0}[/]: {1}";
+    public string ExtensionAddSuccess => "[green]✓[/] Extensão [blue]{0}[/] adicionada com sucesso.";
+    public string CmdExtensionDescription => "Gerencia extensões instaláveis para um projeto OpenBase.";
+    public string CmdExtensionAddDescription => "Adiciona uma extensão ao projeto atual.";
 }
 
 
@@ -563,6 +590,15 @@ public sealed class EsStrings : IStrings
     public string CmdVersionDescription => "Muestra y gestiona versiones de los componentes OpenBase.";
     public string CmdVersionShowDescription => "Muestra las versiones de la CLI y el template de OpenBase.";
     public string CmdVersionRestoreDescription => "Restaura un componente a una versión específica.";
+
+    public string ExtensionNoCsprojFound => "[red]Error:[/] No se encontró ningún archivo .csproj en el directorio actual o sus padres.";
+    public string ExtensionAlreadyInstalled => "[yellow]Aviso:[/] La extensión [blue]{0}[/] ya está instalada en este proyecto.";
+    public string ExtensionNotFound => "[red]Error:[/] Extensión [yellow]{0}[/] no encontrada. Ejecute [blue]openbase extension list[/] para ver las extensiones disponibles.";
+    public string ExtensionInvalidProvider => "[red]Error:[/] El provider [yellow]{0}[/] no es válido para la extensión [yellow]{1}[/]. Disponibles: [blue]{2}[/].";
+    public string ExtensionApplyFailed => "[red]Error:[/] Error al aplicar la extensión [yellow]{0}[/]: {1}";
+    public string ExtensionAddSuccess => "[green]✓[/] Extensión [blue]{0}[/] agregada con éxito.";
+    public string CmdExtensionDescription => "Gestiona extensiones instalables para un proyecto OpenBase.";
+    public string CmdExtensionAddDescription => "Agrega una extensión al proyecto actual.";
 }
 
 

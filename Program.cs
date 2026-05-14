@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using OpenBase.CLI.Commands;
+using OpenBase.CLI.Commands.Extension;
 using OpenBase.CLI.Helpers.Database;
 using OpenBase.CLI.Helpers.Interactive;
 using OpenBase.CLI.Helpers.IO;
@@ -24,9 +25,13 @@ services.AddSingleton<IDbFlavorDetector, DbFlavorDetector>();
 services.AddSingleton<IDbSchemaReader, DbSchemaReader>();
 services.AddSingleton<IConnectionStringReader, AppSettingsConnectionStringReader>();
 services.AddSingleton<IModelFirstPropertyCollector, ConsoleModelFirstPropertyCollector>();
+services.AddSingleton<ICsprojLocator, CsprojLocator>();
+services.AddSingleton<ICsprojPackageReader, CsprojPackageReader>();
+services.AddSingleton<IExtensionRegistry, ExtensionRegistry>();
 
 const string TypeOpt = "--type";
 const string VersionCmd = "version";
+const string ExtensionCmd = "extension";
 
 var registrar = new TypeRegistrar(services);
 var app = new CommandApp(registrar);
@@ -70,6 +75,16 @@ app.Configure(config =>
                .WithDescription(SR.Current.CmdVersionRestoreDescription)
                .WithExample(VersionCmd, "restore", "10.5.9", TypeOpt, "cli")
                .WithExample(VersionCmd, "restore", "2.0.0", TypeOpt, "sqlserver");
+    });
+
+    config.AddBranch<CommandSettings>(ExtensionCmd, extension =>
+    {
+        extension.SetDescription(SR.Current.CmdExtensionDescription);
+
+        extension.AddCommand<ExtensionAddCommand>("add")
+                 .WithDescription(SR.Current.CmdExtensionAddDescription)
+                 .WithExample(ExtensionCmd, "add", "jwt")
+                 .WithExample(ExtensionCmd, "add", "cache", "--provider", "redis");
     });
 });
 
