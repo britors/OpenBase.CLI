@@ -142,13 +142,21 @@ public interface IStrings
     string CmdVersionRestoreDescription { get; }
 
     string ExtensionNoCsprojFound { get; }
-    string ExtensionAlreadyInstalled { get; }   // {0}=name
-    string ExtensionNotFound { get; }            // {0}=name
-    string ExtensionInvalidProvider { get; }     // {0}=provider {1}=name {2}=available
-    string ExtensionApplyFailed { get; }         // {0}=name {1}=error
-    string ExtensionAddSuccess { get; }          // {0}=name
+    string ExtensionAlreadyInstalled { get; }        // {0}=name
+    string ExtensionNotFound { get; }                // {0}=name
+    string ExtensionInvalidProvider { get; }         // {0}=provider {1}=name {2}=available
+    string ExtensionApplyFailed { get; }             // {0}=name {1}=error
+    string ExtensionAddSuccess { get; }              // {0}=name
+    string ExtensionRequiresOpenBaseProject { get; }
+    string ExtensionAddingPackage { get; }           // {0}=package {1}=csproj
+    string ExtensionPackageAddWarning { get; }       // {0}=package {1}=error
     string CmdExtensionDescription { get; }
     string CmdExtensionAddDescription { get; }
+
+    string JwtNextSteps { get; }
+    string JwtNextStep1 { get; }
+    string JwtNextStep2 { get; }
+    string JwtNextStep3 { get; }
 }
 
 
@@ -297,8 +305,16 @@ public sealed class EnStrings : IStrings
     public string ExtensionInvalidProvider => "[red]Error:[/] Provider [yellow]{0}[/] is not valid for extension [yellow]{1}[/]. Available: [blue]{2}[/].";
     public string ExtensionApplyFailed => "[red]Error:[/] Failed to apply extension [yellow]{0}[/]: {1}";
     public string ExtensionAddSuccess => "[green]✓[/] Extension [blue]{0}[/] added successfully.";
+    public string ExtensionRequiresOpenBaseProject => "This extension requires an OpenBase Clean Architecture project. Run from the solution root.";
+    public string ExtensionAddingPackage => "  Adding [blue]{0}[/] to {1}...";
+    public string ExtensionPackageAddWarning => "  [yellow]Warning:[/] Could not add [yellow]{0}[/]: {1}";
     public string CmdExtensionDescription => "Manages installable extensions for an OpenBase project.";
     public string CmdExtensionAddDescription => "Adds an extension to the current project.";
+
+    public string JwtNextSteps => "\n[bold]Next steps — add to Program.cs:[/]";
+    public string JwtNextStep1 => "  [blue]builder.Services.AddJwtAuthentication(builder.Configuration);[/]";
+    public string JwtNextStep2 => "  [blue]app.UseAuthentication();[/]";
+    public string JwtNextStep3 => "  [blue]app.UseAuthorization();[/]";
 }
 
 
@@ -447,8 +463,16 @@ public sealed class PtBrStrings : IStrings
     public string ExtensionInvalidProvider => "[red]Erro:[/] O provider [yellow]{0}[/] não é válido para a extensão [yellow]{1}[/]. Disponíveis: [blue]{2}[/].";
     public string ExtensionApplyFailed => "[red]Erro:[/] Falha ao aplicar a extensão [yellow]{0}[/]: {1}";
     public string ExtensionAddSuccess => "[green]✓[/] Extensão [blue]{0}[/] adicionada com sucesso.";
+    public string ExtensionRequiresOpenBaseProject => "Esta extensão requer um projeto OpenBase com Arquitetura Limpa. Execute na raiz da solution.";
+    public string ExtensionAddingPackage => "  Adicionando [blue]{0}[/] ao {1}...";
+    public string ExtensionPackageAddWarning => "  [yellow]Aviso:[/] Não foi possível adicionar [yellow]{0}[/]: {1}";
     public string CmdExtensionDescription => "Gerencia extensões instaláveis para um projeto OpenBase.";
     public string CmdExtensionAddDescription => "Adiciona uma extensão ao projeto atual.";
+
+    public string JwtNextSteps => "\n[bold]Próximos passos — adicione ao Program.cs:[/]";
+    public string JwtNextStep1 => "  [blue]builder.Services.AddJwtAuthentication(builder.Configuration);[/]";
+    public string JwtNextStep2 => "  [blue]app.UseAuthentication();[/]";
+    public string JwtNextStep3 => "  [blue]app.UseAuthorization();[/]";
 }
 
 
@@ -597,8 +621,16 @@ public sealed class EsStrings : IStrings
     public string ExtensionInvalidProvider => "[red]Error:[/] El provider [yellow]{0}[/] no es válido para la extensión [yellow]{1}[/]. Disponibles: [blue]{2}[/].";
     public string ExtensionApplyFailed => "[red]Error:[/] Error al aplicar la extensión [yellow]{0}[/]: {1}";
     public string ExtensionAddSuccess => "[green]✓[/] Extensión [blue]{0}[/] agregada con éxito.";
+    public string ExtensionRequiresOpenBaseProject => "Esta extensión requiere un proyecto OpenBase con Arquitectura Limpia. Ejecute desde la raíz de la solution.";
+    public string ExtensionAddingPackage => "  Agregando [blue]{0}[/] a {1}...";
+    public string ExtensionPackageAddWarning => "  [yellow]Aviso:[/] No se pudo agregar [yellow]{0}[/]: {1}";
     public string CmdExtensionDescription => "Gestiona extensiones instalables para un proyecto OpenBase.";
     public string CmdExtensionAddDescription => "Agrega una extensión al proyecto actual.";
+
+    public string JwtNextSteps => "\n[bold]Próximos pasos — agregue a Program.cs:[/]";
+    public string JwtNextStep1 => "  [blue]builder.Services.AddJwtAuthentication(builder.Configuration);[/]";
+    public string JwtNextStep2 => "  [blue]app.UseAuthentication();[/]";
+    public string JwtNextStep3 => "  [blue]app.UseAuthorization();[/]";
 }
 
 

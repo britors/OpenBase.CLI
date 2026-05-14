@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using OpenBase.CLI.Commands;
 using OpenBase.CLI.Commands.Extension;
+using OpenBase.CLI.Commands.Extension.Jwt;
 using OpenBase.CLI.Helpers.Database;
 using OpenBase.CLI.Helpers.Interactive;
 using OpenBase.CLI.Helpers.IO;
@@ -28,6 +29,7 @@ services.AddSingleton<IModelFirstPropertyCollector, ConsoleModelFirstPropertyCol
 services.AddSingleton<ICsprojLocator, CsprojLocator>();
 services.AddSingleton<ICsprojPackageReader, CsprojPackageReader>();
 services.AddSingleton<IExtensionRegistry, ExtensionRegistry>();
+services.AddSingleton<IExtensionHandler, JwtExtensionHandler>();
 
 const string TypeOpt = "--type";
 const string VersionCmd = "version";

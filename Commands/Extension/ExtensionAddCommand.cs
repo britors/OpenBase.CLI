@@ -22,20 +22,31 @@ public class ExtensionAddCommand(
     IAnsiConsole console,
     ICsprojLocator csprojLocator,
     ICsprojPackageReader packageReader,
+    IProjectLocator projectLocator,
     IExtensionRegistry registry,
     IEnumerable<IExtensionHandler> handlers)
     : Command<ExtensionAddSettings>
 {
     protected override int Execute(CommandContext context, ExtensionAddSettings settings, CancellationToken cancellationToken)
     {
-        var csprojPath = csprojLocator.Find(Directory.GetCurrentDirectory());
-        if (csprojPath is null)
+        var workingDir = Directory.GetCurrentDirectory();
+
+        // Prefer OpenBase solution structure (sln + *.Domain)
+        var (solutionDir, rootNamespace) = projectLocator.Detect(workingDir, null);
+
+        // Fall back to nearest .csproj for non-OpenBase projects
+        string? csprojPath = null;
+        if (solutionDir is null)
         {
-            console.MarkupLine(SR.Current.ExtensionNoCsprojFound);
-            return 1;
+            csprojPath = csprojLocator.Find(workingDir);
+            if (csprojPath is null)
+            {
+                console.MarkupLine(SR.Current.ExtensionNoCsprojFound);
+                return 1;
+            }
         }
 
-        var projectDir = Path.GetDirectoryName(csprojPath)!;
+        var projectDir = solutionDir ?? Path.GetDirectoryName(csprojPath)!;
 
         if (registry.IsInstalled(projectDir, settings.Name, settings.Provider))
         {
@@ -61,8 +72,15 @@ public class ExtensionAddCommand(
             return 1;
         }
 
-        var installedPackages = packageReader.ReadPackages(csprojPath);
-        var ctx = new ExtensionContext(csprojPath, projectDir, settings.Provider, installedPackages);
+        IReadOnlyList<string> installedPackages = csprojPath is not null
+            ? packageReader.ReadPackages(csprojPath)
+            : [];
+
+        var ctx = new ExtensionContext(csprojPath, projectDir, settings.Provider, installedPackages)
+        {
+            SolutionDir = solutionDir,
+            RootNamespace = rootNamespace
+        };
 
         var result = handler.Apply(ctx);
         if (!result.Success)
