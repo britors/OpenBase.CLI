@@ -125,6 +125,7 @@ public interface IStrings
     string HelpUpdateDesc { get; }
     string HelpVersionShowDesc { get; }
     string HelpVersionRestoreDesc { get; }
+    string HelpExtensionAddDesc { get; }
     string HelpTip { get; }
     string HelpSupport { get; }
 
@@ -140,6 +141,27 @@ public interface IStrings
     string CmdVersionDescription { get; }
     string CmdVersionShowDescription { get; }
     string CmdVersionRestoreDescription { get; }
+
+    string ExtensionNoCsprojFound { get; }
+    string ExtensionAlreadyInstalled { get; }        // {0}=name
+    string ExtensionNotFound { get; }                // {0}=name
+    string ExtensionInvalidProvider { get; }         // {0}=provider {1}=name {2}=available
+    string ExtensionApplyFailed { get; }             // {0}=name {1}=error
+    string ExtensionAddSuccess { get; }              // {0}=name
+    string ExtensionRequiresOpenBaseProject { get; }
+    string ExtensionAddingPackage { get; }           // {0}=package {1}=csproj
+    string ExtensionPackageAddWarning { get; }       // {0}=package {1}=error
+    string ExtensionFileSkipped { get; }             // {0}=filename
+    string ExtensionFileCreated { get; }             // {0}=relative path
+    string CmdExtensionDescription { get; }
+    string CmdExtensionAddDescription { get; }
+
+    string JwtNextSteps { get; }
+    string JwtNextStep1 { get; }
+    string JwtNextStep2 { get; }
+    string JwtNextStep3 { get; }
+    string JwtAppSettingsInjected { get; }
+    string JwtAppSettingsWarning { get; }            // {0}=error
 }
 
 
@@ -266,6 +288,7 @@ public sealed class EnStrings : IStrings
     public string HelpUpdateDesc => "Syncs and updates templates and CLI";
     public string HelpVersionShowDesc => "Shows versions of the installed environment";
     public string HelpVersionRestoreDesc => "Restores a component to a specific version (--type cli | sqlserver | postgres)";
+    public string HelpExtensionAddDesc => "Adds an installable extension to the current project (e.g.: jwt, cache, blob)";
     public string HelpTip => "[bold white]Tip:[/] Use [blue]--help[/] after any command to see technical details.";
     public string HelpSupport => " Support ";
 
@@ -281,6 +304,28 @@ public sealed class EnStrings : IStrings
     public string CmdVersionDescription => "Displays and manages versions of OpenBase components.";
     public string CmdVersionShowDescription => "Displays the versions of the OpenBase CLI and template.";
     public string CmdVersionRestoreDescription => "Restores a component to a specific version.";
+
+    public string ExtensionNoCsprojFound => "[red]Error:[/] No .csproj file found in the current directory or its parents.";
+    public string ExtensionAlreadyInstalled => "[yellow]Warning:[/] Extension [blue]{0}[/] is already installed in this project.";
+    public string ExtensionNotFound => "[red]Error:[/] Extension [yellow]{0}[/] not found. Run [blue]openbase extension list[/] to see available extensions.";
+    public string ExtensionInvalidProvider => "[red]Error:[/] Provider [yellow]{0}[/] is not valid for extension [yellow]{1}[/]. Available: [blue]{2}[/].";
+    public string ExtensionApplyFailed => "[red]Error:[/] Failed to apply extension [yellow]{0}[/]: {1}";
+    public string ExtensionAddSuccess => "[green]✓[/] Extension [blue]{0}[/] added successfully.";
+    public string ExtensionRequiresOpenBaseProject => "This extension requires an OpenBase Clean Architecture project. Run from the solution root.";
+    public string ExtensionAddingPackage => "  Adding [blue]{0}[/] to {1}...";
+    public string ExtensionPackageAddWarning => "  [yellow]Warning:[/] Could not add [yellow]{0}[/]: {1}";
+    public string CmdExtensionDescription => "Manages installable extensions for an OpenBase project.";
+    public string CmdExtensionAddDescription => "Adds an extension to the current project.";
+
+    public string JwtNextSteps => "\n[bold]Next steps — add to Program.cs:[/]";
+    public string JwtNextStep1 => "  [blue]builder.Services.AddJwtAuthentication(builder.Configuration);[/]";
+    public string JwtNextStep2 => "  [blue]app.UseAuthentication();[/]";
+    public string JwtNextStep3 => "  [blue]app.UseAuthorization();[/]";
+    public string JwtAppSettingsInjected => "  [green]+[/] Jwt section added to appsettings.json";
+    public string JwtAppSettingsWarning => "  [yellow]Warning:[/] Could not modify appsettings.json: {0}";
+
+    public string ExtensionFileSkipped => "  [yellow]skipped[/] {0} (already exists)";
+    public string ExtensionFileCreated => "  [green]+[/] {0}";
 }
 
 
@@ -407,6 +452,7 @@ public sealed class PtBrStrings : IStrings
     public string HelpUpdateDesc => "Sincroniza e atualiza templates e a CLI";
     public string HelpVersionShowDesc => "Mostra versões do ambiente instalado";
     public string HelpVersionRestoreDesc => "Restaura um componente para uma versão específica (--type cli | sqlserver | postgres)";
+    public string HelpExtensionAddDesc => "Adiciona uma extensão instalável ao projeto atual (ex: jwt, cache, blob)";
     public string HelpTip => "[bold white]Dica:[/] Use [blue]--help[/] após qualquer comando para ver detalhes técnicos.";
     public string HelpSupport => " Suporte ";
 
@@ -422,6 +468,28 @@ public sealed class PtBrStrings : IStrings
     public string CmdVersionDescription => "Exibe e gerencia versões dos componentes OpenBase.";
     public string CmdVersionShowDescription => "Exibe as versões da CLI e do template do OpenBase.";
     public string CmdVersionRestoreDescription => "Restaura um componente para uma versão específica.";
+
+    public string ExtensionNoCsprojFound => "[red]Erro:[/] Nenhum arquivo .csproj encontrado no diretório atual ou em seus pais.";
+    public string ExtensionAlreadyInstalled => "[yellow]Aviso:[/] A extensão [blue]{0}[/] já está instalada neste projeto.";
+    public string ExtensionNotFound => "[red]Erro:[/] Extensão [yellow]{0}[/] não encontrada. Execute [blue]openbase extension list[/] para ver as extensões disponíveis.";
+    public string ExtensionInvalidProvider => "[red]Erro:[/] O provider [yellow]{0}[/] não é válido para a extensão [yellow]{1}[/]. Disponíveis: [blue]{2}[/].";
+    public string ExtensionApplyFailed => "[red]Erro:[/] Falha ao aplicar a extensão [yellow]{0}[/]: {1}";
+    public string ExtensionAddSuccess => "[green]✓[/] Extensão [blue]{0}[/] adicionada com sucesso.";
+    public string ExtensionRequiresOpenBaseProject => "Esta extensão requer um projeto OpenBase com Arquitetura Limpa. Execute na raiz da solution.";
+    public string ExtensionAddingPackage => "  Adicionando [blue]{0}[/] ao {1}...";
+    public string ExtensionPackageAddWarning => "  [yellow]Aviso:[/] Não foi possível adicionar [yellow]{0}[/]: {1}";
+    public string CmdExtensionDescription => "Gerencia extensões instaláveis para um projeto OpenBase.";
+    public string CmdExtensionAddDescription => "Adiciona uma extensão ao projeto atual.";
+
+    public string JwtNextSteps => "\n[bold]Próximos passos — adicione ao Program.cs:[/]";
+    public string JwtNextStep1 => "  [blue]builder.Services.AddJwtAuthentication(builder.Configuration);[/]";
+    public string JwtNextStep2 => "  [blue]app.UseAuthentication();[/]";
+    public string JwtNextStep3 => "  [blue]app.UseAuthorization();[/]";
+    public string JwtAppSettingsInjected => "  [green]+[/] Seção Jwt adicionada ao appsettings.json";
+    public string JwtAppSettingsWarning => "  [yellow]Aviso:[/] Não foi possível modificar appsettings.json: {0}";
+
+    public string ExtensionFileSkipped => "  [yellow]ignorado[/] {0} (já existe)";
+    public string ExtensionFileCreated => "  [green]+[/] {0}";
 }
 
 
@@ -548,6 +616,7 @@ public sealed class EsStrings : IStrings
     public string HelpUpdateDesc => "Sincroniza y actualiza templates y la CLI";
     public string HelpVersionShowDesc => "Muestra versiones del entorno instalado";
     public string HelpVersionRestoreDesc => "Restaura un componente a una versión específica (--type cli | sqlserver | postgres)";
+    public string HelpExtensionAddDesc => "Agrega una extensión instalable al proyecto actual (ej: jwt, cache, blob)";
     public string HelpTip => "[bold white]Consejo:[/] Use [blue]--help[/] después de cualquier comando para ver detalles técnicos.";
     public string HelpSupport => " Soporte ";
 
@@ -563,6 +632,28 @@ public sealed class EsStrings : IStrings
     public string CmdVersionDescription => "Muestra y gestiona versiones de los componentes OpenBase.";
     public string CmdVersionShowDescription => "Muestra las versiones de la CLI y el template de OpenBase.";
     public string CmdVersionRestoreDescription => "Restaura un componente a una versión específica.";
+
+    public string ExtensionNoCsprojFound => "[red]Error:[/] No se encontró ningún archivo .csproj en el directorio actual o sus padres.";
+    public string ExtensionAlreadyInstalled => "[yellow]Aviso:[/] La extensión [blue]{0}[/] ya está instalada en este proyecto.";
+    public string ExtensionNotFound => "[red]Error:[/] Extensión [yellow]{0}[/] no encontrada. Ejecute [blue]openbase extension list[/] para ver las extensiones disponibles.";
+    public string ExtensionInvalidProvider => "[red]Error:[/] El provider [yellow]{0}[/] no es válido para la extensión [yellow]{1}[/]. Disponibles: [blue]{2}[/].";
+    public string ExtensionApplyFailed => "[red]Error:[/] Error al aplicar la extensión [yellow]{0}[/]: {1}";
+    public string ExtensionAddSuccess => "[green]✓[/] Extensión [blue]{0}[/] agregada con éxito.";
+    public string ExtensionRequiresOpenBaseProject => "Esta extensión requiere un proyecto OpenBase con Arquitectura Limpia. Ejecute desde la raíz de la solution.";
+    public string ExtensionAddingPackage => "  Agregando [blue]{0}[/] a {1}...";
+    public string ExtensionPackageAddWarning => "  [yellow]Aviso:[/] No se pudo agregar [yellow]{0}[/]: {1}";
+    public string CmdExtensionDescription => "Gestiona extensiones instalables para un proyecto OpenBase.";
+    public string CmdExtensionAddDescription => "Agrega una extensión al proyecto actual.";
+
+    public string JwtNextSteps => "\n[bold]Próximos pasos — agregue a Program.cs:[/]";
+    public string JwtNextStep1 => "  [blue]builder.Services.AddJwtAuthentication(builder.Configuration);[/]";
+    public string JwtNextStep2 => "  [blue]app.UseAuthentication();[/]";
+    public string JwtNextStep3 => "  [blue]app.UseAuthorization();[/]";
+    public string JwtAppSettingsInjected => "  [green]+[/] Sección Jwt agregada a appsettings.json";
+    public string JwtAppSettingsWarning => "  [yellow]Aviso:[/] No se pudo modificar appsettings.json: {0}";
+
+    public string ExtensionFileSkipped => "  [yellow]ignorado[/] {0} (ya existe)";
+    public string ExtensionFileCreated => "  [green]+[/] {0}";
 }
 
 
