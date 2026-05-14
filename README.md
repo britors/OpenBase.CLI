@@ -136,6 +136,65 @@ dotnet ef database update
 
 ---
 
+### 4. Add an extension
+
+Extensions add cross-cutting capabilities to an existing OpenBase project. Run from the solution root:
+
+```bash
+openbase extension add <name>
+openbase extension add <name> --provider <provider>
+```
+
+The command:
+1. Detects the project structure automatically
+2. Adds the required NuGet packages to the relevant `.csproj` files
+3. Generates the source files in the correct Clean Architecture layers
+4. Injects configuration into `appsettings.json` where applicable
+5. Registers the extension in `.openbase/extensions.json` to prevent duplicate installs
+6. Prints the next steps for `Program.cs`
+
+#### Available extensions
+
+| Extension | Command                        | Description                            |
+|-----------|--------------------------------|----------------------------------------|
+| `jwt`     | `openbase extension add jwt`   | JWT Bearer authentication              |
+
+#### `jwt` — JWT Authentication
+
+```bash
+openbase extension add jwt
+```
+
+Generates:
+
+| File                                               | Layer          | Description                                      |
+|----------------------------------------------------|----------------|--------------------------------------------------|
+| `Application/Interfaces/Services/ITokenService.cs` | Application    | Interface for token generation                   |
+| `Infra.Data/Services/TokenService.cs`              | Infrastructure | Implementation using `JwtSecurityTokenHandler`   |
+| `Presentation.Api/Extensions/JwtExtensions.cs`     | Presentation   | `AddJwtAuthentication` extension method          |
+
+Also injects the `Jwt` section into `appsettings.json`:
+
+```json
+"Jwt": {
+  "Secret": "CHANGE-ME-USE-AT-LEAST-32-CHARS-SECRET",
+  "Issuer": "YourNamespace",
+  "Audience": "YourNamespace",
+  "ExpirationMinutes": 60
+}
+```
+
+After running the command, add to `Program.cs`:
+
+```csharp
+builder.Services.AddJwtAuthentication(builder.Configuration);
+// ...
+app.UseAuthentication();
+app.UseAuthorization();
+```
+
+---
+
 ## Available commands
 
 | Command                  | Description                                              | Example                                                        |
@@ -143,6 +202,7 @@ dotnet ef database update
 | `install`                | Installs the required NuGet templates                    | `openbase install`                                             |
 | `new`                    | Creates a new project from the templates                 | `openbase new --type api --template sqlserver --name X`        |
 | `scaffold`               | Generates all layers for an entity (interactive)         | `openbase scaffold --entity Product`                           |
+| `extension add`          | Adds an installable extension to the project             | `openbase extension add jwt`                                   |
 | `update`                 | Updates the CLI and templates to the latest version      | `openbase update`                                              |
 | `history`                | Shows the update history per component                   | `openbase history --type cli`                                  |
 | `version show`           | Shows the installed CLI and template versions            | `openbase version show`                                        |

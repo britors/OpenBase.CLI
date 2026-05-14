@@ -24,6 +24,7 @@ public class HelpCommand : Command<HelpSettings>
         table.AddRow("[blue]install[/]", SR.Current.HelpInstallDesc, "openbase [green]install[/]");
         table.AddRow("[blue]new[/]", SR.Current.HelpNewDesc, "openbase [green]new --type api --template sqlserver --name MeuProjeto[/]");
         table.AddRow("[blue]scaffold[/]", SR.Current.HelpScaffoldDesc, "openbase [green]scaffold --entity Produto[/]");
+        table.AddRow("[blue]extension add[/]", SR.Current.HelpExtensionAddDesc, "openbase [green]extension add jwt[/]");
         table.AddRow("[blue]history[/]", SR.Current.HelpHistoryDesc, "openbase [green]history --type cli[/]");
         table.AddRow("[blue]update[/]", SR.Current.HelpUpdateDesc, "openbase [green]update[/]");
         table.AddRow("[blue]version show[/]", SR.Current.HelpVersionShowDesc, "openbase [green]version show[/]");

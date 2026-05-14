@@ -125,6 +125,7 @@ public interface IStrings
     string HelpUpdateDesc { get; }
     string HelpVersionShowDesc { get; }
     string HelpVersionRestoreDesc { get; }
+    string HelpExtensionAddDesc { get; }
     string HelpTip { get; }
     string HelpSupport { get; }
 
@@ -287,6 +288,7 @@ public sealed class EnStrings : IStrings
     public string HelpUpdateDesc => "Syncs and updates templates and CLI";
     public string HelpVersionShowDesc => "Shows versions of the installed environment";
     public string HelpVersionRestoreDesc => "Restores a component to a specific version (--type cli | sqlserver | postgres)";
+    public string HelpExtensionAddDesc => "Adds an installable extension to the current project (e.g.: jwt, cache, blob)";
     public string HelpTip => "[bold white]Tip:[/] Use [blue]--help[/] after any command to see technical details.";
     public string HelpSupport => " Support ";
 
@@ -450,6 +452,7 @@ public sealed class PtBrStrings : IStrings
     public string HelpUpdateDesc => "Sincroniza e atualiza templates e a CLI";
     public string HelpVersionShowDesc => "Mostra versões do ambiente instalado";
     public string HelpVersionRestoreDesc => "Restaura um componente para uma versão específica (--type cli | sqlserver | postgres)";
+    public string HelpExtensionAddDesc => "Adiciona uma extensão instalável ao projeto atual (ex: jwt, cache, blob)";
     public string HelpTip => "[bold white]Dica:[/] Use [blue]--help[/] após qualquer comando para ver detalhes técnicos.";
     public string HelpSupport => " Suporte ";
 
@@ -613,6 +616,7 @@ public sealed class EsStrings : IStrings
     public string HelpUpdateDesc => "Sincroniza y actualiza templates y la CLI";
     public string HelpVersionShowDesc => "Muestra versiones del entorno instalado";
     public string HelpVersionRestoreDesc => "Restaura un componente a una versión específica (--type cli | sqlserver | postgres)";
+    public string HelpExtensionAddDesc => "Agrega una extensión instalable al proyecto actual (ej: jwt, cache, blob)";
     public string HelpTip => "[bold white]Consejo:[/] Use [blue]--help[/] después de cualquier comando para ver detalles técnicos.";
     public string HelpSupport => " Soporte ";
 
