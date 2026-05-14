@@ -28,7 +28,7 @@ public sealed class JwtExtensionHandler(
         var infraDataPath = Path.Combine(src, $"{ns}.Infra.Data");
         var presentationPath = Path.Combine(src, $"{ns}.Presentation.Api");
 
-        AddNuGetPackages(ns, infraDataPath, presentationPath, ctx);
+        AddNuGetPackages(ns, infraDataPath, presentationPath);
         CreateFiles(ns, appPath, infraDataPath, presentationPath, ctx.SolutionDir);
         InjectAppSettings(presentationPath, ns);
 
@@ -40,7 +40,7 @@ public sealed class JwtExtensionHandler(
         return new ExtensionApplyResult(true);
     }
 
-    private void AddNuGetPackages(string ns, string infraDataPath, string presentationPath, ExtensionContext ctx)
+    private void AddNuGetPackages(string ns, string infraDataPath, string presentationPath)
     {
         var targets = new[]
         {
@@ -52,7 +52,6 @@ public sealed class JwtExtensionHandler(
         {
             if (!fileWriter.FileExists(csproj)) continue;
 
-            // Skip if already referenced (from context or csproj content)
             var content = fileWriter.ReadAllText(csproj);
             if (content.Contains(PackageId)) continue;
 
@@ -65,17 +64,16 @@ public sealed class JwtExtensionHandler(
 
     private void CreateFiles(string ns, string appPath, string infraDataPath, string presentationPath, string solutionDir)
     {
-        var files = GetFiles(ns, appPath, infraDataPath, presentationPath);
-        foreach (var (path, content) in files)
+        foreach (var (path, content) in GetFiles(ns, appPath, infraDataPath, presentationPath))
         {
             if (fileWriter.FileExists(path))
             {
-                console.MarkupLine($"  [yellow]skipped[/] {Path.GetFileName(path)} (already exists)");
+                console.MarkupLine(string.Format(SR.Current.ExtensionFileSkipped, Path.GetFileName(path)));
                 continue;
             }
             fileWriter.EnsureDirectory(Path.GetDirectoryName(path)!);
             fileWriter.WriteAllText(path, content);
-            console.MarkupLine($"  [green]+[/] {Path.GetRelativePath(solutionDir, path)}");
+            console.MarkupLine(string.Format(SR.Current.ExtensionFileCreated, Path.GetRelativePath(solutionDir, path)));
         }
     }
 
@@ -99,11 +97,11 @@ public sealed class JwtExtensionHandler(
             };
 
             fileWriter.WriteAllText(path, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
-            console.MarkupLine("  [green]+[/] Jwt section added to appsettings.json");
+            console.MarkupLine(SR.Current.JwtAppSettingsInjected);
         }
-        catch
+        catch (Exception ex)
         {
-            console.MarkupLine("  [yellow]warning[/] Could not modify appsettings.json automatically.");
+            console.MarkupLine(string.Format(SR.Current.JwtAppSettingsWarning, ex.Message));
         }
     }
 

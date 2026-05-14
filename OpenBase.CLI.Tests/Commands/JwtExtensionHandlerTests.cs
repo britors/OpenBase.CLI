@@ -24,11 +24,7 @@ public class JwtExtensionHandlerTests
         new(_console.Object, _dotNetRunner.Object, _fileWriter.Object);
 
     private static ExtensionContext BuildContext(string? solutionDir = "/solution", string? ns = "MyApp") =>
-        new(null, solutionDir ?? "/solution", null, [])
-        {
-            SolutionDir = solutionDir,
-            RootNamespace = ns
-        };
+        new(null, solutionDir ?? "/solution", null, [], solutionDir, ns);
 
     [Fact]
     public void Apply_SolutionDirIsNull_ReturnsError()

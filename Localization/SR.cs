@@ -150,6 +150,8 @@ public interface IStrings
     string ExtensionRequiresOpenBaseProject { get; }
     string ExtensionAddingPackage { get; }           // {0}=package {1}=csproj
     string ExtensionPackageAddWarning { get; }       // {0}=package {1}=error
+    string ExtensionFileSkipped { get; }             // {0}=filename
+    string ExtensionFileCreated { get; }             // {0}=relative path
     string CmdExtensionDescription { get; }
     string CmdExtensionAddDescription { get; }
 
@@ -157,6 +159,8 @@ public interface IStrings
     string JwtNextStep1 { get; }
     string JwtNextStep2 { get; }
     string JwtNextStep3 { get; }
+    string JwtAppSettingsInjected { get; }
+    string JwtAppSettingsWarning { get; }            // {0}=error
 }
 
 
@@ -315,6 +319,11 @@ public sealed class EnStrings : IStrings
     public string JwtNextStep1 => "  [blue]builder.Services.AddJwtAuthentication(builder.Configuration);[/]";
     public string JwtNextStep2 => "  [blue]app.UseAuthentication();[/]";
     public string JwtNextStep3 => "  [blue]app.UseAuthorization();[/]";
+    public string JwtAppSettingsInjected => "  [green]+[/] Jwt section added to appsettings.json";
+    public string JwtAppSettingsWarning => "  [yellow]Warning:[/] Could not modify appsettings.json: {0}";
+
+    public string ExtensionFileSkipped => "  [yellow]skipped[/] {0} (already exists)";
+    public string ExtensionFileCreated => "  [green]+[/] {0}";
 }
 
 
@@ -473,6 +482,11 @@ public sealed class PtBrStrings : IStrings
     public string JwtNextStep1 => "  [blue]builder.Services.AddJwtAuthentication(builder.Configuration);[/]";
     public string JwtNextStep2 => "  [blue]app.UseAuthentication();[/]";
     public string JwtNextStep3 => "  [blue]app.UseAuthorization();[/]";
+    public string JwtAppSettingsInjected => "  [green]+[/] Seção Jwt adicionada ao appsettings.json";
+    public string JwtAppSettingsWarning => "  [yellow]Aviso:[/] Não foi possível modificar appsettings.json: {0}";
+
+    public string ExtensionFileSkipped => "  [yellow]ignorado[/] {0} (já existe)";
+    public string ExtensionFileCreated => "  [green]+[/] {0}";
 }
 
 
@@ -631,6 +645,11 @@ public sealed class EsStrings : IStrings
     public string JwtNextStep1 => "  [blue]builder.Services.AddJwtAuthentication(builder.Configuration);[/]";
     public string JwtNextStep2 => "  [blue]app.UseAuthentication();[/]";
     public string JwtNextStep3 => "  [blue]app.UseAuthorization();[/]";
+    public string JwtAppSettingsInjected => "  [green]+[/] Sección Jwt agregada a appsettings.json";
+    public string JwtAppSettingsWarning => "  [yellow]Aviso:[/] No se pudo modificar appsettings.json: {0}";
+
+    public string ExtensionFileSkipped => "  [yellow]ignorado[/] {0} (ya existe)";
+    public string ExtensionFileCreated => "  [green]+[/] {0}";
 }
 
 

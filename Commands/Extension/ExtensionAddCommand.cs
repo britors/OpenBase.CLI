@@ -76,11 +76,7 @@ public class ExtensionAddCommand(
             ? packageReader.ReadPackages(csprojPath)
             : [];
 
-        var ctx = new ExtensionContext(csprojPath, projectDir, settings.Provider, installedPackages)
-        {
-            SolutionDir = solutionDir,
-            RootNamespace = rootNamespace
-        };
+        var ctx = new ExtensionContext(csprojPath, projectDir, settings.Provider, installedPackages, solutionDir, rootNamespace);
 
         var result = handler.Apply(ctx);
         if (!result.Success)

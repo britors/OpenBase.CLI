@@ -4,8 +4,6 @@ public record ExtensionContext(
     string? CsprojPath,
     string ProjectDir,
     string? Provider,
-    IReadOnlyList<string> InstalledPackages)
-{
-    public string? SolutionDir { get; init; }
-    public string? RootNamespace { get; init; }
-}
+    IReadOnlyList<string> InstalledPackages,
+    string? SolutionDir = null,
+    string? RootNamespace = null);
