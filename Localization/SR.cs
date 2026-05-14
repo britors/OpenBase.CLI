@@ -573,8 +573,12 @@ public static class SR
     public static void Configure()
     {
         var culture = CultureInfo.CurrentUICulture.Name;
-        Current = culture.StartsWith("pt", StringComparison.OrdinalIgnoreCase) ? new PtBrStrings()
-                : culture.StartsWith("es", StringComparison.OrdinalIgnoreCase) ? new EsStrings()
-                : new EnStrings();
+
+        if (culture.StartsWith("pt", StringComparison.OrdinalIgnoreCase))
+            Current = new PtBrStrings();
+        else if (culture.StartsWith("es", StringComparison.OrdinalIgnoreCase))
+            Current = new EsStrings();
+        else
+            Current = new EnStrings();
     }
 }
