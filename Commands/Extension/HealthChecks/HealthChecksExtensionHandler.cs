@@ -69,10 +69,11 @@ public sealed class HealthChecksExtensionHandler(
     private void InjectProgramCs(string ns, string presentationPath) =>
         ExtensionHelpers.InjectProgramCs(
             presentationPath, fileWriter, console,
-            SR.Current.HealthChecksProgramCsNotFound,
-            SR.Current.HealthChecksProgramCsAlreadyConfigured,
-            SR.Current.HealthChecksProgramCsInjected,
-            SR.Current.HealthChecksProgramCsWarning,
+            new ProgramCsMessages(
+                SR.Current.HealthChecksProgramCsNotFound,
+                SR.Current.HealthChecksProgramCsAlreadyConfigured,
+                SR.Current.HealthChecksProgramCsInjected,
+                SR.Current.HealthChecksProgramCsWarning),
             content => IsProgramCsAlreadyConfigured(content, ns),
             content => InjectMapHealthChecks(InjectAddHealthChecks(
                 ExtensionHelpers.InjectPresentationUsing(content, ns))));

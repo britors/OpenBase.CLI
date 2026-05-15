@@ -5,6 +5,12 @@ using Spectre.Console;
 
 namespace OpenBase.CLI.Commands.Extension;
 
+internal record ProgramCsMessages(
+    string NotFound,
+    string AlreadyConfigured,
+    string Injected,
+    string Warning);
+
 internal static class ExtensionHelpers
 {
     internal static (string Ns, string SolutionDir, string AppPath, string InfraDataPath, string PresentationPath)?
@@ -59,17 +65,14 @@ internal static class ExtensionHelpers
         string presentationPath,
         IFileWriter fileWriter,
         IAnsiConsole console,
-        string notFoundMessage,
-        string alreadyConfiguredMessage,
-        string injectedMessage,
-        string warningMessageFormat,
+        ProgramCsMessages messages,
         Func<string, bool> isConfigured,
         Func<string, string> transform)
     {
         var path = Path.Combine(presentationPath, "Program.cs");
         if (!fileWriter.FileExists(path))
         {
-            console.MarkupLine(notFoundMessage);
+            console.MarkupLine(messages.NotFound);
             return;
         }
 
@@ -78,17 +81,17 @@ internal static class ExtensionHelpers
             var content = fileWriter.ReadAllText(path);
             if (isConfigured(content))
             {
-                console.MarkupLine(alreadyConfiguredMessage);
+                console.MarkupLine(messages.AlreadyConfigured);
                 return;
             }
 
             content = transform(content);
             fileWriter.WriteAllText(path, content);
-            console.MarkupLine(injectedMessage);
+            console.MarkupLine(messages.Injected);
         }
         catch (Exception ex)
         {
-            console.MarkupLine(string.Format(warningMessageFormat, ex.Message));
+            console.MarkupLine(string.Format(messages.Warning, ex.Message));
         }
     }
 

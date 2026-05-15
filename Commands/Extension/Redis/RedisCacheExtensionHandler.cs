@@ -69,10 +69,11 @@ public sealed class RedisCacheExtensionHandler(
     private void InjectProgramCs(string ns, string presentationPath) =>
         ExtensionHelpers.InjectProgramCs(
             presentationPath, fileWriter, console,
-            SR.Current.RedisProgramCsNotFound,
-            SR.Current.RedisProgramCsAlreadyConfigured,
-            SR.Current.RedisProgramCsInjected,
-            SR.Current.RedisProgramCsWarning,
+            new ProgramCsMessages(
+                SR.Current.RedisProgramCsNotFound,
+                SR.Current.RedisProgramCsAlreadyConfigured,
+                SR.Current.RedisProgramCsInjected,
+                SR.Current.RedisProgramCsWarning),
             content => IsProgramCsAlreadyConfigured(content, ns),
             content => InjectAddRedisCache(ExtensionHelpers.InjectPresentationUsing(content, ns)));
 
