@@ -36,6 +36,7 @@ services.AddSingleton<IExtensionHandler, HealthChecksExtensionHandler>();
 services.AddSingleton<IExtensionHandler, RedisCacheExtensionHandler>();
 
 const string TypeOpt = "--type";
+const string BuildCmd = "build";
 const string VersionCmd = "version";
 const string ExtensionCmd = "extension";
 
@@ -46,11 +47,11 @@ app.Configure(config =>
 {
     config.SetApplicationName("openbase");
 
-    config.AddCommand<BuildCommand>("build")
+    config.AddCommand<BuildCommand>(BuildCmd)
         .WithDescription(SR.Current.CmdBuildDescription)
-        .WithExample("build")
-        .WithExample("build", "--configuration", "Release")
-        .WithExample("build", "--no-restore");
+        .WithExample(BuildCmd)
+        .WithExample(BuildCmd, "--configuration", "Release")
+        .WithExample(BuildCmd, "--no-restore");
 
     config.AddCommand<InstallCommand>("install")
         .WithDescription(SR.Current.CmdInstallDescription)
