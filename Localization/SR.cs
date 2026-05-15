@@ -115,6 +115,17 @@ public interface IStrings
     string ColNewVersion { get; }
     string ColStatus { get; }
 
+    string CmdBuildDescription { get; }
+    string BuildNoProjectFound { get; }
+    string BuildRestoring { get; }
+    string BuildBuilding { get; }
+    string BuildTesting { get; }
+    string BuildStepSuccess { get; }
+    string BuildStepFailed { get; }
+    string BuildSuccess { get; }
+    string BuildFailed { get; }
+    string HelpBuildDesc { get; }
+
     string HelpSubtitle { get; }
     string HelpColCommand { get; }
     string HelpColDescription { get; }
@@ -301,6 +312,17 @@ public abstract class BaseStrings(IReadOnlyDictionary<string, string> overrides)
     public string ColPreviousVersion          => T("[bold]Previous Version[/]");
     public string ColNewVersion               => T("[bold]New Version[/]");
     public string ColStatus                   => T("[bold]Status[/]");
+
+    public string CmdBuildDescription  => T("Restores, builds and tests the project.");
+    public string BuildNoProjectFound  => T("[red]Error:[/] No .sln or .csproj found in the current directory or its parents.");
+    public string BuildRestoring       => T("  Restoring...");
+    public string BuildBuilding        => T("  Building...");
+    public string BuildTesting         => T("  Testing...");
+    public string BuildStepSuccess     => T("  [green]✓[/] done");
+    public string BuildStepFailed      => T("  [red]✗[/] failed");
+    public string BuildSuccess         => T("\n[green]Build completed successfully.[/]");
+    public string BuildFailed          => T("\n[red]Build failed.[/]");
+    public string HelpBuildDesc        => T("Restores, builds and tests the project");
 
     public string HelpSubtitle                => T("[grey]Productivity CLI for Clean Architecture[/]");
     public string HelpColCommand              => T("[bold yellow]Command[/]");
@@ -525,6 +547,16 @@ public sealed class PtBrStrings() : BaseStrings(new Dictionary<string, string>
     ["JwtAppSettingsInjected"]       = "  [green]+[/] Seção Jwt adicionada ao appsettings.json",
     ["JwtAppSettingsWarning"]        = "  [yellow]Aviso:[/] Não foi possível modificar appsettings.json: {0}",
     ["JwtControllerProtected"]       = "  [green]+[/] {0} protegida com [[Authorize]]",
+    ["CmdBuildDescription"]  = "Restaura, compila e testa o projeto.",
+    ["BuildNoProjectFound"]  = "[red]Erro:[/] Nenhum .sln ou .csproj encontrado no diretório atual ou em seus pais.",
+    ["BuildRestoring"]       = "  Restaurando...",
+    ["BuildBuilding"]        = "  Compilando...",
+    ["BuildTesting"]         = "  Testando...",
+    ["BuildStepSuccess"]     = "  [green]✓[/] concluído",
+    ["BuildStepFailed"]      = "  [red]✗[/] falhou",
+    ["BuildSuccess"]         = "\n[green]Build concluído com sucesso.[/]",
+    ["BuildFailed"]          = "\n[red]Build falhou.[/]",
+    ["HelpBuildDesc"]        = "Restaura, compila e testa o projeto",
     ["HealthChecksProgramCsInjected"]          = "  [green]+[/] Program.cs atualizado com configuração de Health Checks",
     ["HealthChecksProgramCsAlreadyConfigured"] = "  [yellow]ignorado[/] Program.cs já possui configuração de Health Checks",
     ["HealthChecksProgramCsNotFound"]          = "  [yellow]Aviso:[/] Program.cs não encontrado — adicione manualmente: builder.Services.AddOpenBaseHealthChecks(builder.Configuration); app.MapOpenBaseHealthChecks();",
@@ -687,6 +719,16 @@ public sealed class EsStrings() : BaseStrings(new Dictionary<string, string>
     ["JwtAppSettingsInjected"]       = "  [green]+[/] Sección Jwt agregada a appsettings.json",
     ["JwtAppSettingsWarning"]        = "  [yellow]Aviso:[/] No se pudo modificar appsettings.json: {0}",
     ["JwtControllerProtected"]       = "  [green]+[/] {0} protegida con [[Authorize]]",
+    ["CmdBuildDescription"]  = "Restaura, compila y prueba el proyecto.",
+    ["BuildNoProjectFound"]  = "[red]Error:[/] No se encontró ningún .sln o .csproj en el directorio actual o sus padres.",
+    ["BuildRestoring"]       = "  Restaurando...",
+    ["BuildBuilding"]        = "  Compilando...",
+    ["BuildTesting"]         = "  Ejecutando pruebas...",
+    ["BuildStepSuccess"]     = "  [green]✓[/] completado",
+    ["BuildStepFailed"]      = "  [red]✗[/] falló",
+    ["BuildSuccess"]         = "\n[green]Build completado con éxito.[/]",
+    ["BuildFailed"]          = "\n[red]Build fallido.[/]",
+    ["HelpBuildDesc"]        = "Restaura, compila y prueba el proyecto",
     ["HealthChecksProgramCsInjected"]          = "  [green]+[/] Program.cs actualizado con configuración de Health Checks",
     ["HealthChecksProgramCsAlreadyConfigured"] = "  [yellow]ignorado[/] Program.cs ya tiene configuración de Health Checks",
     ["HealthChecksProgramCsNotFound"]          = "  [yellow]Aviso:[/] Program.cs no encontrado — agregue manualmente: builder.Services.AddOpenBaseHealthChecks(builder.Configuration); app.MapOpenBaseHealthChecks();",

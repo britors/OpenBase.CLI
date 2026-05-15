@@ -46,6 +46,12 @@ app.Configure(config =>
 {
     config.SetApplicationName("openbase");
 
+    config.AddCommand<BuildCommand>("build")
+        .WithDescription(SR.Current.CmdBuildDescription)
+        .WithExample("build")
+        .WithExample("build", "--configuration", "Release")
+        .WithExample("build", "--no-restore");
+
     config.AddCommand<InstallCommand>("install")
         .WithDescription(SR.Current.CmdInstallDescription)
         .WithExample("install");

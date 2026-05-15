@@ -22,7 +22,24 @@ dotnet tool update -g w3ti.OpenBase.Cli
 
 ## Usage
 
-### 1. Install the templates
+### 1. Build the project
+
+```bash
+openbase build
+```
+
+Runs `dotnet restore → dotnet build → dotnet test` in sequence, stopping immediately on the first failure.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--configuration` | `Debug` or `Release` | `Debug` |
+| `--no-restore` | Skip `dotnet restore` | `false` |
+
+The command automatically detects the nearest `.sln` file (or `.csproj` if no solution is found).
+
+---
+
+### 2. Install the templates
 
 ```bash
 openbase install
@@ -281,6 +298,7 @@ builder.Services.AddRedisCache(builder.Configuration);
 
 | Command                  | Description                                              | Example                                                        |
 |--------------------------|----------------------------------------------------------|----------------------------------------------------------------|
+| `build`                  | Restores, builds and tests the project (fail-fast)               | `openbase build`                                               |
 | `install`                | Installs the required NuGet templates                    | `openbase install`                                             |
 | `new`                    | Creates a new project from the templates                 | `openbase new --type api --template sqlserver --name X`        |
 | `scaffold`               | Generates all layers for an entity (interactive)         | `openbase scaffold --entity Product`                           |
