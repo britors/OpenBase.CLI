@@ -29,7 +29,7 @@ public sealed class RedisCacheExtensionHandler(
         var presentationPath = Path.Combine(src, $"{ns}.Presentation.Api");
 
         AddNuGetPackages(ns, presentationPath);
-        CreateFiles(ns, appPath, infraDataPath, presentationPath, context.SolutionDir);
+        ExtensionHelpers.WriteFiles(GetFiles(ns, appPath, infraDataPath, presentationPath), context.SolutionDir, fileWriter, console);
         InjectAppSettings(presentationPath);
         InjectProgramCs(ns, presentationPath);
 
@@ -48,21 +48,6 @@ public sealed class RedisCacheExtensionHandler(
         var (ok, err) = dotNetRunner.Run($"add \"{presentationCsproj}\" package {CachingPackageId}");
         if (!ok)
             console.MarkupLine(string.Format(SR.Current.ExtensionPackageAddWarning, CachingPackageId, err));
-    }
-
-    private void CreateFiles(string ns, string appPath, string infraDataPath, string presentationPath, string solutionDir)
-    {
-        foreach (var (path, content) in GetFiles(ns, appPath, infraDataPath, presentationPath))
-        {
-            if (fileWriter.FileExists(path))
-            {
-                console.MarkupLine(string.Format(SR.Current.ExtensionFileSkipped, Path.GetFileName(path)));
-                continue;
-            }
-            fileWriter.EnsureDirectory(Path.GetDirectoryName(path)!);
-            fileWriter.WriteAllText(path, content);
-            console.MarkupLine(string.Format(SR.Current.ExtensionFileCreated, Path.GetRelativePath(solutionDir, path)));
-        }
     }
 
     private void InjectAppSettings(string presentationPath)
@@ -109,7 +94,7 @@ public sealed class RedisCacheExtensionHandler(
                 return;
             }
 
-            content = InjectUsingDirective(content, ns);
+            content = ExtensionHelpers.InjectPresentationUsing(content, ns);
             content = InjectAddRedisCache(content);
             fileWriter.WriteAllText(path, content);
             console.MarkupLine(SR.Current.RedisProgramCsInjected);
@@ -124,22 +109,11 @@ public sealed class RedisCacheExtensionHandler(
         content.Contains("AddRedisCache") &&
         content.Contains($"using {ns}.Presentation.Api.Extensions;");
 
-    private static string InjectUsingDirective(string content, string ns)
-    {
-        var usingDirective = $"using {ns}.Presentation.Api.Extensions;";
-        if (content.Contains(usingDirective)) return content;
-
-        return content.Insert(0, $"{usingDirective}\n");
-    }
-
     private static string InjectAddRedisCache(string content)
     {
         const string call = "builder.Services.AddRedisCache(builder.Configuration);";
         if (content.Contains(call)) return content;
-
-        const string anchor = "var app = builder.Build();";
-        var idx = content.IndexOf(anchor, StringComparison.Ordinal);
-        return idx >= 0 ? content.Insert(idx, $"{call}\n") : content;
+        return ExtensionHelpers.InsertBeforeAnchor(content, "var app = builder.Build();", $"{call}\n");
     }
 
     public static IEnumerable<(string Path, string Content)> GetFiles(

@@ -159,6 +159,7 @@ The command:
 |----------------|---------------------------------------|----------------------------------------|
 | `jwt`          | `openbase extension add jwt`          | JWT Bearer authentication              |
 | `healthchecks` | `openbase extension add healthchecks` | Health Checks with UI dashboard        |
+| `redis`        | `openbase extension add redis`        | Distributed cache with Redis           |
 
 #### `jwt` — JWT Authentication
 
@@ -237,6 +238,42 @@ Exposes three endpoints:
 | `/health`     | Full health report (JSON, compatible with UI)    |
 | `/health/ready` | Only checks tagged as `ready`                  |
 | `/health-ui`  | Visual dashboard (HealthChecks UI)               |
+
+#### `redis` — Redis Cache
+
+```bash
+openbase extension add redis
+```
+
+Generates:
+
+| File                                                        | Layer          | Description                                       |
+|-------------------------------------------------------------|----------------|---------------------------------------------------|
+| `Application/Interfaces/Services/ICacheService.cs`          | Application    | Interface with `GetAsync`, `SetAsync`, `RemoveAsync`, `ExistsAsync` (with TTL support) |
+| `Infra.Data/Services/RedisCacheService.cs`                  | Infrastructure | Implementation via `IDistributedCache`            |
+| `Presentation.Api/Extensions/RedisExtensions.cs`            | Presentation   | `AddRedisCache` extension method                  |
+
+Also automatically:
+
+- Adds the `Microsoft.Extensions.Caching.StackExchangeRedis` NuGet package
+- Injects the `Redis` section into `appsettings.json`:
+
+```json
+"Redis": {
+  "ConnectionString": "localhost:6379",
+  "InstanceName": "openbase_"
+}
+```
+
+- Injects the required call into `Program.cs`:
+
+```csharp
+builder.Services.AddRedisCache(builder.Configuration);
+```
+
+> **After installation**, update the `Redis:ConnectionString` in `appsettings.json` to point to your Redis instance.
+
+> **HealthChecks integration**: if both extensions are installed, `openbase extension add healthchecks` automatically adds the Redis health check (`AspNetCore.HealthChecks.Redis`).
 
 ---
 

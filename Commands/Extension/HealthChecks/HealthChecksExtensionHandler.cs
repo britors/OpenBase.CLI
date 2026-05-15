@@ -27,7 +27,7 @@ public sealed class HealthChecksExtensionHandler(
         var detected = DetectServices(context, ns, infraDataPath);
 
         AddNuGetPackages(ns, presentationPath, detected);
-        CreateFiles(ns, presentationPath, context.SolutionDir, detected);
+        ExtensionHelpers.WriteFiles(GetFiles(ns, presentationPath, detected), context.SolutionDir, fileWriter, console);
         InjectProgramCs(ns, presentationPath);
 
         return new ExtensionApplyResult(true);
@@ -78,21 +78,6 @@ public sealed class HealthChecksExtensionHandler(
         }
     }
 
-    private void CreateFiles(string ns, string presentationPath, string solutionDir, DetectedServices detected)
-    {
-        foreach (var (path, content) in GetFiles(ns, presentationPath, detected))
-        {
-            if (fileWriter.FileExists(path))
-            {
-                console.MarkupLine(string.Format(SR.Current.ExtensionFileSkipped, Path.GetFileName(path)));
-                continue;
-            }
-            fileWriter.EnsureDirectory(Path.GetDirectoryName(path)!);
-            fileWriter.WriteAllText(path, content);
-            console.MarkupLine(string.Format(SR.Current.ExtensionFileCreated, Path.GetRelativePath(solutionDir, path)));
-        }
-    }
-
     private void InjectProgramCs(string ns, string presentationPath)
     {
         var path = Path.Combine(presentationPath, "Program.cs");
@@ -111,7 +96,7 @@ public sealed class HealthChecksExtensionHandler(
                 return;
             }
 
-            content = InjectUsingDirective(content, ns);
+            content = ExtensionHelpers.InjectPresentationUsing(content, ns);
             content = InjectAddHealthChecks(content);
             content = InjectMapHealthChecks(content);
             fileWriter.WriteAllText(path, content);
@@ -128,32 +113,18 @@ public sealed class HealthChecksExtensionHandler(
         content.Contains("MapOpenBaseHealthChecks") &&
         content.Contains($"using {ns}.Presentation.Api.Extensions;");
 
-    private static string InjectUsingDirective(string content, string ns)
-    {
-        var usingDirective = $"using {ns}.Presentation.Api.Extensions;";
-        if (content.Contains(usingDirective)) return content;
-
-        return content.Insert(0, $"{usingDirective}\n");
-    }
-
     private static string InjectAddHealthChecks(string content)
     {
         const string call = "builder.Services.AddOpenBaseHealthChecks(builder.Configuration);";
         if (content.Contains(call)) return content;
-
-        const string anchor = "var app = builder.Build();";
-        var idx = content.IndexOf(anchor, StringComparison.Ordinal);
-        return idx >= 0 ? content.Insert(idx, $"{call}\n") : content;
+        return ExtensionHelpers.InsertBeforeAnchor(content, "var app = builder.Build();", $"{call}\n");
     }
 
     private static string InjectMapHealthChecks(string content)
     {
         const string call = "app.MapOpenBaseHealthChecks();";
         if (content.Contains(call)) return content;
-
-        const string anchor = "app.MapControllers();";
-        var idx = content.IndexOf(anchor, StringComparison.Ordinal);
-        return idx >= 0 ? content.Insert(idx, $"{call}\n") : content;
+        return ExtensionHelpers.InsertBeforeAnchor(content, "app.MapControllers();", $"{call}\n");
     }
 
     public static IEnumerable<(string Path, string Content)> GetFiles(
