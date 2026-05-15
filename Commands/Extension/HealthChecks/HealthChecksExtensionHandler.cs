@@ -59,9 +59,7 @@ public sealed class HealthChecksExtensionHandler(
 
         var packages = new List<string>
         {
-            "AspNetCore.HealthChecks.UI",
             "AspNetCore.HealthChecks.UI.Client",
-            "AspNetCore.HealthChecks.UI.InMemory.Storage",
         };
 
         if (detected.HasSqlServer) packages.Add("AspNetCore.HealthChecks.SqlServer");
@@ -186,13 +184,6 @@ public sealed class HealthChecksExtensionHandler(
                 {
                     services.AddHealthChecks(){{checksPart}};
 
-                    services.AddHealthChecksUI(opt =>
-                        {
-                            opt.SetEvaluationTimeInSeconds(60);
-                            opt.AddHealthCheckEndpoint("API", "/health");
-                        })
-                        .AddInMemoryStorage();
-
                     return services;
                 }
 
@@ -209,8 +200,6 @@ public sealed class HealthChecksExtensionHandler(
                         Predicate = hc => hc.Tags.Contains("ready"),
                         ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
                     });
-
-                    app.MapHealthChecksUI(opt => opt.UIPath = "/health-ui");
 
                     return app;
                 }
