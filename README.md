@@ -150,8 +150,8 @@ The command:
 2. Adds the required NuGet packages to the relevant `.csproj` files
 3. Generates the source files in the correct Clean Architecture layers
 4. Injects configuration into `appsettings.json` where applicable
-5. Registers the extension in `.openbase/extensions.json` to prevent duplicate installs
-6. Prints the next steps for `Program.cs`
+5. Injects the required middleware calls into `Program.cs` automatically
+6. Registers the extension in `.openbase/extensions.json` to prevent duplicate installs
 
 #### Available extensions
 
@@ -173,7 +173,9 @@ Generates:
 | `Infra.Data/Services/TokenService.cs`              | Infrastructure | Implementation using `JwtSecurityTokenHandler`   |
 | `Presentation.Api/Extensions/JwtExtensions.cs`     | Presentation   | `AddJwtAuthentication` extension method          |
 
-Also injects the `Jwt` section into `appsettings.json`:
+Also automatically:
+
+- Injects the `Jwt` section into `appsettings.json`:
 
 ```json
 "Jwt": {
@@ -184,7 +186,7 @@ Also injects the `Jwt` section into `appsettings.json`:
 }
 ```
 
-After running the command, add to `Program.cs`:
+- Injects the required middleware into `Program.cs`:
 
 ```csharp
 builder.Services.AddJwtAuthentication(builder.Configuration);
@@ -192,6 +194,11 @@ builder.Services.AddJwtAuthentication(builder.Configuration);
 app.UseAuthentication();
 app.UseAuthorization();
 ```
+
+- Adds `[Authorize]` to all existing controllers in the project.
+- New controllers generated with `openbase scaffold` are automatically created with `[Authorize]` when the JWT extension is installed.
+
+> **After installation**, update the `Jwt:Secret` in `appsettings.json` with a strong secret (at least 32 characters).
 
 ---
 
@@ -255,6 +262,12 @@ The `--type` argument is required and accepts:
 - **Cross-platform**: Windows, macOS (Intel/Apple Silicon) and Linux
 - **Security**: Process execution protected against command injection (S4036 compliance)
 - Monitored by **SonarCloud**
+
+---
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the branch naming conventions, commit message format, and pull request workflow.
 
 ---
 
