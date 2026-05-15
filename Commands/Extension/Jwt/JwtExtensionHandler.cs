@@ -19,59 +19,29 @@ public sealed class JwtExtensionHandler(
 
     public ExtensionApplyResult Apply(ExtensionContext context)
     {
-        if (context.SolutionDir is null || context.RootNamespace is null)
+        var paths = ExtensionHelpers.ResolveSolutionPaths(context);
+        if (paths is null)
             return new ExtensionApplyResult(false, SR.Current.ExtensionRequiresOpenBaseProject);
 
-        var ns = context.RootNamespace;
-        var src = Path.Combine(context.SolutionDir, "src");
-        var appPath = Path.Combine(src, $"{ns}.Application");
-        var infraDataPath = Path.Combine(src, $"{ns}.Infra.Data");
-        var presentationPath = Path.Combine(src, $"{ns}.Presentation.Api");
+        var (ns, solutionDir, appPath, infraDataPath, presentationPath) = paths.Value;
 
         AddNuGetPackages(ns, infraDataPath, presentationPath);
-        CreateFiles(ns, appPath, infraDataPath, presentationPath, context.SolutionDir);
+        ExtensionHelpers.WriteFiles(GetFiles(ns, appPath, infraDataPath, presentationPath), solutionDir, fileWriter, console);
         InjectAppSettings(presentationPath, ns);
         InjectProgramCs(presentationPath);
-        ProtectExistingControllers(presentationPath, context.SolutionDir);
+        ProtectExistingControllers(presentationPath, solutionDir);
 
         return new ExtensionApplyResult(true);
     }
 
     private void AddNuGetPackages(string ns, string infraDataPath, string presentationPath)
     {
-        var targets = new[]
+        foreach (var csproj in new[]
         {
             Path.Combine(infraDataPath, $"{ns}.Infra.Data.csproj"),
             Path.Combine(presentationPath, $"{ns}.Presentation.Api.csproj"),
-        };
-
-        foreach (var csproj in targets)
-        {
-            if (!fileWriter.FileExists(csproj)) continue;
-
-            var content = fileWriter.ReadAllText(csproj);
-            if (content.Contains(PackageId)) continue;
-
-            console.MarkupLine(string.Format(SR.Current.ExtensionAddingPackage, PackageId, Path.GetFileName(csproj)));
-            var (ok, err) = dotNetRunner.Run($"add \"{csproj}\" package {PackageId}");
-            if (!ok)
-                console.MarkupLine(string.Format(SR.Current.ExtensionPackageAddWarning, PackageId, err));
-        }
-    }
-
-    private void CreateFiles(string ns, string appPath, string infraDataPath, string presentationPath, string solutionDir)
-    {
-        foreach (var (path, content) in GetFiles(ns, appPath, infraDataPath, presentationPath))
-        {
-            if (fileWriter.FileExists(path))
-            {
-                console.MarkupLine(string.Format(SR.Current.ExtensionFileSkipped, Path.GetFileName(path)));
-                continue;
-            }
-            fileWriter.EnsureDirectory(Path.GetDirectoryName(path)!);
-            fileWriter.WriteAllText(path, content);
-            console.MarkupLine(string.Format(SR.Current.ExtensionFileCreated, Path.GetRelativePath(solutionDir, path)));
-        }
+        })
+            ExtensionHelpers.AddPackage(csproj, PackageId, fileWriter, dotNetRunner, console);
     }
 
     private void InjectAppSettings(string presentationPath, string ns)
@@ -140,10 +110,7 @@ public sealed class JwtExtensionHandler(
     {
         const string addJwtCall = "builder.Services.AddJwtAuthentication(builder.Configuration);";
         if (content.Contains(addJwtCall)) return content;
-
-        const string buildAnchor = "var app = builder.Build();";
-        var idx = content.IndexOf(buildAnchor, StringComparison.Ordinal);
-        return idx >= 0 ? content.Insert(idx, $"{addJwtCall}\n") : content;
+        return ExtensionHelpers.InsertBeforeAnchor(content, "var app = builder.Build();", $"{addJwtCall}\n");
     }
 
     private static string InjectUseAuthMiddleware(string content)
@@ -158,10 +125,10 @@ public sealed class JwtExtensionHandler(
         if (!needsAuth && !needsAuthz) return content;
 
         if (!needsAuth)
-            return InsertAfterLine(content, useAuthCall, useAuthzCall);
+            return ExtensionHelpers.InsertAfterLine(content, useAuthCall, useAuthzCall);
 
         var injection = $"{useAuthCall}\n{(needsAuthz ? useAuthzCall + "\n" : string.Empty)}";
-        return InsertBeforeAnchor(content, mapAnchor, injection);
+        return ExtensionHelpers.InsertBeforeAnchor(content, mapAnchor, injection);
     }
 
     private void ProtectExistingControllers(string presentationPath, string solutionDir)
@@ -197,7 +164,7 @@ public sealed class JwtExtensionHandler(
         var usingIdx = content.IndexOf(mvcUsing, StringComparison.Ordinal);
         if (usingIdx < 0) return content;
 
-        var afterLine = SkipNewLine(content, usingIdx + mvcUsing.Length);
+        var afterLine = ExtensionHelpers.SkipNewLine(content, usingIdx + mvcUsing.Length);
         return content.Insert(afterLine, $"{authUsing}\n");
     }
 
@@ -207,29 +174,8 @@ public sealed class JwtExtensionHandler(
         var apiCtrlIdx = content.IndexOf(apiControllerAttr, StringComparison.Ordinal);
         if (apiCtrlIdx < 0) return content;
 
-        var afterAttr = SkipNewLine(content, apiCtrlIdx + apiControllerAttr.Length);
+        var afterAttr = ExtensionHelpers.SkipNewLine(content, apiCtrlIdx + apiControllerAttr.Length);
         return content.Insert(afterAttr, "[Authorize]\n");
-    }
-
-    private static string InsertAfterLine(string content, string anchor, string toInsert)
-    {
-        var idx = content.IndexOf(anchor, StringComparison.Ordinal);
-        if (idx < 0) return content;
-        var afterLine = SkipNewLine(content, idx + anchor.Length);
-        return content.Insert(afterLine, $"{toInsert}\n");
-    }
-
-    private static string InsertBeforeAnchor(string content, string anchor, string toInsert)
-    {
-        var idx = content.IndexOf(anchor, StringComparison.Ordinal);
-        return idx >= 0 ? content.Insert(idx, toInsert) : content;
-    }
-
-    private static int SkipNewLine(string content, int idx)
-    {
-        if (idx < content.Length && content[idx] == '\r') idx++;
-        if (idx < content.Length && content[idx] == '\n') idx++;
-        return idx;
     }
 
     public static IEnumerable<(string Path, string Content)> GetFiles(

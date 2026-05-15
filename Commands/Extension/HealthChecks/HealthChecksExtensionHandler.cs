@@ -16,18 +16,16 @@ public sealed class HealthChecksExtensionHandler(
 
     public ExtensionApplyResult Apply(ExtensionContext context)
     {
-        if (context.SolutionDir is null || context.RootNamespace is null)
+        var paths = ExtensionHelpers.ResolveSolutionPaths(context);
+        if (paths is null)
             return new ExtensionApplyResult(false, SR.Current.ExtensionRequiresOpenBaseProject);
 
-        var ns = context.RootNamespace;
-        var src = Path.Combine(context.SolutionDir, "src");
-        var infraDataPath = Path.Combine(src, $"{ns}.Infra.Data");
-        var presentationPath = Path.Combine(src, $"{ns}.Presentation.Api");
+        var (ns, solutionDir, _, infraDataPath, presentationPath) = paths.Value;
 
         var detected = DetectServices(context, ns, infraDataPath);
 
         AddNuGetPackages(ns, presentationPath, detected);
-        CreateFiles(ns, presentationPath, context.SolutionDir, detected);
+        ExtensionHelpers.WriteFiles(GetFiles(ns, presentationPath, detected), solutionDir, fileWriter, console);
         InjectProgramCs(ns, presentationPath);
 
         return new ExtensionApplyResult(true);
@@ -53,9 +51,6 @@ public sealed class HealthChecksExtensionHandler(
     private void AddNuGetPackages(string ns, string presentationPath, DetectedServices detected)
     {
         var presentationCsproj = Path.Combine(presentationPath, $"{ns}.Presentation.Api.csproj");
-        if (!fileWriter.FileExists(presentationCsproj)) return;
-
-        var csprojContent = fileWriter.ReadAllText(presentationCsproj);
 
         var packages = new List<string>
         {
@@ -68,92 +63,38 @@ public sealed class HealthChecksExtensionHandler(
         if (detected.HasRabbitMq) packages.Add("AspNetCore.HealthChecks.RabbitMQ");
 
         foreach (var packageId in packages)
-        {
-            if (csprojContent.Contains(packageId)) continue;
-
-            console.MarkupLine(string.Format(SR.Current.ExtensionAddingPackage, packageId, Path.GetFileName(presentationCsproj)));
-            var (ok, err) = dotNetRunner.Run($"add \"{presentationCsproj}\" package {packageId}");
-            if (!ok)
-                console.MarkupLine(string.Format(SR.Current.ExtensionPackageAddWarning, packageId, err));
-        }
+            ExtensionHelpers.AddPackage(presentationCsproj, packageId, fileWriter, dotNetRunner, console);
     }
 
-    private void CreateFiles(string ns, string presentationPath, string solutionDir, DetectedServices detected)
-    {
-        foreach (var (path, content) in GetFiles(ns, presentationPath, detected))
-        {
-            if (fileWriter.FileExists(path))
-            {
-                console.MarkupLine(string.Format(SR.Current.ExtensionFileSkipped, Path.GetFileName(path)));
-                continue;
-            }
-            fileWriter.EnsureDirectory(Path.GetDirectoryName(path)!);
-            fileWriter.WriteAllText(path, content);
-            console.MarkupLine(string.Format(SR.Current.ExtensionFileCreated, Path.GetRelativePath(solutionDir, path)));
-        }
-    }
-
-    private void InjectProgramCs(string ns, string presentationPath)
-    {
-        var path = Path.Combine(presentationPath, "Program.cs");
-        if (!fileWriter.FileExists(path))
-        {
-            console.MarkupLine(SR.Current.HealthChecksProgramCsNotFound);
-            return;
-        }
-
-        try
-        {
-            var content = fileWriter.ReadAllText(path);
-            if (IsProgramCsAlreadyConfigured(content, ns))
-            {
-                console.MarkupLine(SR.Current.HealthChecksProgramCsAlreadyConfigured);
-                return;
-            }
-
-            content = InjectUsingDirective(content, ns);
-            content = InjectAddHealthChecks(content);
-            content = InjectMapHealthChecks(content);
-            fileWriter.WriteAllText(path, content);
-            console.MarkupLine(SR.Current.HealthChecksProgramCsInjected);
-        }
-        catch (Exception ex)
-        {
-            console.MarkupLine(string.Format(SR.Current.HealthChecksProgramCsWarning, ex.Message));
-        }
-    }
+    private void InjectProgramCs(string ns, string presentationPath) =>
+        ExtensionHelpers.InjectProgramCs(
+            presentationPath, fileWriter, console,
+            new ProgramCsMessages(
+                SR.Current.HealthChecksProgramCsNotFound,
+                SR.Current.HealthChecksProgramCsAlreadyConfigured,
+                SR.Current.HealthChecksProgramCsInjected,
+                SR.Current.HealthChecksProgramCsWarning),
+            content => IsProgramCsAlreadyConfigured(content, ns),
+            content => InjectMapHealthChecks(InjectAddHealthChecks(
+                ExtensionHelpers.InjectPresentationUsing(content, ns))));
 
     private static bool IsProgramCsAlreadyConfigured(string content, string ns) =>
         content.Contains("AddOpenBaseHealthChecks") &&
         content.Contains("MapOpenBaseHealthChecks") &&
         content.Contains($"using {ns}.Presentation.Api.Extensions;");
 
-    private static string InjectUsingDirective(string content, string ns)
-    {
-        var usingDirective = $"using {ns}.Presentation.Api.Extensions;";
-        if (content.Contains(usingDirective)) return content;
-
-        return content.Insert(0, $"{usingDirective}\n");
-    }
-
     private static string InjectAddHealthChecks(string content)
     {
         const string call = "builder.Services.AddOpenBaseHealthChecks(builder.Configuration);";
         if (content.Contains(call)) return content;
-
-        const string anchor = "var app = builder.Build();";
-        var idx = content.IndexOf(anchor, StringComparison.Ordinal);
-        return idx >= 0 ? content.Insert(idx, $"{call}\n") : content;
+        return ExtensionHelpers.InsertBeforeAnchor(content, "var app = builder.Build();", $"{call}\n");
     }
 
     private static string InjectMapHealthChecks(string content)
     {
         const string call = "app.MapOpenBaseHealthChecks();";
         if (content.Contains(call)) return content;
-
-        const string anchor = "app.MapControllers();";
-        var idx = content.IndexOf(anchor, StringComparison.Ordinal);
-        return idx >= 0 ? content.Insert(idx, $"{call}\n") : content;
+        return ExtensionHelpers.InsertBeforeAnchor(content, "app.MapControllers();", $"{call}\n");
     }
 
     public static IEnumerable<(string Path, string Content)> GetFiles(
