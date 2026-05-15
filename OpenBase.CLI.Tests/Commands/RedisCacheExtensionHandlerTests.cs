@@ -108,6 +108,37 @@ public class RedisCacheExtensionHandlerTests
     }
 
     [Fact]
+    public void Apply_AddsProjectReference_WhenInfraDataMissingApplicationRef()
+    {
+        _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith(".csproj")))).Returns(true);
+        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith(".csproj")))).Returns("<Project />");
+
+        CreateHandler().Apply(BuildContext());
+
+        _dotNetRunner.Verify(r => r.Run(
+            It.Is<string>(s => s.Contains("reference") &&
+                               s.Contains("Infra.Data.csproj") &&
+                               s.Contains("Application.csproj"))),
+            Times.Once);
+    }
+
+    [Fact]
+    public void Apply_SkipsProjectReference_WhenAlreadyPresent()
+    {
+        _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith(".csproj")))).Returns(true);
+        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith("Infra.Data.csproj"))))
+                   .Returns("<ProjectReference Include=\"..\\MyApp.Application\\MyApp.Application.csproj\" />");
+        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => !p.EndsWith("Infra.Data.csproj") && p.EndsWith(".csproj"))))
+                   .Returns("<Project />");
+
+        CreateHandler().Apply(BuildContext());
+
+        _dotNetRunner.Verify(r => r.Run(
+            It.Is<string>(s => s.Contains("reference") && s.Contains("Application.csproj"))),
+            Times.Never);
+    }
+
+    [Fact]
     public void Apply_AddsCachingPackageToPresentationApi()
     {
         _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith(".csproj")))).Returns(true);
