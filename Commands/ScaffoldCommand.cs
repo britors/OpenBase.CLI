@@ -73,12 +73,15 @@ public class ScaffoldCommand(
             return 0;
 
         var testsPath = DetectTestsPath(solutionDir, rootNamespace);
+        var presentationPath = Path.Combine(solutionDir, "src", $"{rootNamespace}.Presentation.Api");
+        var useJwt = fileWriter.FileExists(Path.Combine(presentationPath, "Extensions", "JwtExtensions.cs"));
         var ctx = new ScaffoldContext(settings.Entity, rootNamespace, solutionDir)
         {
             Properties = properties,
             DbFlavor = dbFlavor,
             TestsPath = testsPath,
-            TableName = modelFirstTableName
+            TableName = modelFirstTableName,
+            UseJwt = useJwt
         };
 
         var files = new ScaffoldGenerator(ctx).GetFiles().ToList();

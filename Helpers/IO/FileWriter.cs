@@ -14,4 +14,9 @@ public sealed class FileWriter : IFileWriter
         Directory.Exists(rootDirectory)
             ? Directory.GetFiles(rootDirectory, fileName, SearchOption.AllDirectories).FirstOrDefault()
             : null;
+
+    public string[] GetFiles(string directory, string pattern) =>
+        Directory.Exists(directory)
+            ? Directory.GetFiles(directory, pattern, SearchOption.TopDirectoryOnly)
+            : [];
 }

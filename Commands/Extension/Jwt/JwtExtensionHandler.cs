@@ -31,11 +31,8 @@ public sealed class JwtExtensionHandler(
         AddNuGetPackages(ns, infraDataPath, presentationPath);
         CreateFiles(ns, appPath, infraDataPath, presentationPath, context.SolutionDir);
         InjectAppSettings(presentationPath, ns);
-
-        console.MarkupLine(SR.Current.JwtNextSteps);
-        console.MarkupLine(SR.Current.JwtNextStep1);
-        console.MarkupLine(SR.Current.JwtNextStep2);
-        console.MarkupLine(SR.Current.JwtNextStep3);
+        InjectProgramCs(presentationPath);
+        ProtectExistingControllers(presentationPath, context.SolutionDir);
 
         return new ExtensionApplyResult(true);
     }
@@ -102,6 +99,119 @@ public sealed class JwtExtensionHandler(
         catch (Exception ex)
         {
             console.MarkupLine(string.Format(SR.Current.JwtAppSettingsWarning, ex.Message));
+        }
+    }
+
+    private void InjectProgramCs(string presentationPath)
+    {
+        var path = Path.Combine(presentationPath, "Program.cs");
+        if (!fileWriter.FileExists(path))
+        {
+            console.MarkupLine(SR.Current.JwtProgramCsNotFound);
+            return;
+        }
+
+        try
+        {
+            const string addJwtCall = "builder.Services.AddJwtAuthentication(builder.Configuration);";
+            const string useAuthCall = "app.UseAuthentication();";
+            const string useAuthzCall = "app.UseAuthorization();";
+            const string buildAnchor = "var app = builder.Build();";
+            const string mapAnchor = "app.MapControllers();";
+
+            var content = fileWriter.ReadAllText(path);
+
+            var alreadyHasAll = content.Contains(addJwtCall)
+                && content.Contains(useAuthCall)
+                && content.Contains(useAuthzCall);
+
+            if (alreadyHasAll)
+            {
+                console.MarkupLine(SR.Current.JwtProgramCsAlreadyConfigured);
+                return;
+            }
+
+            if (!content.Contains(addJwtCall))
+            {
+                var idx = content.IndexOf(buildAnchor, StringComparison.Ordinal);
+                if (idx >= 0)
+                    content = content.Insert(idx, $"{addJwtCall}\n");
+            }
+
+            var needsAuth = !content.Contains(useAuthCall);
+            var needsAuthz = !content.Contains(useAuthzCall);
+
+            if (needsAuth || needsAuthz)
+            {
+                if (!needsAuth)
+                {
+                    // UseAuthentication already present — insert UseAuthorization right after it
+                    var authIdx = content.IndexOf(useAuthCall, StringComparison.Ordinal);
+                    var afterLine = authIdx + useAuthCall.Length;
+                    if (afterLine < content.Length && content[afterLine] == '\r') afterLine++;
+                    if (afterLine < content.Length && content[afterLine] == '\n') afterLine++;
+                    content = content.Insert(afterLine, $"{useAuthzCall}\n");
+                }
+                else
+                {
+                    var mapIdx = content.IndexOf(mapAnchor, StringComparison.Ordinal);
+                    if (mapIdx >= 0)
+                    {
+                        var injection = (needsAuth ? $"{useAuthCall}\n" : string.Empty)
+                                      + (needsAuthz ? $"{useAuthzCall}\n" : string.Empty);
+                        content = content.Insert(mapIdx, injection);
+                    }
+                }
+            }
+
+            fileWriter.WriteAllText(path, content);
+            console.MarkupLine(SR.Current.JwtProgramCsInjected);
+        }
+        catch (Exception ex)
+        {
+            console.MarkupLine(string.Format(SR.Current.JwtProgramCsWarning, ex.Message));
+        }
+    }
+
+    private void ProtectExistingControllers(string presentationPath, string solutionDir)
+    {
+        var controllersDir = Path.Combine(presentationPath, "Controllers");
+        var files = fileWriter.GetFiles(controllersDir, "*Controller.cs");
+
+        foreach (var filePath in files)
+        {
+            var content = fileWriter.ReadAllText(filePath);
+
+            if (!content.Contains("ControllerBase")) continue;
+            if (content.Contains("[Authorize]")) continue;
+
+            const string authUsing = "using Microsoft.AspNetCore.Authorization;";
+            if (!content.Contains(authUsing))
+            {
+                const string mvcUsing = "using Microsoft.AspNetCore.Mvc;";
+                var usingIdx = content.IndexOf(mvcUsing, StringComparison.Ordinal);
+                if (usingIdx >= 0)
+                {
+                    var afterLine = usingIdx + mvcUsing.Length;
+                    if (afterLine < content.Length && content[afterLine] == '\r') afterLine++;
+                    if (afterLine < content.Length && content[afterLine] == '\n') afterLine++;
+                    content = content.Insert(afterLine, $"{authUsing}\n");
+                }
+            }
+
+            const string apiControllerAttr = "[ApiController]";
+            var apiCtrlIdx = content.IndexOf(apiControllerAttr, StringComparison.Ordinal);
+            if (apiCtrlIdx >= 0)
+            {
+                var afterAttr = apiCtrlIdx + apiControllerAttr.Length;
+                if (afterAttr < content.Length && content[afterAttr] == '\r') afterAttr++;
+                if (afterAttr < content.Length && content[afterAttr] == '\n') afterAttr++;
+                content = content.Insert(afterAttr, "[Authorize]\n");
+            }
+
+            fileWriter.WriteAllText(filePath, content);
+            console.MarkupLine(string.Format(SR.Current.JwtControllerProtected,
+                Path.GetRelativePath(solutionDir, filePath)));
         }
     }
 
