@@ -127,6 +127,7 @@ public interface IStrings
     string HelpVersionShowDesc { get; }
     string HelpVersionRestoreDesc { get; }
     string HelpExtensionAddDesc { get; }
+    string HelpExtensionListDesc { get; }
     string HelpTip { get; }
     string HelpSupport { get; }
 
@@ -306,6 +307,7 @@ public abstract class BaseStrings(IReadOnlyDictionary<string, string> overrides)
     public string HelpVersionShowDesc         => T("Shows versions of the installed environment");
     public string HelpVersionRestoreDesc      => T("Restores a component to a specific version (--type cli | sqlserver | postgres)");
     public string HelpExtensionAddDesc        => T("Adds an installable extension to the current project (e.g.: jwt, cache, blob)");
+    public string HelpExtensionListDesc       => T("Lists all available extensions and their installation status in the current project");
     public string HelpTip                     => T("[bold white]Tip:[/] Use [blue]--help[/] after any command to see technical details.");
     public string HelpSupport                 => T(" Support ");
 
@@ -470,6 +472,7 @@ public sealed class PtBrStrings() : BaseStrings(new Dictionary<string, string>
     ["HelpVersionShowDesc"]          = "Mostra versões do ambiente instalado",
     ["HelpVersionRestoreDesc"]       = "Restaura um componente para uma versão específica (--type cli | sqlserver | postgres)",
     ["HelpExtensionAddDesc"]         = "Adiciona uma extensão instalável ao projeto atual (ex: jwt, cache, blob)",
+    ["HelpExtensionListDesc"]        = "Lista todas as extensões disponíveis e o status de instalação no projeto atual",
     ["HelpTip"]                      = "[bold white]Dica:[/] Use [blue]--help[/] após qualquer comando para ver detalhes técnicos.",
     ["HelpSupport"]                  = " Suporte ",
     ["ColVersionComponent"]          = "[bold]Componente[/]",
@@ -625,6 +628,7 @@ public sealed class EsStrings() : BaseStrings(new Dictionary<string, string>
     ["HelpVersionShowDesc"]          = "Muestra versiones del entorno instalado",
     ["HelpVersionRestoreDesc"]       = "Restaura un componente a una versión específica (--type cli | sqlserver | postgres)",
     ["HelpExtensionAddDesc"]         = "Agrega una extensión instalable al proyecto actual (ej: jwt, cache, blob)",
+    ["HelpExtensionListDesc"]        = "Lista todas las extensiones disponibles y el estado de instalación en el proyecto actual",
     ["HelpTip"]                      = "[bold white]Consejo:[/] Use [blue]--help[/] después de cualquier comando para ver detalles técnicos.",
     ["HelpSupport"]                  = " Soporte ",
     ["ColVersionComponent"]          = "[bold]Componente[/]",
