@@ -89,6 +89,10 @@ app.Configure(config =>
                  .WithDescription(SR.Current.CmdExtensionAddDescription)
                  .WithExample(ExtensionCmd, "add", "jwt")
                  .WithExample(ExtensionCmd, "add", "cache", "--provider", "redis");
+
+        extension.AddCommand<ExtensionListCommand>("list")
+                 .WithDescription(SR.Current.CmdExtensionListDescription)
+                 .WithExample(ExtensionCmd, "list");
     });
 });
 
