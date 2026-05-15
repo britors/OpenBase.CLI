@@ -28,11 +28,27 @@ public sealed class RedisCacheExtensionHandler(
         ExtensionHelpers.AddPackage(
             Path.Combine(presentationPath, $"{ns}.Presentation.Api.csproj"),
             CachingPackageId, fileWriter, dotNetRunner, console);
+        EnsureInfraDataReferencesApplication(ns, appPath, infraDataPath);
         ExtensionHelpers.WriteFiles(GetFiles(ns, appPath, infraDataPath, presentationPath), solutionDir, fileWriter, console);
         InjectAppSettings(presentationPath);
         InjectProgramCs(ns, presentationPath);
 
         return new ExtensionApplyResult(true);
+    }
+
+    private void EnsureInfraDataReferencesApplication(string ns, string appPath, string infraDataPath)
+    {
+        var infraCsproj = Path.Combine(infraDataPath, $"{ns}.Infra.Data.csproj");
+        var appCsproj = Path.Combine(appPath, $"{ns}.Application.csproj");
+
+        if (!fileWriter.FileExists(infraCsproj) || !fileWriter.FileExists(appCsproj)) return;
+
+        var content = fileWriter.ReadAllText(infraCsproj);
+        if (content.Contains($"{ns}.Application.csproj", StringComparison.OrdinalIgnoreCase)) return;
+
+        var (ok, err) = dotNetRunner.Run($"add \"{infraCsproj}\" reference \"{appCsproj}\"");
+        if (!ok)
+            console.MarkupLine(string.Format(SR.Current.ExtensionPackageAddWarning, $"{ns}.Application", err));
     }
 
     private void InjectAppSettings(string presentationPath)
