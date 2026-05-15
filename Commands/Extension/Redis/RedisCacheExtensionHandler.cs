@@ -19,35 +19,20 @@ public sealed class RedisCacheExtensionHandler(
 
     public ExtensionApplyResult Apply(ExtensionContext context)
     {
-        if (context.SolutionDir is null || context.RootNamespace is null)
+        var paths = ExtensionHelpers.ResolveSolutionPaths(context);
+        if (paths is null)
             return new ExtensionApplyResult(false, SR.Current.ExtensionRequiresOpenBaseProject);
 
-        var ns = context.RootNamespace;
-        var src = Path.Combine(context.SolutionDir, "src");
-        var appPath = Path.Combine(src, $"{ns}.Application");
-        var infraDataPath = Path.Combine(src, $"{ns}.Infra.Data");
-        var presentationPath = Path.Combine(src, $"{ns}.Presentation.Api");
+        var (ns, solutionDir, appPath, infraDataPath, presentationPath) = paths.Value;
 
-        AddNuGetPackages(ns, presentationPath);
-        ExtensionHelpers.WriteFiles(GetFiles(ns, appPath, infraDataPath, presentationPath), context.SolutionDir, fileWriter, console);
+        ExtensionHelpers.AddPackage(
+            Path.Combine(presentationPath, $"{ns}.Presentation.Api.csproj"),
+            CachingPackageId, fileWriter, dotNetRunner, console);
+        ExtensionHelpers.WriteFiles(GetFiles(ns, appPath, infraDataPath, presentationPath), solutionDir, fileWriter, console);
         InjectAppSettings(presentationPath);
         InjectProgramCs(ns, presentationPath);
 
         return new ExtensionApplyResult(true);
-    }
-
-    private void AddNuGetPackages(string ns, string presentationPath)
-    {
-        var presentationCsproj = Path.Combine(presentationPath, $"{ns}.Presentation.Api.csproj");
-        if (!fileWriter.FileExists(presentationCsproj)) return;
-
-        var content = fileWriter.ReadAllText(presentationCsproj);
-        if (content.Contains(CachingPackageId)) return;
-
-        console.MarkupLine(string.Format(SR.Current.ExtensionAddingPackage, CachingPackageId, Path.GetFileName(presentationCsproj)));
-        var (ok, err) = dotNetRunner.Run($"add \"{presentationCsproj}\" package {CachingPackageId}");
-        if (!ok)
-            console.MarkupLine(string.Format(SR.Current.ExtensionPackageAddWarning, CachingPackageId, err));
     }
 
     private void InjectAppSettings(string presentationPath)
@@ -81,34 +66,15 @@ public sealed class RedisCacheExtensionHandler(
         }
     }
 
-    private void InjectProgramCs(string ns, string presentationPath)
-    {
-        var path = Path.Combine(presentationPath, "Program.cs");
-        if (!fileWriter.FileExists(path))
-        {
-            console.MarkupLine(SR.Current.RedisProgramCsNotFound);
-            return;
-        }
-
-        try
-        {
-            var content = fileWriter.ReadAllText(path);
-            if (IsProgramCsAlreadyConfigured(content, ns))
-            {
-                console.MarkupLine(SR.Current.RedisProgramCsAlreadyConfigured);
-                return;
-            }
-
-            content = ExtensionHelpers.InjectPresentationUsing(content, ns);
-            content = InjectAddRedisCache(content);
-            fileWriter.WriteAllText(path, content);
-            console.MarkupLine(SR.Current.RedisProgramCsInjected);
-        }
-        catch (Exception ex)
-        {
-            console.MarkupLine(string.Format(SR.Current.RedisProgramCsWarning, ex.Message));
-        }
-    }
+    private void InjectProgramCs(string ns, string presentationPath) =>
+        ExtensionHelpers.InjectProgramCs(
+            presentationPath, fileWriter, console,
+            SR.Current.RedisProgramCsNotFound,
+            SR.Current.RedisProgramCsAlreadyConfigured,
+            SR.Current.RedisProgramCsInjected,
+            SR.Current.RedisProgramCsWarning,
+            content => IsProgramCsAlreadyConfigured(content, ns),
+            content => InjectAddRedisCache(ExtensionHelpers.InjectPresentationUsing(content, ns)));
 
     private static bool IsProgramCsAlreadyConfigured(string content, string ns) =>
         content.Contains("AddRedisCache") &&

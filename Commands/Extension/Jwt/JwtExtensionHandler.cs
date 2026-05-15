@@ -19,44 +19,29 @@ public sealed class JwtExtensionHandler(
 
     public ExtensionApplyResult Apply(ExtensionContext context)
     {
-        if (context.SolutionDir is null || context.RootNamespace is null)
+        var paths = ExtensionHelpers.ResolveSolutionPaths(context);
+        if (paths is null)
             return new ExtensionApplyResult(false, SR.Current.ExtensionRequiresOpenBaseProject);
 
-        var ns = context.RootNamespace;
-        var src = Path.Combine(context.SolutionDir, "src");
-        var appPath = Path.Combine(src, $"{ns}.Application");
-        var infraDataPath = Path.Combine(src, $"{ns}.Infra.Data");
-        var presentationPath = Path.Combine(src, $"{ns}.Presentation.Api");
+        var (ns, solutionDir, appPath, infraDataPath, presentationPath) = paths.Value;
 
         AddNuGetPackages(ns, infraDataPath, presentationPath);
-        ExtensionHelpers.WriteFiles(GetFiles(ns, appPath, infraDataPath, presentationPath), context.SolutionDir, fileWriter, console);
+        ExtensionHelpers.WriteFiles(GetFiles(ns, appPath, infraDataPath, presentationPath), solutionDir, fileWriter, console);
         InjectAppSettings(presentationPath, ns);
         InjectProgramCs(presentationPath);
-        ProtectExistingControllers(presentationPath, context.SolutionDir);
+        ProtectExistingControllers(presentationPath, solutionDir);
 
         return new ExtensionApplyResult(true);
     }
 
     private void AddNuGetPackages(string ns, string infraDataPath, string presentationPath)
     {
-        var targets = new[]
+        foreach (var csproj in new[]
         {
             Path.Combine(infraDataPath, $"{ns}.Infra.Data.csproj"),
             Path.Combine(presentationPath, $"{ns}.Presentation.Api.csproj"),
-        };
-
-        foreach (var csproj in targets)
-        {
-            if (!fileWriter.FileExists(csproj)) continue;
-
-            var content = fileWriter.ReadAllText(csproj);
-            if (content.Contains(PackageId)) continue;
-
-            console.MarkupLine(string.Format(SR.Current.ExtensionAddingPackage, PackageId, Path.GetFileName(csproj)));
-            var (ok, err) = dotNetRunner.Run($"add \"{csproj}\" package {PackageId}");
-            if (!ok)
-                console.MarkupLine(string.Format(SR.Current.ExtensionPackageAddWarning, PackageId, err));
-        }
+        })
+            ExtensionHelpers.AddPackage(csproj, PackageId, fileWriter, dotNetRunner, console);
     }
 
     private void InjectAppSettings(string presentationPath, string ns)

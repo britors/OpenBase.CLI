@@ -16,18 +16,16 @@ public sealed class HealthChecksExtensionHandler(
 
     public ExtensionApplyResult Apply(ExtensionContext context)
     {
-        if (context.SolutionDir is null || context.RootNamespace is null)
+        var paths = ExtensionHelpers.ResolveSolutionPaths(context);
+        if (paths is null)
             return new ExtensionApplyResult(false, SR.Current.ExtensionRequiresOpenBaseProject);
 
-        var ns = context.RootNamespace;
-        var src = Path.Combine(context.SolutionDir, "src");
-        var infraDataPath = Path.Combine(src, $"{ns}.Infra.Data");
-        var presentationPath = Path.Combine(src, $"{ns}.Presentation.Api");
+        var (ns, solutionDir, _, infraDataPath, presentationPath) = paths.Value;
 
         var detected = DetectServices(context, ns, infraDataPath);
 
         AddNuGetPackages(ns, presentationPath, detected);
-        ExtensionHelpers.WriteFiles(GetFiles(ns, presentationPath, detected), context.SolutionDir, fileWriter, console);
+        ExtensionHelpers.WriteFiles(GetFiles(ns, presentationPath, detected), solutionDir, fileWriter, console);
         InjectProgramCs(ns, presentationPath);
 
         return new ExtensionApplyResult(true);
@@ -53,9 +51,6 @@ public sealed class HealthChecksExtensionHandler(
     private void AddNuGetPackages(string ns, string presentationPath, DetectedServices detected)
     {
         var presentationCsproj = Path.Combine(presentationPath, $"{ns}.Presentation.Api.csproj");
-        if (!fileWriter.FileExists(presentationCsproj)) return;
-
-        var csprojContent = fileWriter.ReadAllText(presentationCsproj);
 
         var packages = new List<string>
         {
@@ -68,45 +63,19 @@ public sealed class HealthChecksExtensionHandler(
         if (detected.HasRabbitMq) packages.Add("AspNetCore.HealthChecks.RabbitMQ");
 
         foreach (var packageId in packages)
-        {
-            if (csprojContent.Contains(packageId)) continue;
-
-            console.MarkupLine(string.Format(SR.Current.ExtensionAddingPackage, packageId, Path.GetFileName(presentationCsproj)));
-            var (ok, err) = dotNetRunner.Run($"add \"{presentationCsproj}\" package {packageId}");
-            if (!ok)
-                console.MarkupLine(string.Format(SR.Current.ExtensionPackageAddWarning, packageId, err));
-        }
+            ExtensionHelpers.AddPackage(presentationCsproj, packageId, fileWriter, dotNetRunner, console);
     }
 
-    private void InjectProgramCs(string ns, string presentationPath)
-    {
-        var path = Path.Combine(presentationPath, "Program.cs");
-        if (!fileWriter.FileExists(path))
-        {
-            console.MarkupLine(SR.Current.HealthChecksProgramCsNotFound);
-            return;
-        }
-
-        try
-        {
-            var content = fileWriter.ReadAllText(path);
-            if (IsProgramCsAlreadyConfigured(content, ns))
-            {
-                console.MarkupLine(SR.Current.HealthChecksProgramCsAlreadyConfigured);
-                return;
-            }
-
-            content = ExtensionHelpers.InjectPresentationUsing(content, ns);
-            content = InjectAddHealthChecks(content);
-            content = InjectMapHealthChecks(content);
-            fileWriter.WriteAllText(path, content);
-            console.MarkupLine(SR.Current.HealthChecksProgramCsInjected);
-        }
-        catch (Exception ex)
-        {
-            console.MarkupLine(string.Format(SR.Current.HealthChecksProgramCsWarning, ex.Message));
-        }
-    }
+    private void InjectProgramCs(string ns, string presentationPath) =>
+        ExtensionHelpers.InjectProgramCs(
+            presentationPath, fileWriter, console,
+            SR.Current.HealthChecksProgramCsNotFound,
+            SR.Current.HealthChecksProgramCsAlreadyConfigured,
+            SR.Current.HealthChecksProgramCsInjected,
+            SR.Current.HealthChecksProgramCsWarning,
+            content => IsProgramCsAlreadyConfigured(content, ns),
+            content => InjectMapHealthChecks(InjectAddHealthChecks(
+                ExtensionHelpers.InjectPresentationUsing(content, ns))));
 
     private static bool IsProgramCsAlreadyConfigured(string content, string ns) =>
         content.Contains("AddOpenBaseHealthChecks") &&

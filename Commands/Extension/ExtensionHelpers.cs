@@ -1,3 +1,4 @@
+using OpenBase.CLI.Helpers.Execution;
 using OpenBase.CLI.Helpers.IO;
 using OpenBase.CLI.Localization;
 using Spectre.Console;
@@ -6,6 +7,18 @@ namespace OpenBase.CLI.Commands.Extension;
 
 internal static class ExtensionHelpers
 {
+    internal static (string Ns, string SolutionDir, string AppPath, string InfraDataPath, string PresentationPath)?
+        ResolveSolutionPaths(ExtensionContext context)
+    {
+        if (context.SolutionDir is null || context.RootNamespace is null) return null;
+        var ns = context.RootNamespace;
+        var src = Path.Combine(context.SolutionDir, "src");
+        return (ns, context.SolutionDir,
+            Path.Combine(src, $"{ns}.Application"),
+            Path.Combine(src, $"{ns}.Infra.Data"),
+            Path.Combine(src, $"{ns}.Presentation.Api"));
+    }
+
     internal static void WriteFiles(
         IEnumerable<(string Path, string Content)> files,
         string solutionDir,
@@ -22,6 +35,60 @@ internal static class ExtensionHelpers
             fileWriter.EnsureDirectory(Path.GetDirectoryName(path)!);
             fileWriter.WriteAllText(path, content);
             console.MarkupLine(string.Format(SR.Current.ExtensionFileCreated, Path.GetRelativePath(solutionDir, path)));
+        }
+    }
+
+    internal static void AddPackage(
+        string csprojPath,
+        string packageId,
+        IFileWriter fileWriter,
+        IDotNetRunner dotNetRunner,
+        IAnsiConsole console)
+    {
+        if (!fileWriter.FileExists(csprojPath)) return;
+        var content = fileWriter.ReadAllText(csprojPath);
+        if (content.Contains(packageId)) return;
+
+        console.MarkupLine(string.Format(SR.Current.ExtensionAddingPackage, packageId, Path.GetFileName(csprojPath)));
+        var (ok, err) = dotNetRunner.Run($"add \"{csprojPath}\" package {packageId}");
+        if (!ok)
+            console.MarkupLine(string.Format(SR.Current.ExtensionPackageAddWarning, packageId, err));
+    }
+
+    internal static void InjectProgramCs(
+        string presentationPath,
+        IFileWriter fileWriter,
+        IAnsiConsole console,
+        string notFoundMessage,
+        string alreadyConfiguredMessage,
+        string injectedMessage,
+        string warningMessageFormat,
+        Func<string, bool> isConfigured,
+        Func<string, string> transform)
+    {
+        var path = Path.Combine(presentationPath, "Program.cs");
+        if (!fileWriter.FileExists(path))
+        {
+            console.MarkupLine(notFoundMessage);
+            return;
+        }
+
+        try
+        {
+            var content = fileWriter.ReadAllText(path);
+            if (isConfigured(content))
+            {
+                console.MarkupLine(alreadyConfiguredMessage);
+                return;
+            }
+
+            content = transform(content);
+            fileWriter.WriteAllText(path, content);
+            console.MarkupLine(injectedMessage);
+        }
+        catch (Exception ex)
+        {
+            console.MarkupLine(string.Format(warningMessageFormat, ex.Message));
         }
     }
 
