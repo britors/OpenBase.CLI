@@ -113,57 +113,15 @@ public sealed class JwtExtensionHandler(
 
         try
         {
-            const string addJwtCall = "builder.Services.AddJwtAuthentication(builder.Configuration);";
-            const string useAuthCall = "app.UseAuthentication();";
-            const string useAuthzCall = "app.UseAuthorization();";
-            const string buildAnchor = "var app = builder.Build();";
-            const string mapAnchor = "app.MapControllers();";
-
             var content = fileWriter.ReadAllText(path);
-
-            var alreadyHasAll = content.Contains(addJwtCall)
-                && content.Contains(useAuthCall)
-                && content.Contains(useAuthzCall);
-
-            if (alreadyHasAll)
+            if (IsProgramCsAlreadyConfigured(content))
             {
                 console.MarkupLine(SR.Current.JwtProgramCsAlreadyConfigured);
                 return;
             }
 
-            if (!content.Contains(addJwtCall))
-            {
-                var idx = content.IndexOf(buildAnchor, StringComparison.Ordinal);
-                if (idx >= 0)
-                    content = content.Insert(idx, $"{addJwtCall}\n");
-            }
-
-            var needsAuth = !content.Contains(useAuthCall);
-            var needsAuthz = !content.Contains(useAuthzCall);
-
-            if (needsAuth || needsAuthz)
-            {
-                if (!needsAuth)
-                {
-                    // UseAuthentication already present — insert UseAuthorization right after it
-                    var authIdx = content.IndexOf(useAuthCall, StringComparison.Ordinal);
-                    var afterLine = authIdx + useAuthCall.Length;
-                    if (afterLine < content.Length && content[afterLine] == '\r') afterLine++;
-                    if (afterLine < content.Length && content[afterLine] == '\n') afterLine++;
-                    content = content.Insert(afterLine, $"{useAuthzCall}\n");
-                }
-                else
-                {
-                    var mapIdx = content.IndexOf(mapAnchor, StringComparison.Ordinal);
-                    if (mapIdx >= 0)
-                    {
-                        var injection = (needsAuth ? $"{useAuthCall}\n" : string.Empty)
-                                      + (needsAuthz ? $"{useAuthzCall}\n" : string.Empty);
-                        content = content.Insert(mapIdx, injection);
-                    }
-                }
-            }
-
+            content = InjectAddJwt(content);
+            content = InjectUseAuthMiddleware(content);
             fileWriter.WriteAllText(path, content);
             console.MarkupLine(SR.Current.JwtProgramCsInjected);
         }
@@ -173,46 +131,105 @@ public sealed class JwtExtensionHandler(
         }
     }
 
+    private static bool IsProgramCsAlreadyConfigured(string content) =>
+        content.Contains("builder.Services.AddJwtAuthentication(builder.Configuration);")
+        && content.Contains("app.UseAuthentication();")
+        && content.Contains("app.UseAuthorization();");
+
+    private static string InjectAddJwt(string content)
+    {
+        const string addJwtCall = "builder.Services.AddJwtAuthentication(builder.Configuration);";
+        if (content.Contains(addJwtCall)) return content;
+
+        const string buildAnchor = "var app = builder.Build();";
+        var idx = content.IndexOf(buildAnchor, StringComparison.Ordinal);
+        return idx >= 0 ? content.Insert(idx, $"{addJwtCall}\n") : content;
+    }
+
+    private static string InjectUseAuthMiddleware(string content)
+    {
+        const string useAuthCall = "app.UseAuthentication();";
+        const string useAuthzCall = "app.UseAuthorization();";
+        const string mapAnchor = "app.MapControllers();";
+
+        var needsAuth = !content.Contains(useAuthCall);
+        var needsAuthz = !content.Contains(useAuthzCall);
+
+        if (!needsAuth && !needsAuthz) return content;
+
+        if (!needsAuth)
+            return InsertAfterLine(content, useAuthCall, useAuthzCall);
+
+        var injection = $"{useAuthCall}\n{(needsAuthz ? useAuthzCall + "\n" : string.Empty)}";
+        return InsertBeforeAnchor(content, mapAnchor, injection);
+    }
+
     private void ProtectExistingControllers(string presentationPath, string solutionDir)
     {
         var controllersDir = Path.Combine(presentationPath, "Controllers");
         var files = fileWriter.GetFiles(controllersDir, "*Controller.cs");
 
         foreach (var filePath in files)
-        {
-            var content = fileWriter.ReadAllText(filePath);
+            ProtectController(filePath, solutionDir);
+    }
 
-            if (!content.Contains("ControllerBase")) continue;
-            if (content.Contains("[Authorize]")) continue;
+    private void ProtectController(string filePath, string solutionDir)
+    {
+        var content = fileWriter.ReadAllText(filePath);
 
-            const string authUsing = "using Microsoft.AspNetCore.Authorization;";
-            if (!content.Contains(authUsing))
-            {
-                const string mvcUsing = "using Microsoft.AspNetCore.Mvc;";
-                var usingIdx = content.IndexOf(mvcUsing, StringComparison.Ordinal);
-                if (usingIdx >= 0)
-                {
-                    var afterLine = usingIdx + mvcUsing.Length;
-                    if (afterLine < content.Length && content[afterLine] == '\r') afterLine++;
-                    if (afterLine < content.Length && content[afterLine] == '\n') afterLine++;
-                    content = content.Insert(afterLine, $"{authUsing}\n");
-                }
-            }
+        if (!content.Contains("ControllerBase") || content.Contains("[Authorize]"))
+            return;
 
-            const string apiControllerAttr = "[ApiController]";
-            var apiCtrlIdx = content.IndexOf(apiControllerAttr, StringComparison.Ordinal);
-            if (apiCtrlIdx >= 0)
-            {
-                var afterAttr = apiCtrlIdx + apiControllerAttr.Length;
-                if (afterAttr < content.Length && content[afterAttr] == '\r') afterAttr++;
-                if (afterAttr < content.Length && content[afterAttr] == '\n') afterAttr++;
-                content = content.Insert(afterAttr, "[Authorize]\n");
-            }
+        content = InjectAuthorizationUsing(content);
+        content = InjectAuthorizeAttribute(content);
 
-            fileWriter.WriteAllText(filePath, content);
-            console.MarkupLine(string.Format(SR.Current.JwtControllerProtected,
-                Path.GetRelativePath(solutionDir, filePath)));
-        }
+        fileWriter.WriteAllText(filePath, content);
+        console.MarkupLine(string.Format(SR.Current.JwtControllerProtected,
+            Path.GetRelativePath(solutionDir, filePath)));
+    }
+
+    private static string InjectAuthorizationUsing(string content)
+    {
+        const string authUsing = "using Microsoft.AspNetCore.Authorization;";
+        if (content.Contains(authUsing)) return content;
+
+        const string mvcUsing = "using Microsoft.AspNetCore.Mvc;";
+        var usingIdx = content.IndexOf(mvcUsing, StringComparison.Ordinal);
+        if (usingIdx < 0) return content;
+
+        var afterLine = SkipNewLine(content, usingIdx + mvcUsing.Length);
+        return content.Insert(afterLine, $"{authUsing}\n");
+    }
+
+    private static string InjectAuthorizeAttribute(string content)
+    {
+        const string apiControllerAttr = "[ApiController]";
+        var apiCtrlIdx = content.IndexOf(apiControllerAttr, StringComparison.Ordinal);
+        if (apiCtrlIdx < 0) return content;
+
+        var afterAttr = SkipNewLine(content, apiCtrlIdx + apiControllerAttr.Length);
+        return content.Insert(afterAttr, "[Authorize]\n");
+    }
+
+    private static string InsertAfterLine(string content, string anchor, string toInsert)
+    {
+        var idx = content.IndexOf(anchor, StringComparison.Ordinal);
+        if (idx < 0) return content;
+        var afterLine = SkipNewLine(content, idx + anchor.Length);
+        return content.Insert(afterLine, $"{toInsert}\n");
+    }
+
+    private static string InsertBeforeAnchor(string content, string anchor, string toInsert)
+    {
+        var idx = content.IndexOf(anchor, StringComparison.Ordinal);
+        return idx >= 0 ? content.Insert(idx, toInsert) : content;
+    }
+
+    private static int SkipNewLine(string content, int idx)
+    {
+        if (idx < content.Length && content[idx] == '\r') idx++;
+        if (idx < content.Length && content[idx] == '\n') idx++;
+        return idx;
     }
 
     public static IEnumerable<(string Path, string Content)> GetFiles(

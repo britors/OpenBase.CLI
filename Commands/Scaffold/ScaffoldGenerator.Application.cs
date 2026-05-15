@@ -91,29 +91,32 @@ public sealed partial class ScaffoldGenerator
         $"Update{ctx.Entity}Feature", $"Update{ctx.Entity}Command", IdAndPropertiesParams(), $"Update{ctx.Entity}Response");
 
 
-    private string CreateCommandHandlerTemplate() => $$"""
+    private string MapperCommandHandlerTemplate(string verb, string serviceMethod, string resultPrefix) => $$"""
         using AutoMapper;
         using MediatR;
         using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
         using {{ctx.NS}}.Domain.Entities;
         using {{ctx.NS}}.Domain.Interfaces.Services;
 
-        namespace {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Create{{ctx.Entity}}Feature;
+        namespace {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.{{verb}}{{ctx.Entity}}Feature;
 
-        public sealed class Create{{ctx.Entity}}CommandHandler(
+        public sealed class {{verb}}{{ctx.Entity}}CommandHandler(
                 I{{ctx.Entity}}DomainService {{ctx.ECamel}}DomainService,
                 IMapper mapper)
-            : IRequestHandler<Create{{ctx.Entity}}Command, Create{{ctx.Entity}}Response?>
+            : IRequestHandler<{{verb}}{{ctx.Entity}}Command, {{verb}}{{ctx.Entity}}Response?>
         {
-            public async Task<Create{{ctx.Entity}}Response?>
-                Handle(Create{{ctx.Entity}}Command request, CancellationToken cancellationToken)
+            public async Task<{{verb}}{{ctx.Entity}}Response?>
+                Handle({{verb}}{{ctx.Entity}}Command request, CancellationToken cancellationToken)
             {
                 var {{ctx.ECamel}} = mapper.Map<{{ctx.Entity}}>(request);
-                var new{{ctx.Entity}} = await {{ctx.ECamel}}DomainService.AddAsync({{ctx.ECamel}}, cancellationToken);
-                return mapper.Map<Create{{ctx.Entity}}Response>(new{{ctx.Entity}});
+                var {{resultPrefix}}{{ctx.Entity}} = await {{ctx.ECamel}}DomainService.{{serviceMethod}}({{ctx.ECamel}}, cancellationToken);
+                return mapper.Map<{{verb}}{{ctx.Entity}}Response>({{resultPrefix}}{{ctx.Entity}});
             }
         }
         """;
+
+    private string CreateCommandHandlerTemplate() =>
+        MapperCommandHandlerTemplate("Create", "AddAsync", "new");
 
     private string DeleteCommandHandlerTemplate() => $$"""
         using MediatR;
@@ -180,29 +183,8 @@ public sealed partial class ScaffoldGenerator
         }
         """;
 
-    private string UpdateCommandHandlerTemplate() => $$"""
-        using AutoMapper;
-        using MediatR;
-        using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
-        using {{ctx.NS}}.Domain.Entities;
-        using {{ctx.NS}}.Domain.Interfaces.Services;
-
-        namespace {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Update{{ctx.Entity}}Feature;
-
-        internal sealed class Update{{ctx.Entity}}CommandHandler(
-                I{{ctx.Entity}}DomainService {{ctx.ECamel}}DomainService,
-                IMapper mapper)
-            : IRequestHandler<Update{{ctx.Entity}}Command, Update{{ctx.Entity}}Response?>
-        {
-            public async Task<Update{{ctx.Entity}}Response?>
-                Handle(Update{{ctx.Entity}}Command request, CancellationToken cancellationToken)
-            {
-                var {{ctx.ECamel}} = mapper.Map<{{ctx.Entity}}>(request);
-                var updated{{ctx.Entity}} = await {{ctx.ECamel}}DomainService.UpdateAsync({{ctx.ECamel}}, cancellationToken);
-                return mapper.Map<Update{{ctx.Entity}}Response>(updated{{ctx.Entity}});
-            }
-        }
-        """;
+    private string UpdateCommandHandlerTemplate() =>
+        MapperCommandHandlerTemplate("Update", "UpdateAsync", "updated");
 
 
     private string FindByIdQueryTemplate() => $$"""
