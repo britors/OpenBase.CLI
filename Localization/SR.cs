@@ -156,6 +156,13 @@ public interface IStrings
     string ExtensionFileCreated { get; }             // {0}=relative path
     string CmdExtensionDescription { get; }
     string CmdExtensionAddDescription { get; }
+    string CmdExtensionListDescription { get; }
+
+    string ExtensionListColName { get; }
+    string ExtensionListColCommand { get; }
+    string ExtensionListColStatus { get; }
+    string ExtensionListStatusInstalled { get; }
+    string ExtensionListStatusAvailable { get; }
 
     string JwtProgramCsInjected { get; }
     string JwtProgramCsAlreadyConfigured { get; }
@@ -164,6 +171,11 @@ public interface IStrings
     string JwtAppSettingsInjected { get; }
     string JwtAppSettingsWarning { get; }            // {0}=error
     string JwtControllerProtected { get; }           // {0}=relative path
+
+    string HealthChecksProgramCsInjected { get; }
+    string HealthChecksProgramCsAlreadyConfigured { get; }
+    string HealthChecksProgramCsNotFound { get; }
+    string HealthChecksProgramCsWarning { get; }     // {0}=error
 }
 
 
@@ -323,6 +335,13 @@ public abstract class BaseStrings(IReadOnlyDictionary<string, string> overrides)
     public string ExtensionFileCreated        => "  [green]+[/] {0}";
     public string CmdExtensionDescription     => T("Manages installable extensions for an OpenBase project.");
     public string CmdExtensionAddDescription  => T("Adds an extension to the current project.");
+    public string CmdExtensionListDescription => T("Lists all available extensions and their installation status.");
+
+    public string ExtensionListColName        => T("[bold]Extension[/]");
+    public string ExtensionListColCommand     => T("[bold]Command[/]");
+    public string ExtensionListColStatus      => T("[bold]Status[/]");
+    public string ExtensionListStatusInstalled => "[green]installed[/]";
+    public string ExtensionListStatusAvailable => "[grey]available[/]";
 
     public string JwtProgramCsInjected        => T("  [green]+[/] Program.cs updated with JWT configuration");
     public string JwtProgramCsAlreadyConfigured => T("  [yellow]skipped[/] Program.cs already has JWT configuration");
@@ -331,6 +350,11 @@ public abstract class BaseStrings(IReadOnlyDictionary<string, string> overrides)
     public string JwtAppSettingsInjected      => T("  [green]+[/] Jwt section added to appsettings.json");
     public string JwtAppSettingsWarning       => T("  [yellow]Warning:[/] Could not modify appsettings.json: {0}");
     public string JwtControllerProtected      => T("  [green]+[/] {0} protected with [[Authorize]]");
+
+    public string HealthChecksProgramCsInjected          => T("  [green]+[/] Program.cs updated with Health Checks configuration");
+    public string HealthChecksProgramCsAlreadyConfigured => T("  [yellow]skipped[/] Program.cs already has Health Checks configuration");
+    public string HealthChecksProgramCsNotFound          => T("  [yellow]Warning:[/] Program.cs not found — add manually: builder.Services.AddOpenBaseHealthChecks(builder.Configuration); app.MapOpenBaseHealthChecks();");
+    public string HealthChecksProgramCsWarning           => T("  [yellow]Warning:[/] Could not modify Program.cs: {0}");
 }
 
 
@@ -471,6 +495,12 @@ public sealed class PtBrStrings() : BaseStrings(new Dictionary<string, string>
     ["ExtensionFileSkipped"]         = "  [yellow]ignorado[/] {0} (já existe)",
     ["CmdExtensionDescription"]      = "Gerencia extensões instaláveis para um projeto OpenBase.",
     ["CmdExtensionAddDescription"]   = "Adiciona uma extensão ao projeto atual.",
+    ["CmdExtensionListDescription"]  = "Lista todas as extensões disponíveis e seu status de instalação.",
+    ["ExtensionListColName"]         = "[bold]Extensão[/]",
+    ["ExtensionListColCommand"]      = "[bold]Comando[/]",
+    ["ExtensionListColStatus"]       = "[bold]Status[/]",
+    ["ExtensionListStatusInstalled"] = "[green]instalada[/]",
+    ["ExtensionListStatusAvailable"] = "[grey]disponível[/]",
     ["JwtProgramCsInjected"]         = "  [green]+[/] Program.cs atualizado com configuração JWT",
     ["JwtProgramCsAlreadyConfigured"] = "  [yellow]ignorado[/] Program.cs já possui configuração JWT",
     ["JwtProgramCsNotFound"]         = "  [yellow]Aviso:[/] Program.cs não encontrado — adicione manualmente: builder.Services.AddJwtAuthentication(builder.Configuration); app.UseAuthentication(); app.UseAuthorization();",
@@ -478,6 +508,10 @@ public sealed class PtBrStrings() : BaseStrings(new Dictionary<string, string>
     ["JwtAppSettingsInjected"]       = "  [green]+[/] Seção Jwt adicionada ao appsettings.json",
     ["JwtAppSettingsWarning"]        = "  [yellow]Aviso:[/] Não foi possível modificar appsettings.json: {0}",
     ["JwtControllerProtected"]       = "  [green]+[/] {0} protegida com [[Authorize]]",
+    ["HealthChecksProgramCsInjected"]          = "  [green]+[/] Program.cs atualizado com configuração de Health Checks",
+    ["HealthChecksProgramCsAlreadyConfigured"] = "  [yellow]ignorado[/] Program.cs já possui configuração de Health Checks",
+    ["HealthChecksProgramCsNotFound"]          = "  [yellow]Aviso:[/] Program.cs não encontrado — adicione manualmente: builder.Services.AddOpenBaseHealthChecks(builder.Configuration); app.MapOpenBaseHealthChecks();",
+    ["HealthChecksProgramCsWarning"]           = "  [yellow]Aviso:[/] Não foi possível modificar Program.cs: {0}",
 }) { }
 
 
@@ -616,6 +650,12 @@ public sealed class EsStrings() : BaseStrings(new Dictionary<string, string>
     ["ExtensionFileSkipped"]         = "  [yellow]ignorado[/] {0} (ya existe)",
     ["CmdExtensionDescription"]      = "Gestiona extensiones instalables para un proyecto OpenBase.",
     ["CmdExtensionAddDescription"]   = "Agrega una extensión al proyecto actual.",
+    ["CmdExtensionListDescription"]  = "Lista todas las extensiones disponibles y su estado de instalación.",
+    ["ExtensionListColName"]         = "[bold]Extensión[/]",
+    ["ExtensionListColCommand"]      = "[bold]Comando[/]",
+    ["ExtensionListColStatus"]       = "[bold]Estado[/]",
+    ["ExtensionListStatusInstalled"] = "[green]instalada[/]",
+    ["ExtensionListStatusAvailable"] = "[grey]disponible[/]",
     ["JwtProgramCsInjected"]         = "  [green]+[/] Program.cs actualizado con configuración JWT",
     ["JwtProgramCsAlreadyConfigured"] = "  [yellow]ignorado[/] Program.cs ya tiene configuración JWT",
     ["JwtProgramCsNotFound"]         = "  [yellow]Aviso:[/] Program.cs no encontrado — agregue manualmente: builder.Services.AddJwtAuthentication(builder.Configuration); app.UseAuthentication(); app.UseAuthorization();",
@@ -623,6 +663,10 @@ public sealed class EsStrings() : BaseStrings(new Dictionary<string, string>
     ["JwtAppSettingsInjected"]       = "  [green]+[/] Sección Jwt agregada a appsettings.json",
     ["JwtAppSettingsWarning"]        = "  [yellow]Aviso:[/] No se pudo modificar appsettings.json: {0}",
     ["JwtControllerProtected"]       = "  [green]+[/] {0} protegida con [[Authorize]]",
+    ["HealthChecksProgramCsInjected"]          = "  [green]+[/] Program.cs actualizado con configuración de Health Checks",
+    ["HealthChecksProgramCsAlreadyConfigured"] = "  [yellow]ignorado[/] Program.cs ya tiene configuración de Health Checks",
+    ["HealthChecksProgramCsNotFound"]          = "  [yellow]Aviso:[/] Program.cs no encontrado — agregue manualmente: builder.Services.AddOpenBaseHealthChecks(builder.Configuration); app.MapOpenBaseHealthChecks();",
+    ["HealthChecksProgramCsWarning"]           = "  [yellow]Aviso:[/] No se pudo modificar Program.cs: {0}",
 }) { }
 
 

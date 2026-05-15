@@ -155,9 +155,10 @@ The command:
 
 #### Available extensions
 
-| Extension | Command                        | Description                            |
-|-----------|--------------------------------|----------------------------------------|
-| `jwt`     | `openbase extension add jwt`   | JWT Bearer authentication              |
+| Extension      | Command                               | Description                            |
+|----------------|---------------------------------------|----------------------------------------|
+| `jwt`          | `openbase extension add jwt`          | JWT Bearer authentication              |
+| `healthchecks` | `openbase extension add healthchecks` | Health Checks with UI dashboard        |
 
 #### `jwt` — JWT Authentication
 
@@ -199,6 +200,43 @@ app.UseAuthorization();
 - New controllers generated with `openbase scaffold` are automatically created with `[Authorize]` when the JWT extension is installed.
 
 > **After installation**, update the `Jwt:Secret` in `appsettings.json` with a strong secret (at least 32 characters).
+
+#### `healthchecks` — Health Checks
+
+```bash
+openbase extension add healthchecks
+```
+
+Automatically detects installed services and adds the corresponding checks:
+
+| Detected service | How it's detected                              | Package added                              |
+|------------------|------------------------------------------------|--------------------------------------------|
+| SQL Server       | `Microsoft.EntityFrameworkCore.SqlServer` in `Infra.Data.csproj` | `AspNetCore.HealthChecks.SqlServer` |
+| PostgreSQL       | `Npgsql.EntityFrameworkCore` in `Infra.Data.csproj`              | `AspNetCore.HealthChecks.NpgSql`    |
+| Redis            | `redis` extension installed via registry       | `AspNetCore.HealthChecks.Redis`            |
+| RabbitMQ         | `rabbitmq` extension installed via registry    | `AspNetCore.HealthChecks.RabbitMQ`         |
+
+Generates:
+
+| File                                                        | Layer        | Description                                           |
+|-------------------------------------------------------------|--------------|-------------------------------------------------------|
+| `Presentation.Api/Extensions/HealthChecksExtensions.cs`     | Presentation | `AddOpenBaseHealthChecks` and `MapOpenBaseHealthChecks` extension methods |
+
+Also automatically injects into `Program.cs`:
+
+```csharp
+builder.Services.AddOpenBaseHealthChecks(builder.Configuration);
+// ...
+app.MapOpenBaseHealthChecks();
+```
+
+Exposes three endpoints:
+
+| Endpoint      | Description                                      |
+|---------------|--------------------------------------------------|
+| `/health`     | Full health report (JSON, compatible with UI)    |
+| `/health/ready` | Only checks tagged as `ready`                  |
+| `/health-ui`  | Visual dashboard (HealthChecks UI)               |
 
 ---
 

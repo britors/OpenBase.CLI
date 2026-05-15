@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using OpenBase.CLI.Commands;
 using OpenBase.CLI.Commands.Extension;
+using OpenBase.CLI.Commands.Extension.HealthChecks;
 using OpenBase.CLI.Commands.Extension.Jwt;
 using OpenBase.CLI.Helpers.Database;
 using OpenBase.CLI.Helpers.Interactive;
@@ -30,6 +31,7 @@ services.AddSingleton<ICsprojLocator, CsprojLocator>();
 services.AddSingleton<ICsprojPackageReader, CsprojPackageReader>();
 services.AddSingleton<IExtensionRegistry, ExtensionRegistry>();
 services.AddSingleton<IExtensionHandler, JwtExtensionHandler>();
+services.AddSingleton<IExtensionHandler, HealthChecksExtensionHandler>();
 
 const string TypeOpt = "--type";
 const string VersionCmd = "version";
@@ -87,6 +89,10 @@ app.Configure(config =>
                  .WithDescription(SR.Current.CmdExtensionAddDescription)
                  .WithExample(ExtensionCmd, "add", "jwt")
                  .WithExample(ExtensionCmd, "add", "cache", "--provider", "redis");
+
+        extension.AddCommand<ExtensionListCommand>("list")
+                 .WithDescription(SR.Current.CmdExtensionListDescription)
+                 .WithExample(ExtensionCmd, "list");
     });
 });
 
