@@ -28,7 +28,7 @@ public sealed class HealthChecksExtensionHandler(
 
         AddNuGetPackages(ns, presentationPath, detected);
         CreateFiles(ns, presentationPath, context.SolutionDir, detected);
-        InjectProgramCs(presentationPath);
+        InjectProgramCs(ns, presentationPath);
 
         return new ExtensionApplyResult(true);
     }
@@ -95,7 +95,7 @@ public sealed class HealthChecksExtensionHandler(
         }
     }
 
-    private void InjectProgramCs(string presentationPath)
+    private void InjectProgramCs(string ns, string presentationPath)
     {
         var path = Path.Combine(presentationPath, "Program.cs");
         if (!fileWriter.FileExists(path))
@@ -107,12 +107,13 @@ public sealed class HealthChecksExtensionHandler(
         try
         {
             var content = fileWriter.ReadAllText(path);
-            if (IsProgramCsAlreadyConfigured(content))
+            if (IsProgramCsAlreadyConfigured(content, ns))
             {
                 console.MarkupLine(SR.Current.HealthChecksProgramCsAlreadyConfigured);
                 return;
             }
 
+            content = InjectUsingDirective(content, ns);
             content = InjectAddHealthChecks(content);
             content = InjectMapHealthChecks(content);
             fileWriter.WriteAllText(path, content);
@@ -124,9 +125,18 @@ public sealed class HealthChecksExtensionHandler(
         }
     }
 
-    private static bool IsProgramCsAlreadyConfigured(string content) =>
+    private static bool IsProgramCsAlreadyConfigured(string content, string ns) =>
         content.Contains("AddOpenBaseHealthChecks") &&
-        content.Contains("MapOpenBaseHealthChecks");
+        content.Contains("MapOpenBaseHealthChecks") &&
+        content.Contains($"using {ns}.Presentation.Api.Extensions;");
+
+    private static string InjectUsingDirective(string content, string ns)
+    {
+        var usingDirective = $"using {ns}.Presentation.Api.Extensions;";
+        if (content.Contains(usingDirective)) return content;
+
+        return content.Insert(0, $"{usingDirective}\n");
+    }
 
     private static string InjectAddHealthChecks(string content)
     {

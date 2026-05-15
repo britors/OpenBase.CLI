@@ -208,8 +208,32 @@ public class HealthChecksExtensionHandlerTests
             It.Is<string>(p => p.EndsWith("Program.cs")),
             It.Is<string>(c =>
                 c.Contains("AddOpenBaseHealthChecks") &&
-                c.Contains("MapOpenBaseHealthChecks"))),
+                c.Contains("MapOpenBaseHealthChecks") &&
+                c.Contains("using MyApp.Presentation.Api.Extensions;"))),
             Times.Once);
+    }
+
+    [Fact]
+    public void Apply_ProgramCs_InjectsUsingDirectiveAtTopOfFile()
+    {
+        const string programCs = """
+            var builder = WebApplication.CreateBuilder(args);
+            builder.Services.AddControllers();
+            var app = builder.Build();
+            app.MapControllers();
+            await app.RunAsync();
+            """;
+        _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith("Program.cs")))).Returns(true);
+        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith("Program.cs")))).Returns(programCs);
+
+        string? written = null;
+        _fileWriter.Setup(f => f.WriteAllText(It.Is<string>(p => p.EndsWith("Program.cs")), It.IsAny<string>()))
+                   .Callback<string, string>((_, c) => written = c);
+
+        CreateHandler().Apply(BuildContext());
+
+        Assert.NotNull(written);
+        Assert.StartsWith("using MyApp.Presentation.Api.Extensions;", written);
     }
 
     [Fact]
@@ -266,6 +290,7 @@ public class HealthChecksExtensionHandlerTests
     public void Apply_ProgramCsAlreadyConfigured_SkipsWrite()
     {
         const string alreadyDone = """
+            using MyApp.Presentation.Api.Extensions;
             builder.Services.AddOpenBaseHealthChecks(builder.Configuration);
             var app = builder.Build();
             app.MapOpenBaseHealthChecks();
