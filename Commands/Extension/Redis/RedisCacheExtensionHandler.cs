@@ -1,0 +1,231 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using OpenBase.CLI.Helpers.Execution;
+using OpenBase.CLI.Helpers.IO;
+using OpenBase.CLI.Localization;
+using Spectre.Console;
+
+namespace OpenBase.CLI.Commands.Extension.Redis;
+
+public sealed class RedisCacheExtensionHandler(
+    IAnsiConsole console,
+    IDotNetRunner dotNetRunner,
+    IFileWriter fileWriter) : IExtensionHandler
+{
+    private const string CachingPackageId = "Microsoft.Extensions.Caching.StackExchangeRedis";
+
+    public string Name => "redis";
+    public IReadOnlyList<string> SupportedProviders => [];
+
+    public ExtensionApplyResult Apply(ExtensionContext context)
+    {
+        if (context.SolutionDir is null || context.RootNamespace is null)
+            return new ExtensionApplyResult(false, SR.Current.ExtensionRequiresOpenBaseProject);
+
+        var ns = context.RootNamespace;
+        var src = Path.Combine(context.SolutionDir, "src");
+        var appPath = Path.Combine(src, $"{ns}.Application");
+        var infraDataPath = Path.Combine(src, $"{ns}.Infra.Data");
+        var presentationPath = Path.Combine(src, $"{ns}.Presentation.Api");
+
+        AddNuGetPackages(ns, presentationPath);
+        CreateFiles(ns, appPath, infraDataPath, presentationPath, context.SolutionDir);
+        InjectAppSettings(presentationPath);
+        InjectProgramCs(ns, presentationPath);
+
+        return new ExtensionApplyResult(true);
+    }
+
+    private void AddNuGetPackages(string ns, string presentationPath)
+    {
+        var presentationCsproj = Path.Combine(presentationPath, $"{ns}.Presentation.Api.csproj");
+        if (!fileWriter.FileExists(presentationCsproj)) return;
+
+        var content = fileWriter.ReadAllText(presentationCsproj);
+        if (content.Contains(CachingPackageId)) return;
+
+        console.MarkupLine(string.Format(SR.Current.ExtensionAddingPackage, CachingPackageId, Path.GetFileName(presentationCsproj)));
+        var (ok, err) = dotNetRunner.Run($"add \"{presentationCsproj}\" package {CachingPackageId}");
+        if (!ok)
+            console.MarkupLine(string.Format(SR.Current.ExtensionPackageAddWarning, CachingPackageId, err));
+    }
+
+    private void CreateFiles(string ns, string appPath, string infraDataPath, string presentationPath, string solutionDir)
+    {
+        foreach (var (path, content) in GetFiles(ns, appPath, infraDataPath, presentationPath))
+        {
+            if (fileWriter.FileExists(path))
+            {
+                console.MarkupLine(string.Format(SR.Current.ExtensionFileSkipped, Path.GetFileName(path)));
+                continue;
+            }
+            fileWriter.EnsureDirectory(Path.GetDirectoryName(path)!);
+            fileWriter.WriteAllText(path, content);
+            console.MarkupLine(string.Format(SR.Current.ExtensionFileCreated, Path.GetRelativePath(solutionDir, path)));
+        }
+    }
+
+    private void InjectAppSettings(string presentationPath)
+    {
+        var path = Path.Combine(presentationPath, "appsettings.json");
+        if (!fileWriter.FileExists(path)) return;
+
+        try
+        {
+            var json = fileWriter.ReadAllText(path);
+            var root = JsonNode.Parse(json)?.AsObject();
+            if (root is null || root.ContainsKey("Redis")) return;
+
+            root["Redis"] = new JsonObject
+            {
+                ["ConnectionString"] = "localhost:6379",
+                ["InstanceName"] = "openbase_"
+            };
+
+            fileWriter.WriteAllText(path, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+            console.MarkupLine(SR.Current.RedisAppSettingsInjected);
+        }
+        catch (Exception ex)
+        {
+            console.MarkupLine(string.Format(SR.Current.RedisAppSettingsWarning, ex.Message));
+        }
+    }
+
+    private void InjectProgramCs(string ns, string presentationPath)
+    {
+        var path = Path.Combine(presentationPath, "Program.cs");
+        if (!fileWriter.FileExists(path))
+        {
+            console.MarkupLine(SR.Current.RedisProgramCsNotFound);
+            return;
+        }
+
+        try
+        {
+            var content = fileWriter.ReadAllText(path);
+            if (IsProgramCsAlreadyConfigured(content, ns))
+            {
+                console.MarkupLine(SR.Current.RedisProgramCsAlreadyConfigured);
+                return;
+            }
+
+            content = InjectUsingDirective(content, ns);
+            content = InjectAddRedisCache(content);
+            fileWriter.WriteAllText(path, content);
+            console.MarkupLine(SR.Current.RedisProgramCsInjected);
+        }
+        catch (Exception ex)
+        {
+            console.MarkupLine(string.Format(SR.Current.RedisProgramCsWarning, ex.Message));
+        }
+    }
+
+    private static bool IsProgramCsAlreadyConfigured(string content, string ns) =>
+        content.Contains("AddRedisCache") &&
+        content.Contains($"using {ns}.Presentation.Api.Extensions;");
+
+    private static string InjectUsingDirective(string content, string ns)
+    {
+        var usingDirective = $"using {ns}.Presentation.Api.Extensions;";
+        if (content.Contains(usingDirective)) return content;
+
+        return content.Insert(0, $"{usingDirective}\n");
+    }
+
+    private static string InjectAddRedisCache(string content)
+    {
+        const string call = "builder.Services.AddRedisCache(builder.Configuration);";
+        if (content.Contains(call)) return content;
+
+        const string anchor = "var app = builder.Build();";
+        var idx = content.IndexOf(anchor, StringComparison.Ordinal);
+        return idx >= 0 ? content.Insert(idx, $"{call}\n") : content;
+    }
+
+    public static IEnumerable<(string Path, string Content)> GetFiles(
+        string ns, string appPath, string infraDataPath, string presentationPath)
+    {
+        yield return (
+            Path.Combine(appPath, "Interfaces", "Services", "ICacheService.cs"),
+            ICacheServiceTemplate(ns));
+
+        yield return (
+            Path.Combine(infraDataPath, "Services", "RedisCacheService.cs"),
+            RedisCacheServiceTemplate(ns));
+
+        yield return (
+            Path.Combine(presentationPath, "Extensions", "RedisExtensions.cs"),
+            RedisExtensionsTemplate(ns));
+    }
+
+    private static string ICacheServiceTemplate(string ns) => $$"""
+        namespace {{ns}}.Application.Interfaces.Services;
+
+        public interface ICacheService
+        {
+            Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default);
+            Task SetAsync<T>(string key, T value, TimeSpan? expiry = null, CancellationToken cancellationToken = default);
+            Task RemoveAsync(string key, CancellationToken cancellationToken = default);
+            Task<bool> ExistsAsync(string key, CancellationToken cancellationToken = default);
+        }
+        """;
+
+    private static string RedisCacheServiceTemplate(string ns) => $$"""
+        using System.Text.Json;
+        using Microsoft.Extensions.Caching.Distributed;
+        using {{ns}}.Application.Interfaces.Services;
+
+        namespace {{ns}}.Infra.Data.Services;
+
+        public sealed class RedisCacheService(IDistributedCache cache) : ICacheService
+        {
+            public async Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default)
+            {
+                var data = await cache.GetStringAsync(key, cancellationToken);
+                return data is null ? default : JsonSerializer.Deserialize<T>(data);
+            }
+
+            public async Task SetAsync<T>(string key, T value, TimeSpan? expiry = null, CancellationToken cancellationToken = default)
+            {
+                var options = new DistributedCacheEntryOptions();
+                if (expiry.HasValue)
+                    options.AbsoluteExpirationRelativeToNow = expiry;
+                await cache.SetStringAsync(key, JsonSerializer.Serialize(value), options, cancellationToken);
+            }
+
+            public async Task RemoveAsync(string key, CancellationToken cancellationToken = default)
+                => await cache.RemoveAsync(key, cancellationToken);
+
+            public async Task<bool> ExistsAsync(string key, CancellationToken cancellationToken = default)
+                => await cache.GetStringAsync(key, cancellationToken) is not null;
+        }
+        """;
+
+    private static string RedisExtensionsTemplate(string ns) => $$"""
+        using Microsoft.Extensions.Caching.StackExchangeRedis;
+        using Microsoft.Extensions.Configuration;
+        using Microsoft.Extensions.DependencyInjection;
+        using {{ns}}.Application.Interfaces.Services;
+        using {{ns}}.Infra.Data.Services;
+
+        namespace {{ns}}.Presentation.Api.Extensions;
+
+        public static class RedisExtensions
+        {
+            public static IServiceCollection AddRedisCache(
+                this IServiceCollection services, IConfiguration configuration)
+            {
+                services.AddStackExchangeRedisCache(options =>
+                {
+                    options.Configuration = configuration["Redis:ConnectionString"]
+                        ?? throw new InvalidOperationException("Redis:ConnectionString not configured.");
+                    options.InstanceName = configuration["Redis:InstanceName"];
+                });
+
+                services.AddSingleton<ICacheService, RedisCacheService>();
+
+                return services;
+            }
+        }
+        """;
+}

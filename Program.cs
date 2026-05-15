@@ -3,6 +3,7 @@ using OpenBase.CLI.Commands;
 using OpenBase.CLI.Commands.Extension;
 using OpenBase.CLI.Commands.Extension.HealthChecks;
 using OpenBase.CLI.Commands.Extension.Jwt;
+using OpenBase.CLI.Commands.Extension.Redis;
 using OpenBase.CLI.Helpers.Database;
 using OpenBase.CLI.Helpers.Interactive;
 using OpenBase.CLI.Helpers.IO;
@@ -32,6 +33,7 @@ services.AddSingleton<ICsprojPackageReader, CsprojPackageReader>();
 services.AddSingleton<IExtensionRegistry, ExtensionRegistry>();
 services.AddSingleton<IExtensionHandler, JwtExtensionHandler>();
 services.AddSingleton<IExtensionHandler, HealthChecksExtensionHandler>();
+services.AddSingleton<IExtensionHandler, RedisCacheExtensionHandler>();
 
 const string TypeOpt = "--type";
 const string VersionCmd = "version";

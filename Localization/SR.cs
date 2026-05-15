@@ -177,6 +177,13 @@ public interface IStrings
     string HealthChecksProgramCsAlreadyConfigured { get; }
     string HealthChecksProgramCsNotFound { get; }
     string HealthChecksProgramCsWarning { get; }     // {0}=error
+
+    string RedisProgramCsInjected { get; }
+    string RedisProgramCsAlreadyConfigured { get; }
+    string RedisProgramCsNotFound { get; }
+    string RedisProgramCsWarning { get; }            // {0}=error
+    string RedisAppSettingsInjected { get; }
+    string RedisAppSettingsWarning { get; }          // {0}=error
 }
 
 
@@ -357,6 +364,13 @@ public abstract class BaseStrings(IReadOnlyDictionary<string, string> overrides)
     public string HealthChecksProgramCsAlreadyConfigured => T("  [yellow]skipped[/] Program.cs already has Health Checks configuration");
     public string HealthChecksProgramCsNotFound          => T("  [yellow]Warning:[/] Program.cs not found — add manually: builder.Services.AddOpenBaseHealthChecks(builder.Configuration); app.MapOpenBaseHealthChecks();");
     public string HealthChecksProgramCsWarning           => T("  [yellow]Warning:[/] Could not modify Program.cs: {0}");
+
+    public string RedisProgramCsInjected          => T("  [green]+[/] Program.cs updated with Redis Cache configuration");
+    public string RedisProgramCsAlreadyConfigured => T("  [yellow]skipped[/] Program.cs already has Redis Cache configuration");
+    public string RedisProgramCsNotFound          => T("  [yellow]Warning:[/] Program.cs not found — add manually: builder.Services.AddRedisCache(builder.Configuration);");
+    public string RedisProgramCsWarning           => T("  [yellow]Warning:[/] Could not modify Program.cs: {0}");
+    public string RedisAppSettingsInjected        => T("  [green]+[/] Redis section added to appsettings.json");
+    public string RedisAppSettingsWarning         => T("  [yellow]Warning:[/] Could not modify appsettings.json: {0}");
 }
 
 
@@ -515,6 +529,12 @@ public sealed class PtBrStrings() : BaseStrings(new Dictionary<string, string>
     ["HealthChecksProgramCsAlreadyConfigured"] = "  [yellow]ignorado[/] Program.cs já possui configuração de Health Checks",
     ["HealthChecksProgramCsNotFound"]          = "  [yellow]Aviso:[/] Program.cs não encontrado — adicione manualmente: builder.Services.AddOpenBaseHealthChecks(builder.Configuration); app.MapOpenBaseHealthChecks();",
     ["HealthChecksProgramCsWarning"]           = "  [yellow]Aviso:[/] Não foi possível modificar Program.cs: {0}",
+    ["RedisProgramCsInjected"]          = "  [green]+[/] Program.cs atualizado com configuração do Redis Cache",
+    ["RedisProgramCsAlreadyConfigured"] = "  [yellow]ignorado[/] Program.cs já possui configuração do Redis Cache",
+    ["RedisProgramCsNotFound"]          = "  [yellow]Aviso:[/] Program.cs não encontrado — adicione manualmente: builder.Services.AddRedisCache(builder.Configuration);",
+    ["RedisProgramCsWarning"]           = "  [yellow]Aviso:[/] Não foi possível modificar Program.cs: {0}",
+    ["RedisAppSettingsInjected"]        = "  [green]+[/] Seção Redis adicionada ao appsettings.json",
+    ["RedisAppSettingsWarning"]         = "  [yellow]Aviso:[/] Não foi possível modificar appsettings.json: {0}",
 }) { }
 
 
@@ -671,6 +691,12 @@ public sealed class EsStrings() : BaseStrings(new Dictionary<string, string>
     ["HealthChecksProgramCsAlreadyConfigured"] = "  [yellow]ignorado[/] Program.cs ya tiene configuración de Health Checks",
     ["HealthChecksProgramCsNotFound"]          = "  [yellow]Aviso:[/] Program.cs no encontrado — agregue manualmente: builder.Services.AddOpenBaseHealthChecks(builder.Configuration); app.MapOpenBaseHealthChecks();",
     ["HealthChecksProgramCsWarning"]           = "  [yellow]Aviso:[/] No se pudo modificar Program.cs: {0}",
+    ["RedisProgramCsInjected"]          = "  [green]+[/] Program.cs actualizado con configuración de Redis Cache",
+    ["RedisProgramCsAlreadyConfigured"] = "  [yellow]ignorado[/] Program.cs ya tiene configuración de Redis Cache",
+    ["RedisProgramCsNotFound"]          = "  [yellow]Aviso:[/] Program.cs no encontrado — agregue manualmente: builder.Services.AddRedisCache(builder.Configuration);",
+    ["RedisProgramCsWarning"]           = "  [yellow]Aviso:[/] No se pudo modificar Program.cs: {0}",
+    ["RedisAppSettingsInjected"]        = "  [green]+[/] Sección Redis agregada a appsettings.json",
+    ["RedisAppSettingsWarning"]         = "  [yellow]Aviso:[/] No se pudo modificar appsettings.json: {0}",
 }) { }
 
 
