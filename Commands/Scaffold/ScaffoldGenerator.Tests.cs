@@ -84,37 +84,38 @@ public sealed partial class ScaffoldGenerator
         }
         """;
 
-    private string CreateCommandHandlerTestsTemplate() => $$"""
+    private string MapperCommandHandlerTestsTemplate(
+        string verb, string commandArgs, string testVerb, string domainServiceMethod) => $$"""
         using AutoMapper;
         using Moq;
         using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
-        using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Create{{ctx.Entity}}Feature;
+        using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.{{verb}}{{ctx.Entity}}Feature;
         using {{ctx.NS}}.Domain.Entities;
         using {{ctx.NS}}.Domain.Interfaces.Services;
 
         namespace {{ctx.NS}}.Tests.Unit.Application.Features.{{ctx.Entity}}Features;
 
-        public sealed class Create{{ctx.Entity}}CommandHandlerTests
+        public sealed class {{verb}}{{ctx.Entity}}CommandHandlerTests
         {
             private readonly Mock<I{{ctx.Entity}}DomainService> _{{ctx.ECamel}}DomainServiceMock = new();
             private readonly Mock<IMapper> _mapperMock = new();
-            private readonly Create{{ctx.Entity}}CommandHandler _handler;
+            private readonly {{verb}}{{ctx.Entity}}CommandHandler _handler;
 
-            public Create{{ctx.Entity}}CommandHandlerTests()
+            public {{verb}}{{ctx.Entity}}CommandHandlerTests()
             {
-                _handler = new Create{{ctx.Entity}}CommandHandler(_{{ctx.ECamel}}DomainServiceMock.Object, _mapperMock.Object);
+                _handler = new {{verb}}{{ctx.Entity}}CommandHandler(_{{ctx.ECamel}}DomainServiceMock.Object, _mapperMock.Object);
             }
 
             [Fact]
-            public async Task Handle_ReturnsResponse_WhenEntityIsCreated()
+            public async Task Handle_ReturnsResponse_WhenEntityIs{{testVerb}}()
             {
-                var command = new Create{{ctx.Entity}}Command({{CreateTestArgs()}});
+                var command = new {{verb}}{{ctx.Entity}}Command({{commandArgs}});
                 var entity = new {{ctx.Entity}} { Id = 1, {{EntityTestInitializer()}} };
-                var response = new Create{{ctx.Entity}}Response({{IdAndPropertiesTestArgs()}});
+                var response = new {{verb}}{{ctx.Entity}}Response({{IdAndPropertiesTestArgs()}});
 
                 _mapperMock.Setup(m => m.Map<{{ctx.Entity}}>(command)).Returns(entity);
-                _{{ctx.ECamel}}DomainServiceMock.Setup(s => s.AddAsync(entity, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
-                _mapperMock.Setup(m => m.Map<Create{{ctx.Entity}}Response>(entity)).Returns(response);
+                _{{ctx.ECamel}}DomainServiceMock.Setup(s => s.{{domainServiceMethod}}(entity, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
+                _mapperMock.Setup(m => m.Map<{{verb}}{{ctx.Entity}}Response>(entity)).Returns(response);
 
                 var result = await _handler.Handle(command, CancellationToken.None);
 
@@ -124,6 +125,9 @@ public sealed partial class ScaffoldGenerator
             }
         }
         """;
+
+    private string CreateCommandHandlerTestsTemplate() =>
+        MapperCommandHandlerTestsTemplate("Create", CreateTestArgs(), "Created", "AddAsync");
 
     private string DeleteCommandHandlerTestsTemplate() => $$"""
         using Moq;
@@ -168,46 +172,8 @@ public sealed partial class ScaffoldGenerator
         }
         """;
 
-    private string UpdateCommandHandlerTestsTemplate() => $$"""
-        using AutoMapper;
-        using Moq;
-        using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
-        using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Update{{ctx.Entity}}Feature;
-        using {{ctx.NS}}.Domain.Entities;
-        using {{ctx.NS}}.Domain.Interfaces.Services;
-
-        namespace {{ctx.NS}}.Tests.Unit.Application.Features.{{ctx.Entity}}Features;
-
-        public sealed class Update{{ctx.Entity}}CommandHandlerTests
-        {
-            private readonly Mock<I{{ctx.Entity}}DomainService> _{{ctx.ECamel}}DomainServiceMock = new();
-            private readonly Mock<IMapper> _mapperMock = new();
-            private readonly Update{{ctx.Entity}}CommandHandler _handler;
-
-            public Update{{ctx.Entity}}CommandHandlerTests()
-            {
-                _handler = new Update{{ctx.Entity}}CommandHandler(_{{ctx.ECamel}}DomainServiceMock.Object, _mapperMock.Object);
-            }
-
-            [Fact]
-            public async Task Handle_ReturnsResponse_WhenEntityIsUpdated()
-            {
-                var command = new Update{{ctx.Entity}}Command({{IdAndPropertiesTestArgs()}});
-                var entity = new {{ctx.Entity}} { Id = 1, {{EntityTestInitializer()}} };
-                var response = new Update{{ctx.Entity}}Response({{IdAndPropertiesTestArgs()}});
-
-                _mapperMock.Setup(m => m.Map<{{ctx.Entity}}>(command)).Returns(entity);
-                _{{ctx.ECamel}}DomainServiceMock.Setup(s => s.UpdateAsync(entity, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
-                _mapperMock.Setup(m => m.Map<Update{{ctx.Entity}}Response>(entity)).Returns(response);
-
-                var result = await _handler.Handle(command, CancellationToken.None);
-
-                Assert.NotNull(result);
-                Assert.Equal(1, result.Id);
-                {{HandlerTestAssertions("result")}}
-            }
-        }
-        """;
+    private string UpdateCommandHandlerTestsTemplate() =>
+        MapperCommandHandlerTestsTemplate("Update", IdAndPropertiesTestArgs(), "Updated", "UpdateAsync");
 
     private string FindByIdQueryHandlerTestsTemplate() => $$"""
         using AutoMapper;
