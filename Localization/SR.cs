@@ -156,12 +156,13 @@ public interface IStrings
     string CmdExtensionDescription { get; }
     string CmdExtensionAddDescription { get; }
 
-    string JwtNextSteps { get; }
-    string JwtNextStep1 { get; }
-    string JwtNextStep2 { get; }
-    string JwtNextStep3 { get; }
+    string JwtProgramCsInjected { get; }
+    string JwtProgramCsAlreadyConfigured { get; }
+    string JwtProgramCsNotFound { get; }
+    string JwtProgramCsWarning { get; }              // {0}=error
     string JwtAppSettingsInjected { get; }
     string JwtAppSettingsWarning { get; }            // {0}=error
+    string JwtControllerProtected { get; }           // {0}=relative path
 }
 
 
@@ -317,12 +318,13 @@ public sealed class EnStrings : IStrings
     public string CmdExtensionDescription => "Manages installable extensions for an OpenBase project.";
     public string CmdExtensionAddDescription => "Adds an extension to the current project.";
 
-    public string JwtNextSteps => "\n[bold]Next steps — add to Program.cs:[/]";
-    public string JwtNextStep1 => "  [blue]builder.Services.AddJwtAuthentication(builder.Configuration);[/]";
-    public string JwtNextStep2 => "  [blue]app.UseAuthentication();[/]";
-    public string JwtNextStep3 => "  [blue]app.UseAuthorization();[/]";
+    public string JwtProgramCsInjected => "  [green]+[/] Program.cs updated with JWT configuration";
+    public string JwtProgramCsAlreadyConfigured => "  [yellow]skipped[/] Program.cs already has JWT configuration";
+    public string JwtProgramCsNotFound => "  [yellow]Warning:[/] Program.cs not found — add manually: builder.Services.AddJwtAuthentication(builder.Configuration); app.UseAuthentication(); app.UseAuthorization();";
+    public string JwtProgramCsWarning => "  [yellow]Warning:[/] Could not modify Program.cs: {0}";
     public string JwtAppSettingsInjected => "  [green]+[/] Jwt section added to appsettings.json";
     public string JwtAppSettingsWarning => "  [yellow]Warning:[/] Could not modify appsettings.json: {0}";
+    public string JwtControllerProtected => "  [green]+[/] {0} protected with [[Authorize]]";
 
     public string ExtensionFileSkipped => "  [yellow]skipped[/] {0} (already exists)";
     public string ExtensionFileCreated => "  [green]+[/] {0}";
@@ -481,12 +483,13 @@ public sealed class PtBrStrings : IStrings
     public string CmdExtensionDescription => "Gerencia extensões instaláveis para um projeto OpenBase.";
     public string CmdExtensionAddDescription => "Adiciona uma extensão ao projeto atual.";
 
-    public string JwtNextSteps => "\n[bold]Próximos passos — adicione ao Program.cs:[/]";
-    public string JwtNextStep1 => "  [blue]builder.Services.AddJwtAuthentication(builder.Configuration);[/]";
-    public string JwtNextStep2 => "  [blue]app.UseAuthentication();[/]";
-    public string JwtNextStep3 => "  [blue]app.UseAuthorization();[/]";
+    public string JwtProgramCsInjected => "  [green]+[/] Program.cs atualizado com configuração JWT";
+    public string JwtProgramCsAlreadyConfigured => "  [yellow]ignorado[/] Program.cs já possui configuração JWT";
+    public string JwtProgramCsNotFound => "  [yellow]Aviso:[/] Program.cs não encontrado — adicione manualmente: builder.Services.AddJwtAuthentication(builder.Configuration); app.UseAuthentication(); app.UseAuthorization();";
+    public string JwtProgramCsWarning => "  [yellow]Aviso:[/] Não foi possível modificar Program.cs: {0}";
     public string JwtAppSettingsInjected => "  [green]+[/] Seção Jwt adicionada ao appsettings.json";
     public string JwtAppSettingsWarning => "  [yellow]Aviso:[/] Não foi possível modificar appsettings.json: {0}";
+    public string JwtControllerProtected => "  [green]+[/] {0} protegida com [[Authorize]]";
 
     public string ExtensionFileSkipped => "  [yellow]ignorado[/] {0} (já existe)";
     public string ExtensionFileCreated => "  [green]+[/] {0}";
@@ -645,12 +648,13 @@ public sealed class EsStrings : IStrings
     public string CmdExtensionDescription => "Gestiona extensiones instalables para un proyecto OpenBase.";
     public string CmdExtensionAddDescription => "Agrega una extensión al proyecto actual.";
 
-    public string JwtNextSteps => "\n[bold]Próximos pasos — agregue a Program.cs:[/]";
-    public string JwtNextStep1 => "  [blue]builder.Services.AddJwtAuthentication(builder.Configuration);[/]";
-    public string JwtNextStep2 => "  [blue]app.UseAuthentication();[/]";
-    public string JwtNextStep3 => "  [blue]app.UseAuthorization();[/]";
+    public string JwtProgramCsInjected => "  [green]+[/] Program.cs actualizado con configuración JWT";
+    public string JwtProgramCsAlreadyConfigured => "  [yellow]ignorado[/] Program.cs ya tiene configuración JWT";
+    public string JwtProgramCsNotFound => "  [yellow]Aviso:[/] Program.cs no encontrado — agregue manualmente: builder.Services.AddJwtAuthentication(builder.Configuration); app.UseAuthentication(); app.UseAuthorization();";
+    public string JwtProgramCsWarning => "  [yellow]Aviso:[/] No se pudo modificar Program.cs: {0}";
     public string JwtAppSettingsInjected => "  [green]+[/] Sección Jwt agregada a appsettings.json";
     public string JwtAppSettingsWarning => "  [yellow]Aviso:[/] No se pudo modificar appsettings.json: {0}";
+    public string JwtControllerProtected => "  [green]+[/] {0} protegida con [[Authorize]]";
 
     public string ExtensionFileSkipped => "  [yellow]ignorado[/] {0} (ya existe)";
     public string ExtensionFileCreated => "  [green]+[/] {0}";

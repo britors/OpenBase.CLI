@@ -9,15 +9,19 @@ public sealed partial class ScaffoldGenerator
             ControllerTemplate());
     }
 
-    private string ControllerTemplate() => $$"""
+    private string ControllerTemplate()
+    {
+        var authUsing = ctx.UseJwt ? "using Microsoft.AspNetCore.Authorization;\n" : "";
+        var authAttr  = ctx.UseJwt ? "[Authorize]\n" : "";
+        return $$"""
         using Microsoft.AspNetCore.Mvc;
-        using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Requests;
+        {{authUsing}}using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Requests;
         using {{ctx.NS}}.Application.Interfaces.Services;
 
         namespace {{ctx.NS}}.Presentation.Api.Controllers;
 
         [ApiController]
-        [Route("api/{{ctx.ELower}}")]
+        {{authAttr}}[Route("api/{{ctx.ELower}}")]
         [Produces("application/json")]
         public class {{ctx.Entity}}Controller(I{{ctx.Entity}}ApplicationService {{ctx.ECamel}}ApplicationService)
             : ControllerBase
@@ -99,4 +103,5 @@ public sealed partial class ScaffoldGenerator
             }
         }
         """;
+    }
 }

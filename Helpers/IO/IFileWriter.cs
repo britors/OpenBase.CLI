@@ -8,4 +8,5 @@ public interface IFileWriter
     void WriteAllText(string path, string content);
     string? FindSolutionFile(string dir);
     string? FindFile(string rootDirectory, string fileName);
+    string[] GetFiles(string directory, string pattern);
 }

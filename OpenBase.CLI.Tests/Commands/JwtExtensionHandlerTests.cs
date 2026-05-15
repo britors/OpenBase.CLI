@@ -18,6 +18,7 @@ public class JwtExtensionHandlerTests
         _dotNetRunner.Setup(r => r.Run(It.IsAny<string>())).Returns((true, string.Empty));
         _fileWriter.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
         _fileWriter.Setup(f => f.ReadAllText(It.IsAny<string>())).Returns(string.Empty);
+        _fileWriter.Setup(f => f.GetFiles(It.IsAny<string>(), It.IsAny<string>())).Returns([]);
     }
 
     private JwtExtensionHandler CreateHandler() =>
@@ -84,7 +85,15 @@ public class JwtExtensionHandlerTests
     [Fact]
     public void Apply_FilesExist_SkipsCreation()
     {
+        const string alreadyConfigured = """
+            builder.Services.AddJwtAuthentication(builder.Configuration);
+            var app = builder.Build();
+            app.UseAuthentication();
+            app.UseAuthorization();
+            app.MapControllers();
+            """;
         _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith(".cs")))).Returns(true);
+        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith("Program.cs")))).Returns(alreadyConfigured);
 
         CreateHandler().Apply(BuildContext());
 
@@ -229,5 +238,233 @@ public class JwtExtensionHandlerTests
     public void Apply_HasNoSupportedProviders()
     {
         Assert.Empty(CreateHandler().SupportedProviders);
+    }
+
+    private const string MinimalProgramCs = """
+        var builder = WebApplication.CreateBuilder(args);
+        builder.Services.AddControllers();
+        var app = builder.Build();
+        app.UseHttpsRedirection();
+        app.MapControllers();
+        await app.RunAsync();
+        """;
+
+    [Fact]
+    public void Apply_InjectsProgramCs_WhenFileExists()
+    {
+        _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith("Program.cs")))).Returns(true);
+        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith("Program.cs")))).Returns(MinimalProgramCs);
+
+        CreateHandler().Apply(BuildContext());
+
+        _fileWriter.Verify(f => f.WriteAllText(
+            It.Is<string>(p => p.EndsWith("Program.cs")),
+            It.Is<string>(c =>
+                c.Contains("AddJwtAuthentication") &&
+                c.Contains("app.UseAuthentication();") &&
+                c.Contains("app.UseAuthorization();"))),
+            Times.Once);
+    }
+
+    [Fact]
+    public void Apply_ProgramCs_AddJwtBeforeBuild()
+    {
+        _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith("Program.cs")))).Returns(true);
+        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith("Program.cs")))).Returns(MinimalProgramCs);
+
+        string? written = null;
+        _fileWriter.Setup(f => f.WriteAllText(It.Is<string>(p => p.EndsWith("Program.cs")), It.IsAny<string>()))
+                   .Callback<string, string>((_, c) => written = c);
+
+        CreateHandler().Apply(BuildContext());
+
+        Assert.NotNull(written);
+        var addJwtIdx = written!.IndexOf("AddJwtAuthentication", StringComparison.Ordinal);
+        var buildIdx = written.IndexOf("var app = builder.Build();", StringComparison.Ordinal);
+        Assert.True(addJwtIdx < buildIdx, "AddJwtAuthentication should appear before builder.Build()");
+    }
+
+    [Fact]
+    public void Apply_ProgramCs_UseAuthBeforeMapControllers()
+    {
+        _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith("Program.cs")))).Returns(true);
+        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith("Program.cs")))).Returns(MinimalProgramCs);
+
+        string? written = null;
+        _fileWriter.Setup(f => f.WriteAllText(It.Is<string>(p => p.EndsWith("Program.cs")), It.IsAny<string>()))
+                   .Callback<string, string>((_, c) => written = c);
+
+        CreateHandler().Apply(BuildContext());
+
+        Assert.NotNull(written);
+        var authIdx = written!.IndexOf("app.UseAuthentication();", StringComparison.Ordinal);
+        var mapIdx = written.IndexOf("app.MapControllers();", StringComparison.Ordinal);
+        Assert.True(authIdx < mapIdx, "UseAuthentication should appear before MapControllers");
+    }
+
+    [Fact]
+    public void Apply_ProgramCs_AlreadyHasUseAuthentication_OnlyAddsUseAuthorization()
+    {
+        const string withAuth = """
+            var builder = WebApplication.CreateBuilder(args);
+            var app = builder.Build();
+            app.UseAuthentication();
+            app.MapControllers();
+            await app.RunAsync();
+            """;
+
+        _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith("Program.cs")))).Returns(true);
+        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith("Program.cs")))).Returns(withAuth);
+
+        string? written = null;
+        _fileWriter.Setup(f => f.WriteAllText(It.Is<string>(p => p.EndsWith("Program.cs")), It.IsAny<string>()))
+                   .Callback<string, string>((_, c) => written = c);
+
+        CreateHandler().Apply(BuildContext());
+
+        Assert.NotNull(written);
+        var authIdx = written!.IndexOf("app.UseAuthentication();", StringComparison.Ordinal);
+        var authzIdx = written.IndexOf("app.UseAuthorization();", StringComparison.Ordinal);
+        Assert.True(authIdx < authzIdx, "UseAuthorization should be inserted after UseAuthentication");
+        Assert.Equal(1, CountOccurrences(written, "app.UseAuthentication();"));
+    }
+
+    [Fact]
+    public void Apply_ProgramCs_AlreadyFullyConfigured_SkipsWrite()
+    {
+        const string alreadyDone = """
+            var builder = WebApplication.CreateBuilder(args);
+            builder.Services.AddJwtAuthentication(builder.Configuration);
+            var app = builder.Build();
+            app.UseAuthentication();
+            app.UseAuthorization();
+            app.MapControllers();
+            """;
+
+        _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith("Program.cs")))).Returns(true);
+        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith("Program.cs")))).Returns(alreadyDone);
+
+        CreateHandler().Apply(BuildContext());
+
+        _fileWriter.Verify(f => f.WriteAllText(
+            It.Is<string>(p => p.EndsWith("Program.cs")),
+            It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public void Apply_ProgramCsNotFound_DoesNotThrow()
+    {
+        _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith("Program.cs")))).Returns(false);
+
+        var ex = Record.Exception(() => CreateHandler().Apply(BuildContext()));
+
+        Assert.Null(ex);
+    }
+
+    private const string MinimalControllerCs = """
+        using Microsoft.AspNetCore.Mvc;
+
+        namespace MyApp.Presentation.Api.Controllers;
+
+        [ApiController]
+        [Route("api/product")]
+        [Produces("application/json")]
+        public class ProductController : ControllerBase
+        {
+        }
+        """;
+
+    [Fact]
+    public void Apply_ProtectsExistingController_AddsAuthorizeAttribute()
+    {
+        const string controllerPath = "/solution/src/MyApp.Presentation.Api/Controllers/ProductController.cs";
+        _fileWriter.Setup(f => f.GetFiles(It.Is<string>(p => p.EndsWith("Controllers")), It.IsAny<string>()))
+                   .Returns([controllerPath]);
+        _fileWriter.Setup(f => f.ReadAllText(controllerPath)).Returns(MinimalControllerCs);
+
+        CreateHandler().Apply(BuildContext());
+
+        _fileWriter.Verify(f => f.WriteAllText(
+            controllerPath,
+            It.Is<string>(c => c.Contains("[Authorize]"))), Times.Once);
+    }
+
+    [Fact]
+    public void Apply_ProtectsExistingController_AddsAuthorizationUsing()
+    {
+        const string controllerPath = "/solution/src/MyApp.Presentation.Api/Controllers/ProductController.cs";
+        _fileWriter.Setup(f => f.GetFiles(It.Is<string>(p => p.EndsWith("Controllers")), It.IsAny<string>()))
+                   .Returns([controllerPath]);
+        _fileWriter.Setup(f => f.ReadAllText(controllerPath)).Returns(MinimalControllerCs);
+
+        CreateHandler().Apply(BuildContext());
+
+        _fileWriter.Verify(f => f.WriteAllText(
+            controllerPath,
+            It.Is<string>(c => c.Contains("using Microsoft.AspNetCore.Authorization;"))), Times.Once);
+    }
+
+    [Fact]
+    public void Apply_ProtectsExistingController_AuthorizeAfterApiController()
+    {
+        const string controllerPath = "/solution/src/MyApp.Presentation.Api/Controllers/ProductController.cs";
+        _fileWriter.Setup(f => f.GetFiles(It.Is<string>(p => p.EndsWith("Controllers")), It.IsAny<string>()))
+                   .Returns([controllerPath]);
+        _fileWriter.Setup(f => f.ReadAllText(controllerPath)).Returns(MinimalControllerCs);
+
+        string? written = null;
+        _fileWriter.Setup(f => f.WriteAllText(controllerPath, It.IsAny<string>()))
+                   .Callback<string, string>((_, c) => written = c);
+
+        CreateHandler().Apply(BuildContext());
+
+        Assert.NotNull(written);
+        var apiIdx = written!.IndexOf("[ApiController]", StringComparison.Ordinal);
+        var authIdx = written.IndexOf("[Authorize]", StringComparison.Ordinal);
+        Assert.True(apiIdx < authIdx, "[Authorize] should appear after [ApiController]");
+    }
+
+    [Fact]
+    public void Apply_ControllerAlreadyHasAuthorize_SkipsProtection()
+    {
+        const string alreadyProtected = """
+            using Microsoft.AspNetCore.Authorization;
+            using Microsoft.AspNetCore.Mvc;
+
+            [ApiController]
+            [Authorize]
+            [Route("api/product")]
+            public class ProductController : ControllerBase { }
+            """;
+        const string controllerPath = "/solution/src/MyApp.Presentation.Api/Controllers/ProductController.cs";
+        _fileWriter.Setup(f => f.GetFiles(It.Is<string>(p => p.EndsWith("Controllers")), It.IsAny<string>()))
+                   .Returns([controllerPath]);
+        _fileWriter.Setup(f => f.ReadAllText(controllerPath)).Returns(alreadyProtected);
+
+        CreateHandler().Apply(BuildContext());
+
+        _fileWriter.Verify(f => f.WriteAllText(controllerPath, It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public void Apply_NoControllers_DoesNotThrow()
+    {
+        _fileWriter.Setup(f => f.GetFiles(It.IsAny<string>(), It.IsAny<string>())).Returns([]);
+
+        var ex = Record.Exception(() => CreateHandler().Apply(BuildContext()));
+
+        Assert.Null(ex);
+    }
+
+    private static int CountOccurrences(string source, string value)
+    {
+        var count = 0;
+        var idx = 0;
+        while ((idx = source.IndexOf(value, idx, StringComparison.Ordinal)) >= 0)
+        {
+            count++;
+            idx += value.Length;
+        }
+        return count;
     }
 }
