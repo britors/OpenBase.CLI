@@ -38,16 +38,15 @@ public class ExtensionListCommand(
         table.AddColumn(SR.Current.ExtensionListColCommand);
         table.AddColumn(SR.Current.ExtensionListColStatus);
 
-        foreach (var handler in handlers.OrderBy(h => h.Name))
+        foreach (var name in handlers.Select(h => h.Name).OrderBy(n => n))
         {
-            var isInstalled = installed.Contains(handler.Name);
-            var status = isInstalled
+            var status = installed.Contains(name)
                 ? SR.Current.ExtensionListStatusInstalled
                 : SR.Current.ExtensionListStatusAvailable;
 
             table.AddRow(
-                $"[blue]{handler.Name}[/]",
-                $"openbase extension add {handler.Name}",
+                $"[blue]{name}[/]",
+                $"openbase extension add {name}",
                 status);
         }
 
