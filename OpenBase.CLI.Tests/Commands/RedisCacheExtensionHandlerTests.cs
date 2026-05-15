@@ -235,7 +235,7 @@ public class RedisCacheExtensionHandlerTests
     }
 
     [Fact]
-    public void Apply_InjectsRedisAppSettings_WhenFileExists()
+    public void Apply_InjectsRedis_IntoAppSettingsJson_WhenFileExists()
     {
         const string appSettings = """{"Logging":{"LogLevel":{"Default":"Information"}}}""";
         _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith("appsettings.json")))).Returns(true);
@@ -250,16 +250,52 @@ public class RedisCacheExtensionHandlerTests
     }
 
     [Fact]
-    public void Apply_AppSettingsAlreadyHasRedis_SkipsWrite()
+    public void Apply_InjectsRedis_IntoDevelopmentJson_WhenFileExists()
     {
-        const string appSettings = """{"Redis":{"ConnectionString":"localhost:6379","InstanceName":"openbase_"}}""";
+        const string appSettings = """{"Logging":{"LogLevel":{"Default":"Information"}}}""";
+        _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith("appsettings.Development.json")))).Returns(true);
+        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith("appsettings.Development.json")))).Returns(appSettings);
+
+        CreateHandler().Apply(BuildContext());
+
+        _fileWriter.Verify(f => f.WriteAllText(
+            It.Is<string>(p => p.EndsWith("appsettings.Development.json")),
+            It.Is<string>(c => c.Contains("Redis") && c.Contains("ConnectionString") && c.Contains("InstanceName"))),
+            Times.Once);
+    }
+
+    [Fact]
+    public void Apply_InjectsBothAppSettingsFiles_WhenBothExist()
+    {
+        const string appSettings = """{"Logging":{"LogLevel":{"Default":"Information"}}}""";
         _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith("appsettings.json")))).Returns(true);
         _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith("appsettings.json")))).Returns(appSettings);
+        _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith("appsettings.Development.json")))).Returns(true);
+        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith("appsettings.Development.json")))).Returns(appSettings);
 
         CreateHandler().Apply(BuildContext());
 
         _fileWriter.Verify(f => f.WriteAllText(
             It.Is<string>(p => p.EndsWith("appsettings.json")),
+            It.Is<string>(c => c.Contains("Redis"))), Times.Once);
+        _fileWriter.Verify(f => f.WriteAllText(
+            It.Is<string>(p => p.EndsWith("appsettings.Development.json")),
+            It.Is<string>(c => c.Contains("Redis"))), Times.Once);
+    }
+
+    [Fact]
+    public void Apply_AppSettingsAlreadyHasRedis_SkipsWrite()
+    {
+        const string appSettings = """{"Redis":{"ConnectionString":"localhost:6379","InstanceName":"openbase_"}}""";
+        _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith("appsettings.json")))).Returns(true);
+        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith("appsettings.json")))).Returns(appSettings);
+        _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith("appsettings.Development.json")))).Returns(true);
+        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith("appsettings.Development.json")))).Returns(appSettings);
+
+        CreateHandler().Apply(BuildContext());
+
+        _fileWriter.Verify(f => f.WriteAllText(
+            It.Is<string>(p => p.EndsWith(".json")),
             It.IsAny<string>()), Times.Never);
     }
 

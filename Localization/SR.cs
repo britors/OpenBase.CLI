@@ -369,8 +369,8 @@ public abstract class BaseStrings(IReadOnlyDictionary<string, string> overrides)
     public string RedisProgramCsAlreadyConfigured => T("  [yellow]skipped[/] Program.cs already has Redis Cache configuration");
     public string RedisProgramCsNotFound          => T("  [yellow]Warning:[/] Program.cs not found — add manually: builder.Services.AddRedisCache(builder.Configuration);");
     public string RedisProgramCsWarning           => T("  [yellow]Warning:[/] Could not modify Program.cs: {0}");
-    public string RedisAppSettingsInjected        => T("  [green]+[/] Redis section added to appsettings.json");
-    public string RedisAppSettingsWarning         => T("  [yellow]Warning:[/] Could not modify appsettings.json: {0}");
+    public string RedisAppSettingsInjected        => T("  [green]+[/] Redis section added to {0}");
+    public string RedisAppSettingsWarning         => T("  [yellow]Warning:[/] Could not modify {0}: {1}");
 }
 
 
@@ -533,8 +533,8 @@ public sealed class PtBrStrings() : BaseStrings(new Dictionary<string, string>
     ["RedisProgramCsAlreadyConfigured"] = "  [yellow]ignorado[/] Program.cs já possui configuração do Redis Cache",
     ["RedisProgramCsNotFound"]          = "  [yellow]Aviso:[/] Program.cs não encontrado — adicione manualmente: builder.Services.AddRedisCache(builder.Configuration);",
     ["RedisProgramCsWarning"]           = "  [yellow]Aviso:[/] Não foi possível modificar Program.cs: {0}",
-    ["RedisAppSettingsInjected"]        = "  [green]+[/] Seção Redis adicionada ao appsettings.json",
-    ["RedisAppSettingsWarning"]         = "  [yellow]Aviso:[/] Não foi possível modificar appsettings.json: {0}",
+    ["RedisAppSettingsInjected"]        = "  [green]+[/] Seção Redis adicionada ao {0}",
+    ["RedisAppSettingsWarning"]         = "  [yellow]Aviso:[/] Não foi possível modificar {0}: {1}",
 }) { }
 
 
@@ -695,8 +695,8 @@ public sealed class EsStrings() : BaseStrings(new Dictionary<string, string>
     ["RedisProgramCsAlreadyConfigured"] = "  [yellow]ignorado[/] Program.cs ya tiene configuración de Redis Cache",
     ["RedisProgramCsNotFound"]          = "  [yellow]Aviso:[/] Program.cs no encontrado — agregue manualmente: builder.Services.AddRedisCache(builder.Configuration);",
     ["RedisProgramCsWarning"]           = "  [yellow]Aviso:[/] No se pudo modificar Program.cs: {0}",
-    ["RedisAppSettingsInjected"]        = "  [green]+[/] Sección Redis agregada a appsettings.json",
-    ["RedisAppSettingsWarning"]         = "  [yellow]Aviso:[/] No se pudo modificar appsettings.json: {0}",
+    ["RedisAppSettingsInjected"]        = "  [green]+[/] Sección Redis agregada a {0}",
+    ["RedisAppSettingsWarning"]         = "  [yellow]Aviso:[/] No se pudo modificar {0}: {1}",
 }) { }
 
 

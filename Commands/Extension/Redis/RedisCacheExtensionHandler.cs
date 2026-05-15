@@ -52,27 +52,32 @@ public sealed class RedisCacheExtensionHandler(
 
     private void InjectAppSettings(string presentationPath)
     {
-        var path = Path.Combine(presentationPath, "appsettings.json");
-        if (!fileWriter.FileExists(path)) return;
+        string[] candidates = ["appsettings.json", "appsettings.Development.json"];
 
-        try
+        foreach (var fileName in candidates)
         {
-            var json = fileWriter.ReadAllText(path);
-            var root = JsonNode.Parse(json)?.AsObject();
-            if (root is null || root.ContainsKey("Redis")) return;
+            var path = Path.Combine(presentationPath, fileName);
+            if (!fileWriter.FileExists(path)) continue;
 
-            root["Redis"] = new JsonObject
+            try
             {
-                ["ConnectionString"] = "localhost:6379",
-                ["InstanceName"] = "openbase_"
-            };
+                var json = fileWriter.ReadAllText(path);
+                var root = JsonNode.Parse(json)?.AsObject();
+                if (root is null || root.ContainsKey("Redis")) continue;
 
-            fileWriter.WriteAllText(path, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
-            console.MarkupLine(SR.Current.RedisAppSettingsInjected);
-        }
-        catch (Exception ex)
-        {
-            console.MarkupLine(string.Format(SR.Current.RedisAppSettingsWarning, ex.Message));
+                root["Redis"] = new JsonObject
+                {
+                    ["ConnectionString"] = "localhost:6379",
+                    ["InstanceName"] = "openbase_"
+                };
+
+                fileWriter.WriteAllText(path, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+                console.MarkupLine(string.Format(SR.Current.RedisAppSettingsInjected, fileName));
+            }
+            catch (Exception ex)
+            {
+                console.MarkupLine(string.Format(SR.Current.RedisAppSettingsWarning, fileName, ex.Message));
+            }
         }
     }
 
