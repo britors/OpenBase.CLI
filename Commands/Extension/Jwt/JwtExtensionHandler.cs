@@ -26,12 +26,20 @@ public sealed class JwtExtensionHandler(
         var (ns, solutionDir, appPath, infraDataPath, presentationPath) = paths.Value;
 
         AddNuGetPackages(ns, infraDataPath, presentationPath);
+        AddProjectReferences(ns, appPath, infraDataPath);
         ExtensionHelpers.WriteFiles(GetFiles(ns, appPath, infraDataPath, presentationPath), solutionDir, fileWriter, console);
         InjectAppSettings(presentationPath, ns);
         InjectProgramCs(presentationPath);
         ProtectExistingControllers(presentationPath, solutionDir);
 
         return new ExtensionApplyResult(true);
+    }
+
+    private void AddProjectReferences(string ns, string appPath, string infraDataPath)
+    {
+        var infraDataCsproj = Path.Combine(infraDataPath, $"{ns}.Infra.Data.csproj");
+        var appCsproj = Path.Combine(appPath, $"{ns}.Application.csproj");
+        ExtensionHelpers.AddProjectReference(infraDataCsproj, appCsproj, fileWriter, dotNetRunner, console);
     }
 
     private void AddNuGetPackages(string ns, string infraDataPath, string presentationPath)
