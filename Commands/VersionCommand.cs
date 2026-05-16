@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
+using OpenBase.CLI.Helpers;
 using OpenBase.CLI.Helpers.Execution;
 using OpenBase.CLI.Localization;
 using Spectre.Console;
@@ -35,7 +36,7 @@ public class VersionCommand(
                 : await dotNetRunner.GetInstalledTemplateVersionAsync(id, cancellationToken);
         }
 
-        console.Write(new FigletText("OpenBase").Color(Color.Blue));
+        ConsoleBanner.Print(console);
 
         var table = new Table().Border(TableBorder.Rounded);
         table.AddColumn(SR.Current.ColVersionComponent);
