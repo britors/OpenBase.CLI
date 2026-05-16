@@ -6,13 +6,16 @@ internal static class ConsoleBanner
 {
     private static readonly string[] Lines =
     [
-        "   [blue]╔══════════╗[/]    [deepskyblue1]╭─●[/]",
-        "   [blue]╠══════════╣[/]  [deepskyblue1]●─┤ ├─●[/]",
-        "   [blue]║   SQL    ║[/]    [deepskyblue1]│ │[/]",
-        "   [blue]╠══════════╣[/]  [deepskyblue1]●─┤ ├─●[/]",
-        "   [blue]╚══════════╝[/]    [deepskyblue1]╰─●[/]",
+        "  [white]╭──────────────────╮[/]",
+        "  [white]│[/] [red]●[/] [yellow]●[/] [green]●[/][white]            │[/]",
+        "  [white]├──────────────────┤[/]",
+        "  [white]│                  │[/]",
+        "  [white]│[/]    [bold white]> _[/][white]           │[/]",
+        "  [white]│                  │[/]",
+        "  [white]╰──────────────────╯[/]",
         "",
-        "  [bold blue]OpenBase[/][bold deepskyblue1]NET[/]",
+        "  [bold white]OpenBase CLI[/]",
+        "  [grey]Automate. Accelerate. Build Better.[/]",
         "",
     ];
 
