@@ -22,6 +22,7 @@ public class HelpCommand : Command<HelpSettings>
         table.AddColumn(SR.Current.HelpColExample);
 
         table.AddRow("[blue]build[/]", SR.Current.HelpBuildDesc, "openbase [green]build[/]\nopenbase [green]build --configuration Release[/]\nopenbase [green]build --no-restore[/]");
+        table.AddRow("[blue]run[/]", SR.Current.HelpRunDesc, "openbase [green]run[/]\nopenbase [green]run --configuration Release[/]\nopenbase [green]run --no-build[/]");
         table.AddRow("[blue]install[/]", SR.Current.HelpInstallDesc, "openbase [green]install[/]");
         table.AddRow("[blue]new[/]", SR.Current.HelpNewDesc, "openbase [green]new --type api --template sqlserver --name MeuProjeto[/]");
         table.AddRow("[blue]scaffold[/]", SR.Current.HelpScaffoldDesc, "openbase [green]scaffold --entity Produto[/]");

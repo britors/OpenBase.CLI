@@ -6,6 +6,9 @@ public sealed class DotNetRunner : IDotNetRunner
     public Task<(bool Success, string Error)> RunAsync(string arguments, CancellationToken cancellationToken)
         => DotNet.RunAsync(arguments, cancellationToken);
 
+    public Task<int> RunLiveAsync(string arguments, CancellationToken cancellationToken)
+        => DotNet.RunLiveAsync(arguments, cancellationToken);
+
     public (bool Success, string Error) Run(string arguments)
         => DotNet.RunAsync(arguments, CancellationToken.None).GetAwaiter().GetResult();
 

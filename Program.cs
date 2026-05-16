@@ -34,9 +34,11 @@ services.AddSingleton<IExtensionRegistry, ExtensionRegistry>();
 services.AddSingleton<IExtensionHandler, JwtExtensionHandler>();
 services.AddSingleton<IExtensionHandler, HealthChecksExtensionHandler>();
 services.AddSingleton<IExtensionHandler, RedisCacheExtensionHandler>();
+services.AddSingleton<IBrowserLauncher, BrowserLauncher>();
 
 const string TypeOpt = "--type";
 const string BuildCmd = "build";
+const string RunCmd = "run";
 const string VersionCmd = "version";
 const string ExtensionCmd = "extension";
 
@@ -52,6 +54,12 @@ app.Configure(config =>
         .WithExample(BuildCmd)
         .WithExample(BuildCmd, "--configuration", "Release")
         .WithExample(BuildCmd, "--no-restore");
+
+    config.AddCommand<RunCommand>(RunCmd)
+        .WithDescription(SR.Current.CmdRunDescription)
+        .WithExample(RunCmd)
+        .WithExample(RunCmd, "--configuration", "Release")
+        .WithExample(RunCmd, "--no-build");
 
     config.AddCommand<InstallCommand>("install")
         .WithDescription(SR.Current.CmdInstallDescription)
