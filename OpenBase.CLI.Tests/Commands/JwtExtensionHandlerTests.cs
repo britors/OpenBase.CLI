@@ -103,6 +103,35 @@ public class JwtExtensionHandlerTests
     }
 
     [Fact]
+    public void Apply_AddsApplicationReferenceToInfraData()
+    {
+        _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith(".csproj")))).Returns(true);
+        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith(".csproj")))).Returns("<Project />");
+
+        CreateHandler().Apply(BuildContext());
+
+        _dotNetRunner.Verify(r => r.Run(
+            It.Is<string>(s => s.Contains("Infra.Data.csproj") && s.Contains("reference") && s.Contains("Application.csproj"))),
+            Times.Once);
+    }
+
+    [Fact]
+    public void Apply_ApplicationReferenceAlreadyPresent_SkipsAdd()
+    {
+        _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith(".csproj")))).Returns(true);
+        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith("Infra.Data.csproj"))))
+                   .Returns("<ProjectReference Include=\"..\\MyApp.Application\\MyApp.Application.csproj\" />");
+        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => !p.EndsWith("Infra.Data.csproj") && p.EndsWith(".csproj"))))
+                   .Returns("<Project />");
+
+        CreateHandler().Apply(BuildContext());
+
+        _dotNetRunner.Verify(r => r.Run(
+            It.Is<string>(s => s.Contains("Infra.Data.csproj") && s.Contains("reference"))),
+            Times.Never);
+    }
+
+    [Fact]
     public void Apply_AddsNuGetPackageToInfraData()
     {
         _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith(".csproj")))).Returns(true);
@@ -131,9 +160,13 @@ public class JwtExtensionHandlerTests
     [Fact]
     public void Apply_PackageAlreadyInCsproj_SkipsAdd()
     {
+        const string alreadyConfigured =
+            "<PackageReference Include=\"Microsoft.AspNetCore.Authentication.JwtBearer\" />" +
+            "<ProjectReference Include=\"..\\MyApp.Application\\MyApp.Application.csproj\" />";
+
         _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith(".csproj")))).Returns(true);
         _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith(".csproj"))))
-                   .Returns("<PackageReference Include=\"Microsoft.AspNetCore.Authentication.JwtBearer\" />");
+                   .Returns(alreadyConfigured);
 
         CreateHandler().Apply(BuildContext());
 

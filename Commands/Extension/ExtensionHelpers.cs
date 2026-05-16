@@ -44,6 +44,25 @@ internal static class ExtensionHelpers
         }
     }
 
+    internal static void AddProjectReference(
+        string csprojPath,
+        string referencePath,
+        IFileWriter fileWriter,
+        IDotNetRunner dotNetRunner,
+        IAnsiConsole console)
+    {
+        if (!fileWriter.FileExists(csprojPath)) return;
+        var content = fileWriter.ReadAllText(csprojPath);
+        if (content.Contains(Path.GetFileName(referencePath))) return;
+
+        console.MarkupLine(string.Format(SR.Current.ExtensionAddingReference,
+            Path.GetFileName(referencePath), Path.GetFileName(csprojPath)));
+        var (ok, err) = dotNetRunner.Run($"add \"{csprojPath}\" reference \"{referencePath}\"");
+        if (!ok)
+            console.MarkupLine(string.Format(SR.Current.ExtensionReferenceAddWarning,
+                Path.GetFileName(referencePath), err));
+    }
+
     internal static void AddPackage(
         string csprojPath,
         string packageId,
