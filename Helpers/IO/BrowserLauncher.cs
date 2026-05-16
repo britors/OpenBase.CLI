@@ -12,9 +12,9 @@ public sealed class BrowserLauncher : IBrowserLauncher
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                Process.Start("open", url);
+                Process.Start("/usr/bin/open", url);
             else
-                Process.Start("xdg-open", url);
+                Process.Start("/usr/bin/xdg-open", url);
         }
         catch { }
     }
