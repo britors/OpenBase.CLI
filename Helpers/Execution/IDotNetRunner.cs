@@ -3,6 +3,7 @@ namespace OpenBase.CLI.Helpers.Execution;
 public interface IDotNetRunner
 {
     Task<(bool Success, string Error)> RunAsync(string arguments, CancellationToken cancellationToken);
+    Task<int> RunLiveAsync(string arguments, CancellationToken cancellationToken);
     (bool Success, string Error) Run(string arguments);
     string GetDotnetVersion();
     bool IsSdkVersionSufficient(int requiredMajor);

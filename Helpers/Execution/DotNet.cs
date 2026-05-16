@@ -82,6 +82,29 @@ public static class DotNet
         return (process.ExitCode == 0, error);
     }
 
+    public static async Task<int> RunLiveAsync(string arguments, CancellationToken cancellationToken)
+    {
+        var psi = new ProcessStartInfo(GetDotnetPath(), arguments)
+        {
+            UseShellExecute = false,
+        };
+
+        using var process = Process.Start(psi);
+        if (process == null) return 1;
+
+        try
+        {
+            await process.WaitForExitAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            if (!process.HasExited)
+                process.Kill(entireProcessTree: true);
+        }
+
+        return process.ExitCode;
+    }
+
     public static string GetDotnetVersion()
     {
         try

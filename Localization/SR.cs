@@ -115,6 +115,14 @@ public interface IStrings
     string ColNewVersion { get; }
     string ColStatus { get; }
 
+    string CmdRunDescription { get; }
+    string RunNoProjectFound { get; }
+    string RunStarting { get; }          // {0}=project name
+    string RunSwaggerUrl { get; }        // {0}=url
+    string RunOpeningBrowser { get; }
+    string RunStopped { get; }
+    string HelpRunDesc { get; }
+
     string CmdBuildDescription { get; }
     string BuildNoProjectFound { get; }
     string BuildRestoring { get; }
@@ -314,6 +322,14 @@ public abstract class BaseStrings(IReadOnlyDictionary<string, string> overrides)
     public string ColPreviousVersion          => T("[bold]Previous Version[/]");
     public string ColNewVersion               => T("[bold]New Version[/]");
     public string ColStatus                   => T("[bold]Status[/]");
+
+    public string CmdRunDescription  => T("Builds and runs the project, opening the browser at Swagger.");
+    public string RunNoProjectFound  => T("[red]Error:[/] OpenBase Presentation.Api project not found. Run from the solution root.");
+    public string RunStarting        => T("  Starting [blue]{0}[/]...");
+    public string RunSwaggerUrl      => T("  Swagger: [blue]{0}[/]");
+    public string RunOpeningBrowser  => T("  Opening browser...");
+    public string RunStopped         => T("\n[grey]Application stopped.[/]");
+    public string HelpRunDesc        => T("Builds and runs the project, opening Swagger in the browser");
 
     public string CmdBuildDescription  => T("Restores, builds and tests the project.");
     public string BuildNoProjectFound  => T("[red]Error:[/] No .sln or .csproj found in the current directory or its parents.");
@@ -553,6 +569,13 @@ public sealed class PtBrStrings() : BaseStrings(new Dictionary<string, string>
     ["JwtAppSettingsInjected"]       = "  [green]+[/] Seção Jwt adicionada ao appsettings.json",
     ["JwtAppSettingsWarning"]        = "  [yellow]Aviso:[/] Não foi possível modificar appsettings.json: {0}",
     ["JwtControllerProtected"]       = "  [green]+[/] {0} protegida com [[Authorize]]",
+    ["CmdRunDescription"]  = "Compila e executa o projeto, abrindo o browser no Swagger.",
+    ["RunNoProjectFound"]  = "[red]Erro:[/] Projeto Presentation.Api do OpenBase não encontrado. Execute na raiz da solution.",
+    ["RunStarting"]        = "  Iniciando [blue]{0}[/]...",
+    ["RunSwaggerUrl"]      = "  Swagger: [blue]{0}[/]",
+    ["RunOpeningBrowser"]  = "  Abrindo o browser...",
+    ["RunStopped"]         = "\n[grey]Aplicação encerrada.[/]",
+    ["HelpRunDesc"]        = "Compila e executa o projeto, abrindo o Swagger no browser",
     ["CmdBuildDescription"]  = "Restaura, compila e testa o projeto.",
     ["BuildNoProjectFound"]  = "[red]Erro:[/] Nenhum .sln ou .csproj encontrado no diretório atual ou em seus pais.",
     ["BuildRestoring"]       = "  Restaurando...",
@@ -727,6 +750,13 @@ public sealed class EsStrings() : BaseStrings(new Dictionary<string, string>
     ["JwtAppSettingsInjected"]       = "  [green]+[/] Sección Jwt agregada a appsettings.json",
     ["JwtAppSettingsWarning"]        = "  [yellow]Aviso:[/] No se pudo modificar appsettings.json: {0}",
     ["JwtControllerProtected"]       = "  [green]+[/] {0} protegida con [[Authorize]]",
+    ["CmdRunDescription"]  = "Compila y ejecuta el proyecto, abriendo el browser en Swagger.",
+    ["RunNoProjectFound"]  = "[red]Error:[/] Proyecto Presentation.Api de OpenBase no encontrado. Ejecute desde la raíz de la solution.",
+    ["RunStarting"]        = "  Iniciando [blue]{0}[/]...",
+    ["RunSwaggerUrl"]      = "  Swagger: [blue]{0}[/]",
+    ["RunOpeningBrowser"]  = "  Abriendo el browser...",
+    ["RunStopped"]         = "\n[grey]Aplicación detenida.[/]",
+    ["HelpRunDesc"]        = "Compila y ejecuta el proyecto, abriendo Swagger en el browser",
     ["CmdBuildDescription"]  = "Restaura, compila y prueba el proyecto.",
     ["BuildNoProjectFound"]  = "[red]Error:[/] No se encontró ningún .sln o .csproj en el directorio actual o sus padres.",
     ["BuildRestoring"]       = "  Restaurando...",
