@@ -1,5 +1,9 @@
 # OpenBase CLI
 
+<p align="center">
+  <img src="icon.png" alt="OpenBase CLI" width="180" />
+</p>
+
 The official command-line interface for the **OpenBase** ecosystem.
 
 ---

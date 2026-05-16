@@ -1,3 +1,4 @@
+using OpenBase.CLI.Helpers;
 using OpenBase.CLI.Localization;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -12,7 +13,7 @@ public class HelpCommand : Command<HelpSettings>
 {
     protected override int Execute(CommandContext context, HelpSettings settings, CancellationToken cancellationToken)
     {
-        AnsiConsole.Write(new FigletText("OpenBase").Color(Color.Blue));
+        ConsoleBanner.Print();
         AnsiConsole.MarkupLine(SR.Current.HelpSubtitle);
         AnsiConsole.WriteLine();
 
