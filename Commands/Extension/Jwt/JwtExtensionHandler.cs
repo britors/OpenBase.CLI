@@ -29,7 +29,7 @@ public sealed class JwtExtensionHandler(
         AddProjectReferences(ns, appPath, infraDataPath);
         ExtensionHelpers.WriteFiles(GetFiles(ns, appPath, infraDataPath, presentationPath), solutionDir, fileWriter, console);
         InjectAppSettings(presentationPath, ns);
-        InjectProgramCs(presentationPath);
+        InjectProgramCs(presentationPath, ns);
         ProtectExistingControllers(presentationPath, solutionDir);
 
         return new ExtensionApplyResult(true);
@@ -80,7 +80,7 @@ public sealed class JwtExtensionHandler(
         }
     }
 
-    private void InjectProgramCs(string presentationPath)
+    private void InjectProgramCs(string presentationPath, string ns)
     {
         var path = Path.Combine(presentationPath, "Program.cs");
         if (!fileWriter.FileExists(path))
@@ -92,12 +92,13 @@ public sealed class JwtExtensionHandler(
         try
         {
             var content = fileWriter.ReadAllText(path);
-            if (IsProgramCsAlreadyConfigured(content))
+            if (IsProgramCsAlreadyConfigured(content, ns))
             {
                 console.MarkupLine(SR.Current.JwtProgramCsAlreadyConfigured);
                 return;
             }
 
+            content = ExtensionHelpers.InjectPresentationUsing(content, ns);
             content = InjectAddJwt(content);
             content = InjectUseAuthMiddleware(content);
             fileWriter.WriteAllText(path, content);
@@ -109,10 +110,11 @@ public sealed class JwtExtensionHandler(
         }
     }
 
-    private static bool IsProgramCsAlreadyConfigured(string content) =>
+    private static bool IsProgramCsAlreadyConfigured(string content, string ns) =>
         content.Contains("builder.Services.AddJwtAuthentication(builder.Configuration);")
         && content.Contains("app.UseAuthentication();")
-        && content.Contains("app.UseAuthorization();");
+        && content.Contains("app.UseAuthorization();")
+        && content.Contains($"using {ns}.Presentation.Api.Extensions;");
 
     private static string InjectAddJwt(string content)
     {

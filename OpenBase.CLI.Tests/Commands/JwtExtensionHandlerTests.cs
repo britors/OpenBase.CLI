@@ -86,6 +86,7 @@ public class JwtExtensionHandlerTests
     public void Apply_FilesExist_SkipsCreation()
     {
         const string alreadyConfigured = """
+            using MyApp.Presentation.Api.Extensions;
             builder.Services.AddJwtAuthentication(builder.Configuration);
             var app = builder.Build();
             app.UseAuthentication();
@@ -293,6 +294,7 @@ public class JwtExtensionHandlerTests
         _fileWriter.Verify(f => f.WriteAllText(
             It.Is<string>(p => p.EndsWith("Program.cs")),
             It.Is<string>(c =>
+                c.Contains("using MyApp.Presentation.Api.Extensions;") &&
                 c.Contains("AddJwtAuthentication") &&
                 c.Contains("app.UseAuthentication();") &&
                 c.Contains("app.UseAuthorization();"))),
@@ -363,9 +365,26 @@ public class JwtExtensionHandlerTests
     }
 
     [Fact]
+    public void Apply_ProgramCs_AddsUsingDirective()
+    {
+        _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith("Program.cs")))).Returns(true);
+        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith("Program.cs")))).Returns(MinimalProgramCs);
+
+        string? written = null;
+        _fileWriter.Setup(f => f.WriteAllText(It.Is<string>(p => p.EndsWith("Program.cs")), It.IsAny<string>()))
+                   .Callback<string, string>((_, c) => written = c);
+
+        CreateHandler().Apply(BuildContext());
+
+        Assert.NotNull(written);
+        Assert.Contains("using MyApp.Presentation.Api.Extensions;", written);
+    }
+
+    [Fact]
     public void Apply_ProgramCs_AlreadyFullyConfigured_SkipsWrite()
     {
         const string alreadyDone = """
+            using MyApp.Presentation.Api.Extensions;
             var builder = WebApplication.CreateBuilder(args);
             builder.Services.AddJwtAuthentication(builder.Configuration);
             var app = builder.Build();
