@@ -16,6 +16,9 @@ public sealed class BrowserLauncher : IBrowserLauncher
             else
                 Process.Start("/usr/bin/xdg-open", url);
         }
-        catch { }
+        catch (Exception)
+        {
+            // best-effort: opening the browser is non-critical
+        }
     }
 }

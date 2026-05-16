@@ -135,7 +135,10 @@ public class RunCommand(
                     return $"{url.TrimEnd('/')}/swagger";
             }
         }
-        catch { }
+        catch (Exception)
+        {
+            return null;
+        }
 
         return null;
     }
