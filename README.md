@@ -39,13 +39,32 @@ The command automatically detects the nearest `.sln` file (or `.csproj` if no so
 
 ---
 
-### 2. Install the templates
+### 2. Run the project
+
+```bash
+openbase run
+```
+
+Runs `dotnet restore → dotnet build` (without tests), starts the `Presentation.Api` project with live console output, and automatically opens the browser at the Swagger UI after 5 seconds.
+
+The Swagger URL is read from `Properties/launchSettings.json` (prefers HTTPS). Fallback: `https://localhost:5001/swagger`.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--configuration` | `Debug` or `Release` | `Debug` |
+| `--no-build` | Skip restore + build | `false` |
+
+Press `Ctrl+C` to stop the application.
+
+---
+
+### 3. Install the templates
 
 ```bash
 openbase install
 ```
 
-### 2. Create a new project
+### 4. Create a new project
 
 ```bash
 # SQL Server
@@ -69,7 +88,7 @@ Database password:
 
 The settings are automatically written to the `appsettings.json` and `appsettings.Development.json` files of the generated project.
 
-### 3. Scaffold an entity
+### 5. Scaffold an entity
 
 From the root of the created project:
 
@@ -153,7 +172,7 @@ dotnet ef database update
 
 ---
 
-### 4. Add an extension
+### 6. Add an extension
 
 Extensions add cross-cutting capabilities to an existing OpenBase project. Run from the solution root:
 
@@ -298,7 +317,8 @@ builder.Services.AddRedisCache(builder.Configuration);
 
 | Command                  | Description                                              | Example                                                        |
 |--------------------------|----------------------------------------------------------|----------------------------------------------------------------|
-| `build`                  | Restores, builds and tests the project (fail-fast)               | `openbase build`                                               |
+| `build`                  | Restores, builds and tests the project (fail-fast)       | `openbase build`                                               |
+| `run`                    | Builds and runs the project, opening Swagger in browser  | `openbase run`                                                 |
 | `install`                | Installs the required NuGet templates                    | `openbase install`                                             |
 | `new`                    | Creates a new project from the templates                 | `openbase new --type api --template sqlserver --name X`        |
 | `scaffold`               | Generates all layers for an entity (interactive)         | `openbase scaffold --entity Product`                           |
