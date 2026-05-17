@@ -332,7 +332,7 @@ public sealed class JwtExtensionHandler(
                         Description = "Informe o token JWT."
                     });
 
-                    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+                    options.AddSecurityRequirement(_ => new OpenApiSecurityRequirement
                     {
                         { new OpenApiSecuritySchemeReference("Bearer"), [] }
                     });
