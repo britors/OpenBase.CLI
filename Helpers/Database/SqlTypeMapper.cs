@@ -4,6 +4,8 @@ namespace OpenBase.CLI.Helpers.Database;
 
 public static class SqlTypeMapper
 {
+    private const string CsString = "string";
+
     private static readonly IReadOnlyDictionary<string, string> TypeMap =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -12,10 +14,10 @@ public static class SqlTypeMapper
             ["bigint"] = "long", ["int8"] = "long",
             ["smallint"] = "short", ["int2"] = "short", ["tinyint"] = "short",
             // string
-            ["nvarchar"] = "string", ["varchar"] = "string", ["char"] = "string",
-            ["nchar"] = "string", ["text"] = "string", ["ntext"] = "string",
-            ["character varying"] = "string", ["character"] = "string", ["bpchar"] = "string",
-            ["varchar2"] = "string", ["nvarchar2"] = "string", ["clob"] = "string", ["nclob"] = "string",
+            ["nvarchar"] = CsString, ["varchar"] = CsString, ["char"] = CsString,
+            ["nchar"] = CsString, ["text"] = CsString, ["ntext"] = CsString,
+            ["character varying"] = CsString, ["character"] = CsString, ["bpchar"] = CsString,
+            ["varchar2"] = CsString, ["nvarchar2"] = CsString, ["clob"] = CsString, ["nclob"] = CsString,
             // bool
             ["bit"] = "bool", ["boolean"] = "bool", ["bool"] = "bool",
             // decimal
@@ -49,7 +51,7 @@ public static class SqlTypeMapper
     public static string ToCSharpType(string sqlType, DbFlavor flavor)
     {
         var t = sqlType.ToLowerInvariant().Trim();
-        return TypeMap.TryGetValue(t, out var csType) ? csType : "string";
+        return TypeMap.TryGetValue(t, out var csType) ? csType : CsString;
     }
 
     public static string ToPascalCase(string columnName)
