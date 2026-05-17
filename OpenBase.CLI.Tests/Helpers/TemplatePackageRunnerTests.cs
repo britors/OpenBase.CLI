@@ -35,6 +35,7 @@ public class TemplatePackageRunnerTests
         _dotNetRunner
             .SetupSequence(r => r.RunAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((false, string.Empty))
+            .ReturnsAsync((true, string.Empty))
             .ReturnsAsync((true, string.Empty));
 
         var results = await CreateRunner().RunPackagesAsync(
@@ -50,6 +51,7 @@ public class TemplatePackageRunnerTests
         _dotNetRunner
             .SetupSequence(r => r.RunAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((false, "Erro de rede"))
+            .ReturnsAsync((true, string.Empty))
             .ReturnsAsync((true, string.Empty));
 
         var results = await CreateRunner().RunPackagesAsync(
@@ -64,7 +66,8 @@ public class TemplatePackageRunnerTests
         _dotNetRunner
             .SetupSequence(r => r.RunAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((true, string.Empty))
-            .ReturnsAsync((false, "Timeout"));
+            .ReturnsAsync((false, "Timeout"))
+            .ReturnsAsync((true, string.Empty));
 
         var results = await CreateRunner().RunPackagesAsync(
             "Atualizando", "atualizado", "atualizar", CancellationToken.None);

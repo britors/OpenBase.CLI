@@ -19,7 +19,7 @@ public class NewSettings : CommandSettings
     public string Type { get; set; } = "api";
 
     [CommandOption("-s|--template <TEMPLATE>")]
-    [Description("O nome do template [sqlserver|pgsql]")]
+    [Description("O nome do template [sqlserver|pgsql|oracle]")]
     public string? TemplateName { get; set; }
 
     [CommandOption("-n|--name <NOME>")]
@@ -46,7 +46,8 @@ public class NewCommand : AsyncCommand<NewSettings>
     private static readonly Dictionary<string, IDbTemplateStrategy> TemplateMap = new(StringComparer.OrdinalIgnoreCase)
     {
         { "api:sqlserver", new SqlServerTemplateStrategy() },
-        { "api:pgsql",     new PostgresTemplateStrategy() },
+        { "api:pgsql",     new PostgresTemplateStrategy()  },
+        { "api:oracle",    new OracleTemplateStrategy()    },
     };
 
     private const string JsonSectionConnectionStrings = "ConnectionStrings";
@@ -91,7 +92,7 @@ public class NewCommand : AsyncCommand<NewSettings>
             templateName = await _console.PromptAsync(
                 new SelectionPrompt<string>()
                     .Title(SR.Current.ApiDatabasePrompt)
-                    .AddChoices("sqlserver", "pgsql"), cancellationToken);
+                    .AddChoices("sqlserver", "pgsql", "oracle"), cancellationToken);
         }
 
         var key = $"{settings.Type}:{templateName}";

@@ -13,34 +13,68 @@ public sealed class ConsoleModelFirstPropertyCollector(
 {
     public (IReadOnlyList<EntityProperty> Properties, string TableName)? Collect(string solutionDir, string rootNamespace, DbFlavor dbFlavor)
     {
+        var schema    = PromptSchema(dbFlavor);
+        var tableName = PromptTableName();
+        var connString = EnsureConnectionString(connectionStringReader.Read(solutionDir, rootNamespace));
+
+        var (columns, error) = FetchColumns(connString, schema, tableName, dbFlavor);
+
+        if (error is not null)
+        {
+            console.MarkupLine(string.Format(SR.Current.ErrorReadingTable, Markup.Escape(error.Message)));
+            return null;
+        }
+
+        if (columns is null || columns.Count == 0)
+        {
+            console.MarkupLine(string.Format(SR.Current.NoColumnsFound, schema, tableName));
+            console.MarkupLine(SR.Current.CheckSchemaAndTableName);
+            return null;
+        }
+
+        ShowSummaryTable(columns);
+        return (columns, tableName);
+    }
+
+    private string PromptSchema(DbFlavor dbFlavor)
+    {
         var defaultSchema = dbFlavor == DbFlavor.Postgres ? "public" : "dbo";
+        var prompt = new TextPrompt<string>(string.Format(SR.Current.SchemaOwnerPrompt, defaultSchema));
 
-        var schema = console.Prompt(
-            new TextPrompt<string>(string.Format(SR.Current.SchemaOwnerPrompt, defaultSchema))
-                .DefaultValue(defaultSchema)
-                .AllowEmpty());
+        if (dbFlavor == DbFlavor.Oracle)
+            prompt.Validate(s => string.IsNullOrWhiteSpace(s)
+                ? ValidationResult.Error(SR.Current.TableNameRequired)
+                : ValidationResult.Success());
+        else
+            prompt.DefaultValue(defaultSchema).AllowEmpty();
 
-        if (string.IsNullOrWhiteSpace(schema))
-            schema = defaultSchema;
+        var schema = console.Prompt(prompt);
+        return string.IsNullOrWhiteSpace(schema) ? defaultSchema : schema;
+    }
 
-        var tableName = console.Prompt(
+    private string PromptTableName() =>
+        console.Prompt(
             new TextPrompt<string>(SR.Current.TableNamePrompt)
                 .Validate(t => string.IsNullOrWhiteSpace(t)
                     ? ValidationResult.Error(SR.Current.TableNameRequired)
                     : ValidationResult.Success()));
 
-        var connString = connectionStringReader.Read(solutionDir, rootNamespace);
+    private string EnsureConnectionString(string? connString)
+    {
+        if (!string.IsNullOrWhiteSpace(connString))
+            return connString;
 
-        if (string.IsNullOrWhiteSpace(connString))
-        {
-            connString = console.Prompt(
-                new TextPrompt<string>(SR.Current.ConnectionStringNotFound)
-                    .Validate(s => string.IsNullOrWhiteSpace(s)
-                        ? ValidationResult.Error(SR.Current.ConnectionStringRequired)
-                        : ValidationResult.Success()));
-        }
+        return console.Prompt(
+            new TextPrompt<string>(SR.Current.ConnectionStringNotFound)
+                .Validate(s => string.IsNullOrWhiteSpace(s)
+                    ? ValidationResult.Error(SR.Current.ConnectionStringRequired)
+                    : ValidationResult.Success()));
+    }
 
-        (IReadOnlyList<EntityProperty>? Columns, Exception? Error)? result = null;
+    private (IReadOnlyList<EntityProperty>? Columns, Exception? Error) FetchColumns(
+        string connString, string schema, string tableName, DbFlavor dbFlavor)
+    {
+        (IReadOnlyList<EntityProperty>? Columns, Exception? Error) result = (null, null);
 
         console.Status()
             .Spinner(Spinner.Known.Dots)
@@ -48,7 +82,7 @@ public sealed class ConsoleModelFirstPropertyCollector(
             {
                 try
                 {
-                    result = (dbSchemaReader.ReadColumns(connString!, schema, tableName, dbFlavor), null);
+                    result = (dbSchemaReader.ReadColumns(connString, schema, tableName, dbFlavor), null);
                 }
                 catch (Exception ex)
                 {
@@ -56,23 +90,7 @@ public sealed class ConsoleModelFirstPropertyCollector(
                 }
             });
 
-        if (result?.Error is { } error)
-        {
-            console.MarkupLine(string.Format(SR.Current.ErrorReadingTable, Markup.Escape(error.Message)));
-            return null;
-        }
-
-        var properties = result?.Columns;
-
-        if (properties is null || properties.Count == 0)
-        {
-            console.MarkupLine(string.Format(SR.Current.NoColumnsFound, schema, tableName));
-            console.MarkupLine(SR.Current.CheckSchemaAndTableName);
-            return null;
-        }
-
-        ShowSummaryTable(properties);
-        return (properties, tableName);
+        return result;
     }
 
     private void ShowSummaryTable(IReadOnlyList<EntityProperty> properties)

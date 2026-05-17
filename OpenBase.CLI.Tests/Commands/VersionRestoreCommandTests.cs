@@ -27,6 +27,8 @@ public class VersionRestoreCommandTests
     [InlineData("SQLServer")]
     [InlineData("postgres")]
     [InlineData("POSTGRES")]
+    [InlineData("oracle")]
+    [InlineData("ORACLE")]
     public void Validate_ValidType_ReturnsSuccess(string type)
     {
         var result = MakeSettings("1.0.0", type).Validate();
@@ -45,7 +47,6 @@ public class VersionRestoreCommandTests
 
     [Theory]
     [InlineData("mysql")]
-    [InlineData("oracle")]
     [InlineData("unknown")]
     public void Validate_InvalidType_ReturnsError(string type)
     {
@@ -79,6 +80,7 @@ public class VersionRestoreCommandTests
     [Theory]
     [InlineData("sqlserver")]
     [InlineData("postgres")]
+    [InlineData("oracle")]
     public async Task ExecuteAsync_TemplateSucceeds_ReturnsZero(string type)
     {
         SetupRun(true);

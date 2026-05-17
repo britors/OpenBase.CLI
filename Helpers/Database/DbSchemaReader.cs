@@ -1,20 +1,21 @@
 using System.Data.Common;
 using Microsoft.Data.SqlClient;
 using Npgsql;
+using Oracle.ManagedDataAccess.Client;
 using OpenBase.CLI.Models;
 
 namespace OpenBase.CLI.Helpers.Database;
 
 public sealed class DbSchemaReader : IDbSchemaReader
 {
-    private const string ColumnQuery = """
+    private const string AnsiColumnQuery = """
         SELECT column_name, data_type, is_nullable
         FROM information_schema.columns
         WHERE table_schema = @schema AND table_name = @tableName
         ORDER BY ordinal_position
         """;
 
-    private const string PkQuery = """
+    private const string AnsiPkQuery = """
         SELECT kcu.column_name
         FROM information_schema.table_constraints tc
         JOIN information_schema.key_column_usage kcu
@@ -25,32 +26,55 @@ public sealed class DbSchemaReader : IDbSchemaReader
           AND tc.table_name   = @tableName
         """;
 
+    private const string OracleColumnQuery = """
+        SELECT column_name, data_type, nullable
+        FROM all_tab_columns
+        WHERE owner = UPPER(:schema) AND table_name = UPPER(:tableName)
+        ORDER BY column_id
+        """;
+
+    private const string OraclePkQuery = """
+        SELECT acc.column_name
+        FROM all_constraints ac
+        JOIN all_cons_columns acc
+          ON ac.constraint_name = acc.constraint_name AND ac.owner = acc.owner
+        WHERE ac.constraint_type = 'P'
+          AND ac.owner = UPPER(:schema)
+          AND ac.table_name = UPPER(:tableName)
+        """;
+
     public IReadOnlyList<EntityProperty> ReadColumns(
         string connectionString,
         string schema,
         string tableName,
         DbFlavor dbFlavor)
     {
-        using DbConnection conn = dbFlavor == DbFlavor.Postgres
-            ? new NpgsqlConnection(connectionString)
-            : new SqlConnection(connectionString);
+        using DbConnection conn = dbFlavor switch
+        {
+            DbFlavor.Postgres => new NpgsqlConnection(connectionString),
+            DbFlavor.Oracle   => new OracleConnection(connectionString),
+            _                 => new SqlConnection(connectionString),
+        };
 
         conn.Open();
 
-        var pkColumns = ReadPrimaryKeys(conn, schema, tableName);
+        var pkColumns  = ReadPrimaryKeys(conn, schema, tableName, dbFlavor);
         var properties = new List<EntityProperty>();
 
         using var cmd = conn.CreateCommand();
-        cmd.CommandText = ColumnQuery;
-        AddParam(cmd, "@schema", schema);
-        AddParam(cmd, "@tableName", tableName);
+        cmd.CommandText = dbFlavor == DbFlavor.Oracle ? OracleColumnQuery : AnsiColumnQuery;
+        AddParam(cmd, dbFlavor == DbFlavor.Oracle ? ":schema"    : "@schema",    schema);
+        AddParam(cmd, dbFlavor == DbFlavor.Oracle ? ":tableName" : "@tableName", tableName);
 
         using var reader = cmd.ExecuteReader();
         while (reader.Read())
         {
             var colName  = reader.GetString(0);
             var dataType = reader.GetString(1);
-            var nullable = reader.GetString(2).Equals("YES", StringComparison.OrdinalIgnoreCase);
+            // Oracle: nullable='Y' means nullable; ANSI: is_nullable='YES' means nullable
+            var nullable = dbFlavor == DbFlavor.Oracle
+                ? reader.GetString(2).Equals("Y", StringComparison.OrdinalIgnoreCase)
+                : reader.GetString(2).Equals("YES", StringComparison.OrdinalIgnoreCase);
 
             if (pkColumns.Contains(colName))
                 continue;
@@ -64,14 +88,14 @@ public sealed class DbSchemaReader : IDbSchemaReader
         return properties;
     }
 
-    private static HashSet<string> ReadPrimaryKeys(DbConnection conn, string schema, string tableName)
+    private static HashSet<string> ReadPrimaryKeys(DbConnection conn, string schema, string tableName, DbFlavor dbFlavor)
     {
         var pks = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         using var cmd = conn.CreateCommand();
-        cmd.CommandText = PkQuery;
-        AddParam(cmd, "@schema", schema);
-        AddParam(cmd, "@tableName", tableName);
+        cmd.CommandText = dbFlavor == DbFlavor.Oracle ? OraclePkQuery : AnsiPkQuery;
+        AddParam(cmd, dbFlavor == DbFlavor.Oracle ? ":schema"    : "@schema",    schema);
+        AddParam(cmd, dbFlavor == DbFlavor.Oracle ? ":tableName" : "@tableName", tableName);
 
         using var reader = cmd.ExecuteReader();
         while (reader.Read())
