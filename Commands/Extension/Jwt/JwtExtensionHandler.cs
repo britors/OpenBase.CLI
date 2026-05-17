@@ -101,8 +101,10 @@ public sealed class JwtExtensionHandler(
             content = ExtensionHelpers.InjectPresentationUsing(content, ns);
             content = InjectAddJwt(content);
             content = InjectUseAuthMiddleware(content);
+            content = InjectSwaggerJwtSupport(content);
             fileWriter.WriteAllText(path, content);
             console.MarkupLine(SR.Current.JwtProgramCsInjected);
+            console.MarkupLine(SR.Current.JwtSwaggerInjected);
         }
         catch (Exception ex)
         {
@@ -114,7 +116,24 @@ public sealed class JwtExtensionHandler(
         content.Contains("builder.Services.AddJwtAuthentication(builder.Configuration);")
         && content.Contains("app.UseAuthentication();")
         && content.Contains("app.UseAuthorization();")
-        && content.Contains($"using {ns}.Presentation.Api.Extensions;");
+        && content.Contains($"using {ns}.Presentation.Api.Extensions;")
+        && content.Contains("builder.Services.AddSwaggerJwtSupport();");
+
+    private static string InjectSwaggerJwtSupport(string content)
+    {
+        const string swaggerJwtCall = "builder.Services.AddSwaggerJwtSupport();";
+        if (content.Contains(swaggerJwtCall)) return content;
+
+        const string swaggerGenAnchor = "builder.Services.AddSwaggerGen();";
+        if (content.Contains(swaggerGenAnchor))
+        {
+            var idx = content.IndexOf(swaggerGenAnchor, StringComparison.Ordinal) + swaggerGenAnchor.Length;
+            var afterLine = ExtensionHelpers.SkipNewLine(content, idx);
+            return content.Insert(afterLine, $"{swaggerJwtCall}\n");
+        }
+
+        return ExtensionHelpers.InsertBeforeAnchor(content, "var app = builder.Build();", $"{swaggerJwtCall}\n");
+    }
 
     private static string InjectAddJwt(string content)
     {
@@ -263,6 +282,7 @@ public sealed class JwtExtensionHandler(
         using Microsoft.Extensions.Configuration;
         using Microsoft.Extensions.DependencyInjection;
         using Microsoft.IdentityModel.Tokens;
+        using Microsoft.OpenApi.Models;
 
         namespace {{ns}}.Presentation.Api.Extensions;
 
@@ -294,6 +314,39 @@ public sealed class JwtExtensionHandler(
                     });
 
                 services.AddAuthorization();
+
+                return services;
+            }
+
+            public static IServiceCollection AddSwaggerJwtSupport(this IServiceCollection services)
+            {
+                services.AddSwaggerGen(options =>
+                {
+                    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                    {
+                        Name = "Authorization",
+                        Type = SecuritySchemeType.Http,
+                        Scheme = "Bearer",
+                        BearerFormat = "JWT",
+                        In = ParameterLocation.Header,
+                        Description = "Informe o token JWT."
+                    });
+
+                    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+                    {
+                        {
+                            new OpenApiSecurityScheme
+                            {
+                                Reference = new OpenApiReference
+                                {
+                                    Type = ReferenceType.SecurityScheme,
+                                    Id = "Bearer"
+                                }
+                            },
+                            []
+                        }
+                    });
+                });
 
                 return services;
             }

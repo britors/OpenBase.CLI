@@ -88,6 +88,7 @@ public class JwtExtensionHandlerTests
         const string alreadyConfigured = """
             using MyApp.Presentation.Api.Extensions;
             builder.Services.AddJwtAuthentication(builder.Configuration);
+            builder.Services.AddSwaggerJwtSupport();
             var app = builder.Build();
             app.UseAuthentication();
             app.UseAuthorization();
@@ -296,6 +297,7 @@ public class JwtExtensionHandlerTests
             It.Is<string>(c =>
                 c.Contains("using MyApp.Presentation.Api.Extensions;") &&
                 c.Contains("AddJwtAuthentication") &&
+                c.Contains("AddSwaggerJwtSupport") &&
                 c.Contains("app.UseAuthentication();") &&
                 c.Contains("app.UseAuthorization();"))),
             Times.Once);
@@ -387,6 +389,7 @@ public class JwtExtensionHandlerTests
             using MyApp.Presentation.Api.Extensions;
             var builder = WebApplication.CreateBuilder(args);
             builder.Services.AddJwtAuthentication(builder.Configuration);
+            builder.Services.AddSwaggerJwtSupport();
             var app = builder.Build();
             app.UseAuthentication();
             app.UseAuthorization();
@@ -401,6 +404,86 @@ public class JwtExtensionHandlerTests
         _fileWriter.Verify(f => f.WriteAllText(
             It.Is<string>(p => p.EndsWith("Program.cs")),
             It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public void Apply_ProgramCs_InjectsSwaggerJwtSupport()
+    {
+        _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith("Program.cs")))).Returns(true);
+        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith("Program.cs")))).Returns(MinimalProgramCs);
+
+        string? written = null;
+        _fileWriter.Setup(f => f.WriteAllText(It.Is<string>(p => p.EndsWith("Program.cs")), It.IsAny<string>()))
+                   .Callback<string, string>((_, c) => written = c);
+
+        CreateHandler().Apply(BuildContext());
+
+        Assert.NotNull(written);
+        Assert.Contains("AddSwaggerJwtSupport", written);
+    }
+
+    [Fact]
+    public void Apply_ProgramCs_SwaggerJwtAfterAddSwaggerGen()
+    {
+        const string withSwaggerGen = """
+            var builder = WebApplication.CreateBuilder(args);
+            builder.Services.AddSwaggerGen();
+            var app = builder.Build();
+            app.MapControllers();
+            await app.RunAsync();
+            """;
+
+        _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith("Program.cs")))).Returns(true);
+        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith("Program.cs")))).Returns(withSwaggerGen);
+
+        string? written = null;
+        _fileWriter.Setup(f => f.WriteAllText(It.Is<string>(p => p.EndsWith("Program.cs")), It.IsAny<string>()))
+                   .Callback<string, string>((_, c) => written = c);
+
+        CreateHandler().Apply(BuildContext());
+
+        Assert.NotNull(written);
+        var swaggerGenIdx = written!.IndexOf("AddSwaggerGen", StringComparison.Ordinal);
+        var swaggerJwtIdx = written.IndexOf("AddSwaggerJwtSupport", StringComparison.Ordinal);
+        Assert.True(swaggerGenIdx < swaggerJwtIdx, "AddSwaggerJwtSupport should appear after AddSwaggerGen");
+    }
+
+    [Fact]
+    public void Apply_ProgramCs_SwaggerJwtAlreadyPresent_NotDuplicated()
+    {
+        const string alreadyHasSwagger = """
+            var builder = WebApplication.CreateBuilder(args);
+            builder.Services.AddSwaggerGen();
+            builder.Services.AddSwaggerJwtSupport();
+            var app = builder.Build();
+            app.MapControllers();
+            """;
+
+        _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith("Program.cs")))).Returns(true);
+        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith("Program.cs")))).Returns(alreadyHasSwagger);
+
+        string? written = null;
+        _fileWriter.Setup(f => f.WriteAllText(It.Is<string>(p => p.EndsWith("Program.cs")), It.IsAny<string>()))
+                   .Callback<string, string>((_, c) => written = c);
+
+        CreateHandler().Apply(BuildContext());
+
+        if (written != null)
+            Assert.Equal(1, CountOccurrences(written, "AddSwaggerJwtSupport"));
+    }
+
+    [Fact]
+    public void Apply_JwtExtensionsTemplate_ContainsAddSwaggerJwtSupport()
+    {
+        var files = JwtExtensionHandler.GetFiles("MyApp",
+            "/solution/src/MyApp.Application",
+            "/solution/src/MyApp.Infra.Data",
+            "/solution/src/MyApp.Presentation.Api").ToList();
+
+        var jwtExt = files.First(f => f.Path.EndsWith("JwtExtensions.cs"));
+        Assert.Contains("AddSwaggerJwtSupport", jwtExt.Content);
+        Assert.Contains("OpenApiSecurityScheme", jwtExt.Content);
+        Assert.Contains("Bearer", jwtExt.Content);
     }
 
     [Fact]
