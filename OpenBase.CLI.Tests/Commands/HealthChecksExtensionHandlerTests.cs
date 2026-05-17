@@ -174,6 +174,24 @@ public class HealthChecksExtensionHandlerTests
     }
 
     [Fact]
+    public void Apply_OracleDetected_AddsOraclePackage()
+    {
+        _fileWriter.Setup(f => f.FileExists(It.IsAny<string>())).Returns(true);
+        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith("Infra.Data.csproj"))))
+                   .Returns("<PackageReference Include=\"Oracle.EntityFrameworkCore\" />");
+        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith("Presentation.Api.csproj"))))
+                   .Returns("<Project />");
+        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith("Program.cs"))))
+                   .Returns("AddOpenBaseHealthChecks\nMapOpenBaseHealthChecks");
+
+        CreateHandler().Apply(BuildContext());
+
+        _dotNetRunner.Verify(r => r.Run(
+            It.Is<string>(s => s.Contains("AspNetCore.HealthChecks.Oracle"))),
+            Times.Once);
+    }
+
+    [Fact]
     public void Apply_NoServicesDetected_SkipsConditionalPackages()
     {
         _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith(".csproj")))).Returns(true);
@@ -184,6 +202,7 @@ public class HealthChecksExtensionHandlerTests
         _dotNetRunner.Verify(r => r.Run(
             It.Is<string>(s => s.Contains("AspNetCore.HealthChecks.SqlServer") ||
                                s.Contains("AspNetCore.HealthChecks.NpgSql") ||
+                               s.Contains("AspNetCore.HealthChecks.Oracle") ||
                                s.Contains("AspNetCore.HealthChecks.Redis") ||
                                s.Contains("AspNetCore.HealthChecks.RabbitMQ"))),
             Times.Never);
@@ -322,7 +341,7 @@ public class HealthChecksExtensionHandlerTests
         var files = HealthChecksExtensionHandler.GetFiles(
             "MyApp",
             "/solution/src/MyApp.Presentation.Api",
-            new DetectedServices(false, false, false, false)).ToList();
+            new DetectedServices(false, false, false, false, false)).ToList();
 
         Assert.Single(files);
     }
@@ -333,7 +352,7 @@ public class HealthChecksExtensionHandlerTests
         var files = HealthChecksExtensionHandler.GetFiles(
             "MyApp",
             "/solution/src/MyApp.Presentation.Api",
-            new DetectedServices(false, false, false, false)).ToList();
+            new DetectedServices(false, false, false, false, false)).ToList();
 
         Assert.Contains(files, f =>
             f.Path.Contains("MyApp.Presentation.Api") && f.Path.EndsWith("HealthChecksExtensions.cs"));
@@ -345,7 +364,7 @@ public class HealthChecksExtensionHandlerTests
         var files = HealthChecksExtensionHandler.GetFiles(
             "AcmeCorp",
             "/solution/src/AcmeCorp.Presentation.Api",
-            new DetectedServices(false, false, false, false)).ToList();
+            new DetectedServices(false, false, false, false, false)).ToList();
 
         Assert.Contains("AcmeCorp.Presentation.Api.Extensions", files[0].Content);
     }
@@ -356,7 +375,7 @@ public class HealthChecksExtensionHandlerTests
         var files = HealthChecksExtensionHandler.GetFiles(
             "MyApp",
             "/solution/src/MyApp.Presentation.Api",
-            new DetectedServices(false, false, false, false)).ToList();
+            new DetectedServices(false, false, false, false, false)).ToList();
 
         Assert.Contains("\"/health\"", files[0].Content);
     }
@@ -367,7 +386,7 @@ public class HealthChecksExtensionHandlerTests
         var files = HealthChecksExtensionHandler.GetFiles(
             "MyApp",
             "/solution/src/MyApp.Presentation.Api",
-            new DetectedServices(false, false, false, false)).ToList();
+            new DetectedServices(false, false, false, false, false)).ToList();
 
         Assert.Contains("\"/health/ready\"", files[0].Content);
     }
@@ -378,9 +397,10 @@ public class HealthChecksExtensionHandlerTests
         var files = HealthChecksExtensionHandler.GetFiles(
             "MyApp",
             "/solution/src/MyApp.Presentation.Api",
-            new DetectedServices(HasSqlServer: true, HasPostgres: false, HasRedis: false, HasRabbitMq: false)).ToList();
+            new DetectedServices(HasSqlServer: true, HasPostgres: false, HasOracle: false, HasRedis: false, HasRabbitMq: false)).ToList();
 
         Assert.Contains("AddSqlServer", files[0].Content);
+        Assert.Contains("OpenBaseSQLServer", files[0].Content);
     }
 
     [Fact]
@@ -389,9 +409,22 @@ public class HealthChecksExtensionHandlerTests
         var files = HealthChecksExtensionHandler.GetFiles(
             "MyApp",
             "/solution/src/MyApp.Presentation.Api",
-            new DetectedServices(HasSqlServer: false, HasPostgres: true, HasRedis: false, HasRabbitMq: false)).ToList();
+            new DetectedServices(HasSqlServer: false, HasPostgres: true, HasOracle: false, HasRedis: false, HasRabbitMq: false)).ToList();
 
         Assert.Contains("AddNpgSql", files[0].Content);
+        Assert.Contains("OpenBasePostgres", files[0].Content);
+    }
+
+    [Fact]
+    public void GetFiles_OracleDetected_ContentContainsAddOracle()
+    {
+        var files = HealthChecksExtensionHandler.GetFiles(
+            "MyApp",
+            "/solution/src/MyApp.Presentation.Api",
+            new DetectedServices(HasSqlServer: false, HasPostgres: false, HasOracle: true, HasRedis: false, HasRabbitMq: false)).ToList();
+
+        Assert.Contains("AddOracle", files[0].Content);
+        Assert.Contains("OpenBaseOracle", files[0].Content);
     }
 
     [Fact]
@@ -400,7 +433,7 @@ public class HealthChecksExtensionHandlerTests
         var files = HealthChecksExtensionHandler.GetFiles(
             "MyApp",
             "/solution/src/MyApp.Presentation.Api",
-            new DetectedServices(HasSqlServer: false, HasPostgres: false, HasRedis: true, HasRabbitMq: false)).ToList();
+            new DetectedServices(HasSqlServer: false, HasPostgres: false, HasOracle: false, HasRedis: true, HasRabbitMq: false)).ToList();
 
         Assert.Contains("AddRedis", files[0].Content);
     }
@@ -411,7 +444,7 @@ public class HealthChecksExtensionHandlerTests
         var files = HealthChecksExtensionHandler.GetFiles(
             "MyApp",
             "/solution/src/MyApp.Presentation.Api",
-            new DetectedServices(HasSqlServer: false, HasPostgres: false, HasRedis: false, HasRabbitMq: true)).ToList();
+            new DetectedServices(HasSqlServer: false, HasPostgres: false, HasOracle: false, HasRedis: false, HasRabbitMq: true)).ToList();
 
         Assert.Contains("AddRabbitMQ", files[0].Content);
     }
@@ -422,10 +455,11 @@ public class HealthChecksExtensionHandlerTests
         var files = HealthChecksExtensionHandler.GetFiles(
             "MyApp",
             "/solution/src/MyApp.Presentation.Api",
-            new DetectedServices(false, false, false, false)).ToList();
+            new DetectedServices(false, false, false, false, false)).ToList();
 
         Assert.DoesNotContain("AddSqlServer", files[0].Content);
         Assert.DoesNotContain("AddNpgSql", files[0].Content);
+        Assert.DoesNotContain("AddOracle", files[0].Content);
         Assert.DoesNotContain("AddRedis", files[0].Content);
         Assert.DoesNotContain("AddRabbitMQ", files[0].Content);
     }

@@ -43,6 +43,7 @@ public sealed class HealthChecksExtensionHandler(
         return new DetectedServices(
             HasSqlServer: csprojContent.Contains("EntityFrameworkCore.SqlServer", StringComparison.OrdinalIgnoreCase),
             HasPostgres: csprojContent.Contains("Npgsql.EntityFrameworkCore", StringComparison.OrdinalIgnoreCase),
+            HasOracle: csprojContent.Contains("Oracle.EntityFrameworkCore", StringComparison.OrdinalIgnoreCase),
             HasRedis: installed.Any(e => string.Equals(e.Name, "redis", StringComparison.OrdinalIgnoreCase)),
             HasRabbitMq: installed.Any(e => string.Equals(e.Name, "rabbitmq", StringComparison.OrdinalIgnoreCase))
         );
@@ -59,6 +60,7 @@ public sealed class HealthChecksExtensionHandler(
 
         if (detected.HasSqlServer) packages.Add("AspNetCore.HealthChecks.SqlServer");
         if (detected.HasPostgres) packages.Add("AspNetCore.HealthChecks.NpgSql");
+        if (detected.HasOracle) packages.Add("AspNetCore.HealthChecks.Oracle");
         if (detected.HasRedis) packages.Add("AspNetCore.HealthChecks.Redis");
         if (detected.HasRabbitMq) packages.Add("AspNetCore.HealthChecks.RabbitMQ");
 
@@ -153,9 +155,11 @@ public sealed class HealthChecksExtensionHandler(
         var lines = new List<string>();
 
         if (detected.HasSqlServer)
-            lines.Add("            .AddSqlServer(configuration[\"ConnectionStrings:DefaultConnection\"]!, name: \"sqlserver\", tags: [\"ready\"])");
+            lines.Add("            .AddSqlServer(configuration[\"ConnectionStrings:OpenBaseSQLServer\"]!, name: \"sqlserver\", tags: [\"ready\"])");
         if (detected.HasPostgres)
-            lines.Add("            .AddNpgSql(configuration[\"ConnectionStrings:DefaultConnection\"]!, name: \"postgres\", tags: [\"ready\"])");
+            lines.Add("            .AddNpgSql(configuration[\"ConnectionStrings:OpenBasePostgres\"]!, name: \"postgres\", tags: [\"ready\"])");
+        if (detected.HasOracle)
+            lines.Add("            .AddOracle(configuration[\"ConnectionStrings:OpenBaseOracle\"]!, name: \"oracle\", tags: [\"ready\"])");
         if (detected.HasRedis)
             lines.Add("            .AddRedis(configuration[\"Redis:ConnectionString\"]!, name: \"redis\", tags: [\"ready\"])");
         if (detected.HasRabbitMq)
@@ -165,4 +169,4 @@ public sealed class HealthChecksExtensionHandler(
     }
 }
 
-public record DetectedServices(bool HasSqlServer, bool HasPostgres, bool HasRedis, bool HasRabbitMq);
+public record DetectedServices(bool HasSqlServer, bool HasPostgres, bool HasOracle, bool HasRedis, bool HasRabbitMq);
