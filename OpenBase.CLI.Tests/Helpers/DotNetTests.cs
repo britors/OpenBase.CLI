@@ -5,9 +5,9 @@ namespace OpenBase.CLI.Tests.Helpers;
 public class DotNetTests
 {
     [Fact]
-    public void TemplatePackages_HasTwoEntries()
+    public void TemplatePackages_HasThreeEntries()
     {
-        Assert.Equal(2, DotNet.TemplatePackages.Length);
+        Assert.Equal(3, DotNet.TemplatePackages.Length);
     }
 
     [Fact]
@@ -20,6 +20,12 @@ public class DotNetTests
     public void TemplatePackages_ContainsPostgresTemplate()
     {
         Assert.Contains("w3ti.OpenBaseNET.Postgres.Template", DotNet.TemplatePackages);
+    }
+
+    [Fact]
+    public void TemplatePackages_ContainsOracleTemplate()
+    {
+        Assert.Contains("w3ti.OpenBaseNET.Oracle.Template", DotNet.TemplatePackages);
     }
 
     [Theory]
