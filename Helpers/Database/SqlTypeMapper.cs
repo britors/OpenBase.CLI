@@ -26,6 +26,16 @@ public static class SqlTypeMapper
             "uniqueidentifier" or "uuid"                                          => "Guid",
             "varbinary" or "binary" or "image" or "bytea"                        => "byte[]",
             "json" or "jsonb"                                                     => "JsonDocument",
+
+            // Oracle
+            "number"                                                              => "decimal",
+            "varchar2" or "nvarchar2" or "nchar"
+                or "clob" or "nclob"                                             => "string",
+            "binary_float"                                                        => "float",
+            "binary_double"                                                       => "double",
+            "blob" or "raw" or "long raw"                                         => "byte[]",
+            "timestamp with time zone" or "timestamp with local time zone"        => "DateTimeOffset",
+
             _                                                                     => "string"
         };
     }

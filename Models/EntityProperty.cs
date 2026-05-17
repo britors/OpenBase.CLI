@@ -1,6 +1,6 @@
 namespace OpenBase.CLI.Models;
 
-public enum DbFlavor { SqlServer, Postgres }
+public enum DbFlavor { SqlServer, Postgres, Oracle }
 
 public sealed record EntityProperty(string Name, string CsType, bool IsRequired)
 {

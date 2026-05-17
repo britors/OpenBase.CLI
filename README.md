@@ -76,6 +76,9 @@ openbase new --type api --template sqlserver --name MyProject
 
 # PostgreSQL
 openbase new --type api --template pgsql --name MyProject
+
+# Oracle
+openbase new --type api --template oracle --name MyProject
 ```
 
 The wizard will prompt for project configuration:
@@ -100,7 +103,7 @@ From the root of the created project:
 openbase scaffold --entity Product
 ```
 
-The command automatically detects whether the project uses **SQL Server** or **PostgreSQL** and opens an interactive wizard to define the entity's properties:
+The command automatically detects whether the project uses **SQL Server**, **PostgreSQL** or **Oracle** and opens an interactive wizard to define the entity's properties:
 
 ```
 Entity properties
@@ -141,23 +144,23 @@ At the end, **47 files** are generated covering all Clean Architecture layers, a
 
 #### Available property types
 
-| Type            | SQL Server | PostgreSQL |
-|-----------------|:----------:|:----------:|
-| `int`           | ✓          | ✓          |
-| `long`          | ✓          | ✓          |
-| `short`         | ✓          | ✓          |
-| `string`        | ✓          | ✓          |
-| `bool`          | ✓          | ✓          |
-| `decimal`       | ✓          | ✓          |
-| `float`         | ✓          | ✓          |
-| `double`        | ✓          | ✓          |
-| `DateTime`      | ✓          | ✓          |
-| `DateOnly`      | ✓          | ✓          |
-| `TimeOnly`      | ✓          | ✓          |
-| `DateTimeOffset`| ✓          | ✓          |
-| `Guid`          | ✓          | ✓          |
-| `byte[]`        | ✓          | ✓          |
-| `JsonDocument`  |            | ✓          |
+| Type            | SQL Server | PostgreSQL | Oracle |
+|-----------------|:----------:|:----------:|:------:|
+| `int`           | ✓          | ✓          | ✓      |
+| `long`          | ✓          | ✓          | ✓      |
+| `short`         | ✓          | ✓          | ✓      |
+| `string`        | ✓          | ✓          | ✓      |
+| `bool`          | ✓          | ✓          | ✓      |
+| `decimal`       | ✓          | ✓          | ✓      |
+| `float`         | ✓          | ✓          | ✓      |
+| `double`        | ✓          | ✓          | ✓      |
+| `DateTime`      | ✓          | ✓          | ✓      |
+| `DateOnly`      | ✓          | ✓          | ✓      |
+| `TimeOnly`      | ✓          | ✓          | ✓      |
+| `DateTimeOffset`| ✓          | ✓          | ✓      |
+| `Guid`          | ✓          | ✓          | ✓      |
+| `byte[]`        | ✓          | ✓          | ✓      |
+| `JsonDocument`  |            | ✓          |        |
 
 #### Validation rules auto-generated in Validators
 
@@ -324,7 +327,7 @@ builder.Services.AddRedisCache(builder.Configuration);
 | `build`                  | Restores, builds and tests the project (fail-fast)       | `openbase build`                                               |
 | `run`                    | Builds and runs the project, opening Swagger in browser  | `openbase run`                                                 |
 | `install`                | Installs the required NuGet templates                    | `openbase install`                                             |
-| `new`                    | Creates a new project from the templates                 | `openbase new --type api --template sqlserver --name X`        |
+| `new`                    | Creates a new project from the templates                 | `openbase new --type api --template sqlserver --name X`<br>`openbase new --type api --template pgsql --name X`<br>`openbase new --type api --template oracle --name X` |
 | `scaffold`               | Generates all layers for an entity (interactive)         | `openbase scaffold --entity Product`                           |
 | `extension add`          | Adds an installable extension to the project             | `openbase extension add jwt`                                   |
 | `update`                 | Updates the CLI and templates to the latest version      | `openbase update`                                              |
@@ -343,6 +346,7 @@ openbase history
 openbase history --type cli
 openbase history --type sqlserver
 openbase history --type postgres
+openbase history --type oracle
 ```
 
 ### Restore a version
@@ -356,6 +360,7 @@ openbase version restore 10.5.9 --type cli
 # Restore a template
 openbase version restore 2.0.0 --type sqlserver
 openbase version restore 1.5.3 --type postgres
+openbase version restore 0.0.2 --type oracle
 ```
 
 The `--type` argument is required and accepts:
@@ -365,6 +370,7 @@ The `--type` argument is required and accepts:
 | `cli`       | OpenBase CLI (`w3ti.OpenBase.CLI`)     |
 | `sqlserver` | SQL Server Template                    |
 | `postgres`  | PostgreSQL Template                    |
+| `oracle`    | Oracle Template                        |
 
 ---
 

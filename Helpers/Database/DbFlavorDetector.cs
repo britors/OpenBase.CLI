@@ -4,7 +4,8 @@ namespace OpenBase.CLI.Helpers.Database;
 
 public sealed class DbFlavorDetector : IDbFlavorDetector
 {
-    private const string NpgsqlPackage = "Npgsql.EntityFrameworkCore.PostgreSQL";
+    private const string NpgsqlPackage  = "Npgsql.EntityFrameworkCore.PostgreSQL";
+    private const string OraclePackage  = "Oracle.EntityFrameworkCore";
 
     public DbFlavor Detect(string solutionDir)
     {
@@ -12,9 +13,17 @@ public sealed class DbFlavorDetector : IDbFlavorDetector
         if (!Directory.Exists(srcDir))
             return DbFlavor.SqlServer;
 
-        var hasNpgsql = Directory.GetFiles(srcDir, "*.csproj", SearchOption.AllDirectories)
-            .Any(f => File.ReadAllText(f).Contains(NpgsqlPackage, StringComparison.OrdinalIgnoreCase));
+        var csprojContents = Directory
+            .GetFiles(srcDir, "*.csproj", SearchOption.AllDirectories)
+            .Select(File.ReadAllText)
+            .ToList();
 
-        return hasNpgsql ? DbFlavor.Postgres : DbFlavor.SqlServer;
+        if (csprojContents.Any(c => c.Contains(OraclePackage, StringComparison.OrdinalIgnoreCase)))
+            return DbFlavor.Oracle;
+
+        if (csprojContents.Any(c => c.Contains(NpgsqlPackage, StringComparison.OrdinalIgnoreCase)))
+            return DbFlavor.Postgres;
+
+        return DbFlavor.SqlServer;
     }
 }

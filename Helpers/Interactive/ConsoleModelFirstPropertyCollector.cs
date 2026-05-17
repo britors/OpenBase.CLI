@@ -13,12 +13,22 @@ public sealed class ConsoleModelFirstPropertyCollector(
 {
     public (IReadOnlyList<EntityProperty> Properties, string TableName)? Collect(string solutionDir, string rootNamespace, DbFlavor dbFlavor)
     {
-        var defaultSchema = dbFlavor == DbFlavor.Postgres ? "public" : "dbo";
+        var defaultSchema = dbFlavor switch
+        {
+            DbFlavor.Postgres => "public",
+            _                 => "dbo",
+        };
 
-        var schema = console.Prompt(
-            new TextPrompt<string>(string.Format(SR.Current.SchemaOwnerPrompt, defaultSchema))
-                .DefaultValue(defaultSchema)
-                .AllowEmpty());
+        var schemaPrompt = new TextPrompt<string>(string.Format(SR.Current.SchemaOwnerPrompt, defaultSchema));
+
+        if (dbFlavor == DbFlavor.Oracle)
+            schemaPrompt.Validate(s => string.IsNullOrWhiteSpace(s)
+                ? ValidationResult.Error(SR.Current.TableNameRequired)
+                : ValidationResult.Success());
+        else
+            schemaPrompt.DefaultValue(defaultSchema).AllowEmpty();
+
+        var schema = console.Prompt(schemaPrompt);
 
         if (string.IsNullOrWhiteSpace(schema))
             schema = defaultSchema;
