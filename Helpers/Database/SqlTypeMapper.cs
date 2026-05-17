@@ -4,40 +4,52 @@ namespace OpenBase.CLI.Helpers.Database;
 
 public static class SqlTypeMapper
 {
+    private static readonly IReadOnlyDictionary<string, string> TypeMap =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            // integer
+            ["int"] = "int", ["int4"] = "int", ["integer"] = "int",
+            ["bigint"] = "long", ["int8"] = "long",
+            ["smallint"] = "short", ["int2"] = "short", ["tinyint"] = "short",
+            // string
+            ["nvarchar"] = "string", ["varchar"] = "string", ["char"] = "string",
+            ["nchar"] = "string", ["text"] = "string", ["ntext"] = "string",
+            ["character varying"] = "string", ["character"] = "string", ["bpchar"] = "string",
+            ["varchar2"] = "string", ["nvarchar2"] = "string", ["clob"] = "string", ["nclob"] = "string",
+            // bool
+            ["bit"] = "bool", ["boolean"] = "bool", ["bool"] = "bool",
+            // decimal
+            ["decimal"] = "decimal", ["numeric"] = "decimal", ["money"] = "decimal",
+            ["smallmoney"] = "decimal", ["number"] = "decimal",
+            // double
+            ["float"] = "double", ["float8"] = "double", ["double precision"] = "double",
+            ["binary_double"] = "double",
+            // float
+            ["real"] = "float", ["float4"] = "float", ["binary_float"] = "float",
+            // DateTime
+            ["datetime"] = "DateTime", ["datetime2"] = "DateTime", ["smalldatetime"] = "DateTime",
+            ["timestamp"] = "DateTime", ["timestamp without time zone"] = "DateTime",
+            // DateOnly
+            ["date"] = "DateOnly",
+            // TimeOnly
+            ["time"] = "TimeOnly", ["time without time zone"] = "TimeOnly",
+            // DateTimeOffset
+            ["datetimeoffset"] = "DateTimeOffset", ["timestamptz"] = "DateTimeOffset",
+            ["timestamp with time zone"] = "DateTimeOffset",
+            ["timestamp with local time zone"] = "DateTimeOffset",
+            // Guid
+            ["uniqueidentifier"] = "Guid", ["uuid"] = "Guid",
+            // byte[]
+            ["varbinary"] = "byte[]", ["binary"] = "byte[]", ["image"] = "byte[]",
+            ["bytea"] = "byte[]", ["blob"] = "byte[]", ["raw"] = "byte[]", ["long raw"] = "byte[]",
+            // JsonDocument
+            ["json"] = "JsonDocument", ["jsonb"] = "JsonDocument",
+        };
+
     public static string ToCSharpType(string sqlType, DbFlavor flavor)
     {
         var t = sqlType.ToLowerInvariant().Trim();
-        return t switch
-        {
-            "int" or "int4" or "integer"                                          => "int",
-            "bigint" or "int8"                                                    => "long",
-            "smallint" or "int2" or "tinyint"                                     => "short",
-            "nvarchar" or "varchar" or "char" or "nchar" or "text" or "ntext"
-                or "character varying" or "character" or "bpchar"                 => "string",
-            "bit" or "boolean" or "bool"                                          => "bool",
-            "decimal" or "numeric" or "money" or "smallmoney"                     => "decimal",
-            "float" or "float8" or "double precision"                             => "double",
-            "real" or "float4"                                                     => "float",
-            "datetime" or "datetime2" or "smalldatetime"
-                or "timestamp" or "timestamp without time zone"                   => "DateTime",
-            "date"                                                                 => "DateOnly",
-            "time" or "time without time zone"                                    => "TimeOnly",
-            "datetimeoffset" or "timestamp with time zone" or "timestamptz"       => "DateTimeOffset",
-            "uniqueidentifier" or "uuid"                                          => "Guid",
-            "varbinary" or "binary" or "image" or "bytea"                        => "byte[]",
-            "json" or "jsonb"                                                     => "JsonDocument",
-
-            // Oracle
-            "number"                                                              => "decimal",
-            "varchar2" or "nvarchar2" or "nchar"
-                or "clob" or "nclob"                                             => "string",
-            "binary_float"                                                        => "float",
-            "binary_double"                                                       => "double",
-            "blob" or "raw" or "long raw"                                         => "byte[]",
-            "timestamp with time zone" or "timestamp with local time zone"        => "DateTimeOffset",
-
-            _                                                                     => "string"
-        };
+        return TypeMap.TryGetValue(t, out var csType) ? csType : "string";
     }
 
     public static string ToPascalCase(string columnName)
