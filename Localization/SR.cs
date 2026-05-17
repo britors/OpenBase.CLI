@@ -193,6 +193,8 @@ public interface IStrings
     string JwtAppSettingsInjected { get; }
     string JwtAppSettingsWarning { get; }            // {0}=error
     string JwtControllerProtected { get; }           // {0}=relative path
+    string JwtSwaggerInjected { get; }
+    string JwtSwaggerWarning { get; }                // {0}=error
 
     string HealthChecksProgramCsInjected { get; }
     string HealthChecksProgramCsAlreadyConfigured { get; }
@@ -401,6 +403,8 @@ public abstract class BaseStrings(IReadOnlyDictionary<string, string> overrides)
     public string JwtAppSettingsInjected      => T("  [green]+[/] Jwt section added to appsettings.json");
     public string JwtAppSettingsWarning       => T("  [yellow]Warning:[/] Could not modify appsettings.json: {0}");
     public string JwtControllerProtected      => T("  [green]+[/] {0} protected with [[Authorize]]");
+    public string JwtSwaggerInjected          => T("  [green]+[/] Swagger configured with JWT Bearer support");
+    public string JwtSwaggerWarning           => T("  [yellow]Warning:[/] Could not configure Swagger JWT support: {0}");
 
     public string HealthChecksProgramCsInjected          => T("  [green]+[/] Program.cs updated with Health Checks configuration");
     public string HealthChecksProgramCsAlreadyConfigured => T("  [yellow]skipped[/] Program.cs already has Health Checks configuration");
@@ -569,6 +573,8 @@ public sealed class PtBrStrings() : BaseStrings(new Dictionary<string, string>
     ["JwtAppSettingsInjected"]       = "  [green]+[/] Seção Jwt adicionada ao appsettings.json",
     ["JwtAppSettingsWarning"]        = "  [yellow]Aviso:[/] Não foi possível modificar appsettings.json: {0}",
     ["JwtControllerProtected"]       = "  [green]+[/] {0} protegida com [[Authorize]]",
+    ["JwtSwaggerInjected"]           = "  [green]+[/] Swagger configurado com suporte a JWT Bearer",
+    ["JwtSwaggerWarning"]            = "  [yellow]Aviso:[/] Não foi possível configurar o Swagger para JWT: {0}",
     ["CmdRunDescription"]  = "Compila e executa o projeto, abrindo o browser no Swagger.",
     ["RunNoProjectFound"]  = "[red]Erro:[/] Projeto Presentation.Api do OpenBase não encontrado. Execute na raiz da solution.",
     ["RunStarting"]        = "  Iniciando [blue]{0}[/]...",
@@ -750,6 +756,8 @@ public sealed class EsStrings() : BaseStrings(new Dictionary<string, string>
     ["JwtAppSettingsInjected"]       = "  [green]+[/] Sección Jwt agregada a appsettings.json",
     ["JwtAppSettingsWarning"]        = "  [yellow]Aviso:[/] No se pudo modificar appsettings.json: {0}",
     ["JwtControllerProtected"]       = "  [green]+[/] {0} protegida con [[Authorize]]",
+    ["JwtSwaggerInjected"]           = "  [green]+[/] Swagger configurado con soporte JWT Bearer",
+    ["JwtSwaggerWarning"]            = "  [yellow]Aviso:[/] No se pudo configurar Swagger para JWT: {0}",
     ["CmdRunDescription"]  = "Compila y ejecuta el proyecto, abriendo el browser en Swagger.",
     ["RunNoProjectFound"]  = "[red]Error:[/] Proyecto Presentation.Api de OpenBase no encontrado. Ejecute desde la raíz de la solution.",
     ["RunStarting"]        = "  Iniciando [blue]{0}[/]...",
