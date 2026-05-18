@@ -110,37 +110,28 @@ public class NewCommand : AsyncCommand<NewSettings>
 
         var config = _configurator.Collect(strategy, settings.Name);
 
-        var exitCode = 0;
-
-        await _console.Status()
+        var (success, error) = await _console.Status()
             .Spinner(Spinner.Known.Dots)
-            .StartAsync(string.Format(SR.Current.CreatingProject, settings.Name), async _ =>
-            {
-                var (success, error) = await _dotNetRunner.RunAsync(
-                    $"new {strategy.ShortName} -n {settings.Name} -o {settings.Name}", cancellationToken);
+            .StartAsync(
+                string.Format(SR.Current.CreatingProject, settings.Name),
+                _ => _dotNetRunner.RunAsync(
+                    $"new {strategy.ShortName} -n {settings.Name} -o {settings.Name}", cancellationToken));
 
-                if (!success)
-                {
-                    exitCode = 1;
-                    _console.MarkupLine(SR.Current.CreateProjectFailed);
-                    if (!string.IsNullOrWhiteSpace(error))
-                        _console.MarkupLine($"[grey]{Markup.Escape(error)}[/]");
-                }
-                else
-                {
-                    UpdateAppSettings(settings.Name, strategy, config, _fileWriter);
-                    _console.MarkupLine($"[grey]  cd {settings.Name}[/]");
-                    _console.MarkupLine("[grey]  dotnet run --project src/...[/]");
-                }
-            });
-
-        if (exitCode == 0)
+        if (!success)
         {
-            var connectionString = strategy.BuildConnectionString(config.DbName, config.DbServer, config.DbUser, config.DbPassword);
-            await RunBulkImportAsync(settings.Name, connectionString, strategy.DbFlavor, cancellationToken);
+            _console.MarkupLine(SR.Current.CreateProjectFailed);
+            if (!string.IsNullOrWhiteSpace(error))
+                _console.MarkupLine($"[grey]{Markup.Escape(error)}[/]");
+            return 1;
         }
 
-        return exitCode;
+        UpdateAppSettings(settings.Name, strategy, config, _fileWriter);
+        _console.MarkupLine($"[grey]  cd {settings.Name}[/]");
+        _console.MarkupLine("[grey]  dotnet run --project src/...[/]");
+
+        var connectionString = strategy.BuildConnectionString(config.DbName, config.DbServer, config.DbUser, config.DbPassword);
+        await RunBulkImportAsync(settings.Name, connectionString, strategy.DbFlavor, cancellationToken);
+        return 0;
     }
 
     private async Task RunBulkImportAsync(
@@ -151,10 +142,9 @@ public class NewCommand : AsyncCommand<NewSettings>
     {
         if (!_console.Profile.Capabilities.Interactive) return;
 
-        var connected = false;
-        _console.Status().Spinner(Spinner.Known.Dots)
-            .Start(SR.Current.TestingDbConnection, _ =>
-                connected = _dbSchemaReader.TryConnect(connectionString, dbFlavor));
+        var connected = _console.Status().Spinner(Spinner.Known.Dots)
+            .Start(SR.Current.TestingDbConnection,
+                _ => _dbSchemaReader.TryConnect(connectionString, dbFlavor));
 
         if (!connected)
         {
@@ -164,13 +154,12 @@ public class NewCommand : AsyncCommand<NewSettings>
 
         _console.MarkupLine(SR.Current.DbConnectionSuccess);
 
-        if (!_console.Confirm(SR.Current.ImportFullModelPrompt, defaultValue: false))
+        if (!await _console.ConfirmAsync(SR.Current.ImportFullModelPrompt, defaultValue: false, cancellationToken))
             return;
 
-        IReadOnlyList<DbTableInfo> tables = [];
-        _console.Status().Spinner(Spinner.Known.Dots)
-            .Start(SR.Current.ListingTables, _ =>
-                tables = _dbSchemaReader.ListTables(connectionString, dbFlavor));
+        var tables = _console.Status().Spinner(Spinner.Known.Dots)
+            .Start(SR.Current.ListingTables,
+                _ => _dbSchemaReader.ListTables(connectionString, dbFlavor));
 
         if (tables.Count == 0)
         {
@@ -181,11 +170,24 @@ public class NewCommand : AsyncCommand<NewSettings>
         _console.MarkupLine(string.Format(SR.Current.TablesFound, tables.Count));
         _console.WriteLine();
 
-        var toScaffold = new List<(DbTableInfo Table, string EntityName)>();
+        var toScaffold = await CollectEntitiesToScaffoldAsync(tables, cancellationToken);
+
+        if (toScaffold.Count == 0) return;
+
+        await ScaffoldEntitiesAsync(toScaffold, projectName, connectionString, dbFlavor, cancellationToken);
+    }
+
+    private async Task<List<(DbTableInfo Table, string EntityName)>> CollectEntitiesToScaffoldAsync(
+        IReadOnlyList<DbTableInfo> tables,
+        CancellationToken cancellationToken)
+    {
+        var result = new List<(DbTableInfo, string)>();
+
         foreach (var table in tables)
         {
-            var name = _console.Ask<string>(
-                string.Format(SR.Current.TableEntityNamePrompt, table.Schema, table.TableName)).Trim();
+            var name = (await _console.AskAsync<string>(
+                string.Format(SR.Current.TableEntityNamePrompt, table.Schema, table.TableName),
+                cancellationToken)).Trim();
 
             if (string.IsNullOrWhiteSpace(name) || !char.IsUpper(name[0]) || !name.All(char.IsLetterOrDigit))
             {
@@ -193,58 +195,29 @@ public class NewCommand : AsyncCommand<NewSettings>
                 continue;
             }
 
-            toScaffold.Add((table, name));
+            result.Add((table, name));
         }
 
-        if (toScaffold.Count == 0) return;
+        return result;
+    }
 
-        var solutionDir  = Path.GetFullPath(projectName);
-        var slnFile      = _fileWriter.FindSolutionFile(solutionDir);
+    private async Task ScaffoldEntitiesAsync(
+        List<(DbTableInfo Table, string EntityName)> toScaffold,
+        string projectName,
+        string connectionString,
+        DbFlavor dbFlavor,
+        CancellationToken cancellationToken)
+    {
+        var solutionDir = Path.GetFullPath(projectName);
+        var slnFile     = _fileWriter.FindSolutionFile(solutionDir);
         ScaffoldContext? lastCtx = null;
 
         foreach (var (table, entityName) in toScaffold)
         {
-            IReadOnlyList<EntityProperty> properties;
-            try
-            {
-                properties = _dbSchemaReader.ReadColumns(connectionString, table.Schema, table.TableName, dbFlavor);
-            }
-            catch (Exception ex)
-            {
-                _console.MarkupLine(string.Format(SR.Current.ErrorReadingTable, Markup.Escape(ex.Message)));
-                continue;
-            }
+            var ctx = await ScaffoldSingleEntityAsync(
+                table, entityName, projectName, solutionDir, connectionString, dbFlavor, slnFile, cancellationToken);
 
-            if (properties.Count == 0)
-            {
-                _console.MarkupLine(string.Format(SR.Current.NoColumnsFound, table.Schema, table.TableName));
-                continue;
-            }
-
-            var ctx = new ScaffoldContext(entityName, projectName, solutionDir)
-            {
-                Properties = properties,
-                DbFlavor   = dbFlavor,
-                TableName  = table.TableName,
-            };
-
-            foreach (var (path, content) in new ScaffoldGenerator(ctx).GetFiles())
-            {
-                try
-                {
-                    _fileWriter.EnsureDirectory(Path.GetDirectoryName(path)!);
-                    if (!_fileWriter.FileExists(path))
-                        _fileWriter.WriteAllText(path, content);
-                }
-                catch { /* continue */ }
-            }
-
-            new DbContextEditor(_fileWriter).InjectDbSet(ctx);
-
-            if (slnFile is not null && _fileWriter.FileExists(ctx.TestsCsprojPath))
-                await _dotNetRunner.RunAsync($"sln \"{slnFile}\" add \"{ctx.TestsCsprojPath}\"", cancellationToken);
-
-            lastCtx = ctx;
+            if (ctx is not null) lastCtx = ctx;
         }
 
         if (lastCtx is null) return;
@@ -253,6 +226,59 @@ public class NewCommand : AsyncCommand<NewSettings>
 
         new EfMigrationRunner(_dotNetRunner, _fileWriter, _console)
             .RunBulkReconciliationMigration(lastCtx, "InitialModel");
+    }
+
+    private async Task<ScaffoldContext?> ScaffoldSingleEntityAsync(
+        DbTableInfo table,
+        string entityName,
+        string projectName,
+        string solutionDir,
+        string connectionString,
+        DbFlavor dbFlavor,
+        string? slnFile,
+        CancellationToken cancellationToken)
+    {
+        IReadOnlyList<EntityProperty> properties;
+        try
+        {
+            properties = _dbSchemaReader.ReadColumns(connectionString, table.Schema, table.TableName, dbFlavor);
+        }
+        catch (Exception ex)
+        {
+            _console.MarkupLine(string.Format(SR.Current.ErrorReadingTable, Markup.Escape(ex.Message)));
+            return null;
+        }
+
+        if (properties.Count == 0)
+        {
+            _console.MarkupLine(string.Format(SR.Current.NoColumnsFound, table.Schema, table.TableName));
+            return null;
+        }
+
+        var ctx = new ScaffoldContext(entityName, projectName, solutionDir)
+        {
+            Properties = properties,
+            DbFlavor   = dbFlavor,
+            TableName  = table.TableName,
+        };
+
+        foreach (var (path, content) in new ScaffoldGenerator(ctx).GetFiles())
+        {
+            try
+            {
+                _fileWriter.EnsureDirectory(Path.GetDirectoryName(path)!);
+                if (!_fileWriter.FileExists(path))
+                    _fileWriter.WriteAllText(path, content);
+            }
+            catch { /* continue on individual file error */ }
+        }
+
+        new DbContextEditor(_fileWriter).InjectDbSet(ctx);
+
+        if (slnFile is not null && _fileWriter.FileExists(ctx.TestsCsprojPath))
+            await _dotNetRunner.RunAsync($"sln \"{slnFile}\" add \"{ctx.TestsCsprojPath}\"", cancellationToken);
+
+        return ctx;
     }
 
     public static void UpdateAppSettings(string projectName, IDbTemplateStrategy strategy, ProjectSetupConfig config, IFileWriter fileWriter)
