@@ -9,9 +9,11 @@ public sealed partial class ScaffoldGenerator(ScaffoldContext ctx)
     private const string Services     = "Services";
     private const string Interfaces   = "Interfaces";
     private const string Repositories = "Repositories";
-    private const string Requests   = "Requests";
-    private const string Responses  = "Responses";
-    private const string IntId      = "int Id";
+    private const string Requests     = "Requests";
+    private const string Responses    = "Responses";
+    private const string Features     = "Features";
+    private const string Application  = "Application";
+    private const string IntId        = "int Id";
 
     private const string I4  = "    ";
     private const string I8  = "        ";
