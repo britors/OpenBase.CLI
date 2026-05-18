@@ -93,7 +93,28 @@ Database password:
 
 The settings are automatically written to the `appsettings.json` and `appsettings.Development.json` files of the generated project.
 
-### 5. Scaffold an entity
+### 5. Shell integration (optional)
+
+By default, after `openbase new` you must `cd` into the project manually. Installing the shell wrapper makes the terminal change directory automatically.
+
+**fish:**
+```fish
+cp shell/openbase.fish ~/.config/fish/functions/openbase.fish
+```
+
+**bash:**
+```bash
+# Add to ~/.bashrc
+source /path/to/shell/openbase.bash
+```
+
+**zsh:**
+```zsh
+# Add to ~/.zshrc
+source /path/to/shell/openbase.bash
+```
+
+### 6. Scaffold an entity
 
 From the root of the created project:
 
@@ -226,7 +247,7 @@ dotnet ef database update
 
 ---
 
-### 6. Add specialist methods
+### 7. Add specialist methods
 
 After scaffolding an entity, add custom Query or Command methods to extend all Clean Architecture layers at once:
 
@@ -310,7 +331,7 @@ CreateMap<PaginatedQueryResult<{method}QueryResult>, PaginatedResponse<{method}R
 
 ---
 
-### 7. Add an extension
+### 8. Add an extension
 
 Extensions add cross-cutting capabilities to an existing OpenBase project. Run from the solution root:
 

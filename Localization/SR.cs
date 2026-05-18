@@ -52,6 +52,7 @@ public interface IStrings
     string AvailableCombinations { get; }
     string CreatingProject { get; }           // {0}=name
     string CreateProjectFailed { get; }
+    string ShellIntegrationHint { get; }
 
     string ProjectConfiguration { get; }
     string MediatRLicense { get; }
@@ -312,6 +313,7 @@ public abstract class BaseStrings(IReadOnlyDictionary<string, string> overrides)
     public string AvailableCombinations       => T("Available combinations: [blue]--type api --template sqlserver[/]");
     public string CreatingProject             => T("Creating project [blue]{0}[/]...");
     public string CreateProjectFailed         => T("[red]Error:[/] Failed to create the project. Make sure the template is installed with [blue]openbase install[/].");
+    public string ShellIntegrationHint        => T("[grey]  Tip: install the shell wrapper in [blue]shell/[/] to auto-cd into the project.[/]");
 
     public string ProjectConfiguration        => T("[bold]Project configuration[/]");
     public string MediatRLicense              => T("[blue]MediatR[/] license [grey](leave blank if you don't have one)[/]:");
@@ -569,6 +571,7 @@ public sealed class PtBrStrings() : BaseStrings(new Dictionary<string, string>
     ["AvailableCombinations"]        = "Combinações disponíveis: [blue]--type api --template sqlserver[/]",
     ["CreatingProject"]              = "Criando projeto [blue]{0}[/]...",
     ["CreateProjectFailed"]          = "[red]Erro:[/] Falha ao criar o projeto. Verifique se o template está instalado com [blue]openbase install[/].",
+    ["ShellIntegrationHint"]         = "[grey]  Dica: instale o wrapper em [blue]shell/[/] para entrar automaticamente na pasta do projeto.[/]",
     ["ProjectConfiguration"]         = "[bold]Configuração do projeto[/]",
     ["MediatRLicense"]               = "Licença do [blue]MediatR[/] [grey](deixe em branco se não tiver)[/]:",
     ["AutoMapperLicense"]            = "Licença do [blue]AutoMapper[/] [grey](deixe em branco se não tiver)[/]:",
@@ -796,6 +799,7 @@ public sealed class EsStrings() : BaseStrings(new Dictionary<string, string>
     ["AvailableCombinations"]        = "Combinaciones disponibles: [blue]--type api --template sqlserver[/]",
     ["CreatingProject"]              = "Creando proyecto [blue]{0}[/]...",
     ["CreateProjectFailed"]          = "[red]Error:[/] Error al crear el proyecto. Verifique que el template esté instalado con [blue]openbase install[/].",
+    ["ShellIntegrationHint"]         = "[grey]  Consejo: instale el wrapper en [blue]shell/[/] para entrar automáticamente a la carpeta del proyecto.[/]",
     ["ProjectConfiguration"]         = "[bold]Configuración del proyecto[/]",
     ["MediatRLicense"]               = "Licencia de [blue]MediatR[/] [grey](deje en blanco si no tiene)[/]:",
     ["AutoMapperLicense"]            = "Licencia de [blue]AutoMapper[/] [grey](deje en blanco si no tiene)[/]:",
