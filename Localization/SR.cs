@@ -212,6 +212,17 @@ public interface IStrings
     string RedisAppSettingsInjected { get; }
     string RedisAppSettingsWarning { get; }          // {0}=error
 
+    string TestingDbConnection { get; }
+    string DbConnectionSuccess { get; }
+    string DbConnectionFailed { get; }
+    string ImportFullModelPrompt { get; }
+    string ListingTables { get; }
+    string NoTablesFound { get; }
+    string TablesFound { get; }                  // {0}=count
+    string TableEntityNamePrompt { get; }        // {0}=schema {1}=table
+    string TableSkipped { get; }
+    string BulkScaffoldSuccess { get; }          // {0}=count
+
     string SpecialistAddPrompt { get; }
     string SpecialistMethodNamePrompt { get; }
     string SpecialistTypePrompt { get; }
@@ -451,6 +462,17 @@ public abstract class BaseStrings(IReadOnlyDictionary<string, string> overrides)
     public string RedisAppSettingsInjected        => T("  [green]+[/] Redis section added to {0}");
     public string RedisAppSettingsWarning         => T("  [yellow]Warning:[/] Could not modify {0}: {1}");
 
+    public string TestingDbConnection    => T("Testing database connection...");
+    public string DbConnectionSuccess    => T("[green]✓[/] Database connection established successfully.");
+    public string DbConnectionFailed     => T("[yellow]Warning:[/] Could not connect to the database. Check the connection string in appsettings.json.");
+    public string ImportFullModelPrompt  => T("Import the full database model (scaffold all tables)?");
+    public string ListingTables          => T("Listing tables...");
+    public string NoTablesFound          => T("[yellow]No user tables found in the database.[/]");
+    public string TablesFound            => T("{0} table(s) found. Enter the entity name for each (PascalCase) or leave blank to skip:");
+    public string TableEntityNamePrompt  => T("  [{0}].[{1}] → Entity name:");
+    public string TableSkipped           => T("  [grey]skipped[/]");
+    public string BulkScaffoldSuccess    => T("\n[green]{0} entity(ies) scaffolded successfully![/]");
+
     public string SpecialistAddPrompt         => T("Add specialist methods?");
     public string SpecialistMethodNamePrompt  => T("Method name (PascalCase):");
     public string SpecialistTypePrompt        => T("Method type:");
@@ -663,6 +685,16 @@ public sealed class PtBrStrings() : BaseStrings(new Dictionary<string, string>
     ["RedisProgramCsWarning"]           = "  [yellow]Aviso:[/] Não foi possível modificar Program.cs: {0}",
     ["RedisAppSettingsInjected"]        = "  [green]+[/] Seção Redis adicionada ao {0}",
     ["RedisAppSettingsWarning"]         = "  [yellow]Aviso:[/] Não foi possível modificar {0}: {1}",
+    ["TestingDbConnection"]    = "Testando conexão com o banco de dados...",
+    ["DbConnectionSuccess"]    = "[green]✓[/] Conexão com o banco de dados estabelecida com sucesso.",
+    ["DbConnectionFailed"]     = "[yellow]Aviso:[/] Não foi possível conectar ao banco de dados. Verifique a connection string no appsettings.json.",
+    ["ImportFullModelPrompt"]  = "Importar todo o modelo do banco de dados (scaffold de todas as tabelas)?",
+    ["ListingTables"]          = "Listando tabelas...",
+    ["NoTablesFound"]          = "[yellow]Nenhuma tabela de usuário encontrada no banco de dados.[/]",
+    ["TablesFound"]            = "{0} tabela(s) encontrada(s). Informe o nome da entidade para cada uma (PascalCase) ou deixe em branco para pular:",
+    ["TableEntityNamePrompt"]  = "  [{0}].[{1}] → Nome da entidade:",
+    ["TableSkipped"]           = "  [grey]ignorada[/]",
+    ["BulkScaffoldSuccess"]    = "\n[green]{0} entidade(s) gerada(s) com sucesso![/]",
     ["SpecialistAddPrompt"]         = "Deseja adicionar métodos especialistas?",
     ["SpecialistMethodNamePrompt"]  = "Nome do método (PascalCase):",
     ["SpecialistTypePrompt"]        = "Tipo do método:",
@@ -872,6 +904,16 @@ public sealed class EsStrings() : BaseStrings(new Dictionary<string, string>
     ["RedisProgramCsWarning"]           = "  [yellow]Aviso:[/] No se pudo modificar Program.cs: {0}",
     ["RedisAppSettingsInjected"]        = "  [green]+[/] Sección Redis agregada a {0}",
     ["RedisAppSettingsWarning"]         = "  [yellow]Aviso:[/] No se pudo modificar {0}: {1}",
+    ["TestingDbConnection"]    = "Probando conexión con la base de datos...",
+    ["DbConnectionSuccess"]    = "[green]✓[/] Conexión con la base de datos establecida con éxito.",
+    ["DbConnectionFailed"]     = "[yellow]Aviso:[/] No se pudo conectar a la base de datos. Verifique la connection string en appsettings.json.",
+    ["ImportFullModelPrompt"]  = "¿Importar todo el modelo de la base de datos (scaffold de todas las tablas)?",
+    ["ListingTables"]          = "Listando tablas...",
+    ["NoTablesFound"]          = "[yellow]No se encontraron tablas de usuario en la base de datos.[/]",
+    ["TablesFound"]            = "{0} tabla(s) encontrada(s). Ingrese el nombre de la entidad para cada una (PascalCase) o deje en blanco para omitir:",
+    ["TableEntityNamePrompt"]  = "  [{0}].[{1}] → Nombre de entidad:",
+    ["TableSkipped"]           = "  [grey]omitida[/]",
+    ["BulkScaffoldSuccess"]    = "\n[green]{0} entidad(es) generada(s) con éxito![/]",
     ["SpecialistAddPrompt"]         = "¿Desea agregar métodos especialistas?",
     ["SpecialistMethodNamePrompt"]  = "Nombre del método (PascalCase):",
     ["SpecialistTypePrompt"]        = "Tipo de método:",

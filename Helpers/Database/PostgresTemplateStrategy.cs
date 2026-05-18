@@ -1,3 +1,5 @@
+using OpenBase.CLI.Models;
+
 namespace OpenBase.CLI.Helpers.Database;
 
 public sealed class PostgresTemplateStrategy : IDbTemplateStrategy
@@ -9,6 +11,7 @@ public sealed class PostgresTemplateStrategy : IDbTemplateStrategy
     public string ShortName     => PgShortName;
     public string ConnectionKey => PgConnectionKey;
     public string DefaultServer => PgDefaultServer;
+    public DbFlavor DbFlavor    => DbFlavor.Postgres;
 
     public string BuildConnectionString(string dbName, string server, string user, string password)
         => string.IsNullOrWhiteSpace(user)

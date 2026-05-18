@@ -8,6 +8,68 @@ namespace OpenBase.CLI.Helpers.Database;
 
 public sealed class DbSchemaReader : IDbSchemaReader
 {
+    private const string AnsiListTablesQuery = """
+        SELECT table_schema, table_name
+        FROM information_schema.tables
+        WHERE table_type = 'BASE TABLE'
+          AND table_schema NOT IN ('sys', 'INFORMATION_SCHEMA', 'guest', 'pg_catalog', 'information_schema')
+        ORDER BY table_schema, table_name
+        """;
+
+    private const string OracleListTablesQuery = """
+        SELECT owner, table_name
+        FROM all_tables
+        WHERE owner NOT IN (
+            'SYS', 'SYSTEM', 'OUTLN', 'DBSNMP', 'ORACLE_OCM', 'MDSYS', 'ORDSYS',
+            'ORDDATA', 'XDB', 'WMSYS', 'CTXSYS', 'EXFSYS', 'DVSYS', 'LBACSYS',
+            'OJVMSYS', 'OLAPSYS', 'APPQOSSYS', 'AUDSYS', 'GSMADMIN_INTERNAL',
+            'XS$NULL', 'GGSYS', 'GSMCATUSER', 'GSMUSER', 'SYSRAC', 'DVF',
+            'SYSBACKUP', 'SYSDG', 'SYSKM', 'DBSFWUSER', 'REMOTE_SCHEDULER_AGENT'
+        )
+        ORDER BY owner, table_name
+        """;
+
+    public bool TryConnect(string connectionString, DbFlavor dbFlavor)
+    {
+        try
+        {
+            using DbConnection conn = dbFlavor switch
+            {
+                DbFlavor.Postgres => new NpgsqlConnection(connectionString),
+                DbFlavor.Oracle   => new OracleConnection(connectionString),
+                _                 => new SqlConnection(connectionString),
+            };
+            conn.Open();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public IReadOnlyList<DbTableInfo> ListTables(string connectionString, DbFlavor dbFlavor)
+    {
+        using DbConnection conn = dbFlavor switch
+        {
+            DbFlavor.Postgres => new NpgsqlConnection(connectionString),
+            DbFlavor.Oracle   => new OracleConnection(connectionString),
+            _                 => new SqlConnection(connectionString),
+        };
+        conn.Open();
+
+        var tables = new List<DbTableInfo>();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = dbFlavor == DbFlavor.Oracle ? OracleListTablesQuery : AnsiListTablesQuery;
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+            tables.Add(new DbTableInfo(reader.GetString(0), reader.GetString(1)));
+
+        return tables;
+    }
+
+
     private const string AnsiColumnQuery = """
         SELECT column_name, data_type, is_nullable
         FROM information_schema.columns

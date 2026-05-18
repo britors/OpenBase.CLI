@@ -12,6 +12,7 @@ public class NewCommandTests
     private readonly Mock<IDotNetRunner> _dotNetRunner = new();
     private readonly Mock<IProjectConfigurator> _configurator = new();
     private readonly Mock<IFileWriter> _fileWriter = new();
+    private readonly Mock<IDbSchemaReader> _dbSchemaReader = new();
 
     private const string ProjectName = "MinhaApi";
 
@@ -33,7 +34,7 @@ public class NewCommandTests
     }
 
     private NewCommand CreateCommand() =>
-        new(_dotNetRunner.Object, CommandTestHelper.CreateConsole(), _configurator.Object, _fileWriter.Object);
+        new(_dotNetRunner.Object, CommandTestHelper.CreateConsole(), _configurator.Object, _fileWriter.Object, _dbSchemaReader.Object);
 
     private static NewSettings BuildSettings(string type = "api", string template = "sqlserver", string name = "MeuProjeto") =>
         new() { Type = type, TemplateName = template, Name = name };

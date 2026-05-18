@@ -1,11 +1,13 @@
 using System.ComponentModel;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using OpenBase.CLI.Commands.Scaffold;
 using OpenBase.CLI.Helpers.Database;
 using OpenBase.CLI.Helpers.Execution;
 using OpenBase.CLI.Helpers.Interactive;
 using OpenBase.CLI.Helpers.IO;
 using OpenBase.CLI.Localization;
+using OpenBase.CLI.Models;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -63,13 +65,15 @@ public class NewCommand : AsyncCommand<NewSettings>
     private readonly IAnsiConsole _console;
     private readonly IProjectConfigurator _configurator;
     private readonly IFileWriter _fileWriter;
+    private readonly IDbSchemaReader _dbSchemaReader;
 
-    public NewCommand(IDotNetRunner dotNetRunner, IAnsiConsole console, IProjectConfigurator configurator, IFileWriter fileWriter)
+    public NewCommand(IDotNetRunner dotNetRunner, IAnsiConsole console, IProjectConfigurator configurator, IFileWriter fileWriter, IDbSchemaReader dbSchemaReader)
     {
         _dotNetRunner = dotNetRunner;
         _console = console;
         _configurator = configurator;
         _fileWriter = fileWriter;
+        _dbSchemaReader = dbSchemaReader;
     }
 
     private const int RequiredSdkMajorVersion = 10;
@@ -130,7 +134,125 @@ public class NewCommand : AsyncCommand<NewSettings>
                 }
             });
 
+        if (exitCode == 0)
+        {
+            var connectionString = strategy.BuildConnectionString(config.DbName, config.DbServer, config.DbUser, config.DbPassword);
+            await RunBulkImportAsync(settings.Name, connectionString, strategy.DbFlavor, cancellationToken);
+        }
+
         return exitCode;
+    }
+
+    private async Task RunBulkImportAsync(
+        string projectName,
+        string connectionString,
+        DbFlavor dbFlavor,
+        CancellationToken cancellationToken)
+    {
+        if (!_console.Profile.Capabilities.Interactive) return;
+
+        var connected = false;
+        _console.Status().Spinner(Spinner.Known.Dots)
+            .Start(SR.Current.TestingDbConnection, _ =>
+                connected = _dbSchemaReader.TryConnect(connectionString, dbFlavor));
+
+        if (!connected)
+        {
+            _console.MarkupLine(SR.Current.DbConnectionFailed);
+            return;
+        }
+
+        _console.MarkupLine(SR.Current.DbConnectionSuccess);
+
+        if (!_console.Confirm(SR.Current.ImportFullModelPrompt, defaultValue: false))
+            return;
+
+        IReadOnlyList<DbTableInfo> tables = [];
+        _console.Status().Spinner(Spinner.Known.Dots)
+            .Start(SR.Current.ListingTables, _ =>
+                tables = _dbSchemaReader.ListTables(connectionString, dbFlavor));
+
+        if (tables.Count == 0)
+        {
+            _console.MarkupLine(SR.Current.NoTablesFound);
+            return;
+        }
+
+        _console.MarkupLine(string.Format(SR.Current.TablesFound, tables.Count));
+        _console.WriteLine();
+
+        var toScaffold = new List<(DbTableInfo Table, string EntityName)>();
+        foreach (var table in tables)
+        {
+            var name = _console.Ask<string>(
+                string.Format(SR.Current.TableEntityNamePrompt, table.Schema, table.TableName)).Trim();
+
+            if (string.IsNullOrWhiteSpace(name) || !char.IsUpper(name[0]) || !name.All(char.IsLetterOrDigit))
+            {
+                _console.MarkupLine(SR.Current.TableSkipped);
+                continue;
+            }
+
+            toScaffold.Add((table, name));
+        }
+
+        if (toScaffold.Count == 0) return;
+
+        var solutionDir  = Path.GetFullPath(projectName);
+        var slnFile      = _fileWriter.FindSolutionFile(solutionDir);
+        ScaffoldContext? lastCtx = null;
+
+        foreach (var (table, entityName) in toScaffold)
+        {
+            IReadOnlyList<EntityProperty> properties;
+            try
+            {
+                properties = _dbSchemaReader.ReadColumns(connectionString, table.Schema, table.TableName, dbFlavor);
+            }
+            catch (Exception ex)
+            {
+                _console.MarkupLine(string.Format(SR.Current.ErrorReadingTable, Markup.Escape(ex.Message)));
+                continue;
+            }
+
+            if (properties.Count == 0)
+            {
+                _console.MarkupLine(string.Format(SR.Current.NoColumnsFound, table.Schema, table.TableName));
+                continue;
+            }
+
+            var ctx = new ScaffoldContext(entityName, projectName, solutionDir)
+            {
+                Properties = properties,
+                DbFlavor   = dbFlavor,
+                TableName  = table.TableName,
+            };
+
+            foreach (var (path, content) in new ScaffoldGenerator(ctx).GetFiles())
+            {
+                try
+                {
+                    _fileWriter.EnsureDirectory(Path.GetDirectoryName(path)!);
+                    if (!_fileWriter.FileExists(path))
+                        _fileWriter.WriteAllText(path, content);
+                }
+                catch { /* continue */ }
+            }
+
+            new DbContextEditor(_fileWriter).InjectDbSet(ctx);
+
+            if (slnFile is not null && _fileWriter.FileExists(ctx.TestsCsprojPath))
+                await _dotNetRunner.RunAsync($"sln \"{slnFile}\" add \"{ctx.TestsCsprojPath}\"", cancellationToken);
+
+            lastCtx = ctx;
+        }
+
+        if (lastCtx is null) return;
+
+        _console.MarkupLine(string.Format(SR.Current.BulkScaffoldSuccess, toScaffold.Count));
+
+        new EfMigrationRunner(_dotNetRunner, _fileWriter, _console)
+            .RunBulkReconciliationMigration(lastCtx, "InitialModel");
     }
 
     public static void UpdateAppSettings(string projectName, IDbTemplateStrategy strategy, ProjectSetupConfig config, IFileWriter fileWriter)
