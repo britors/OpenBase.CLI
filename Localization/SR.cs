@@ -207,6 +207,18 @@ public interface IStrings
     string RedisProgramCsWarning { get; }            // {0}=error
     string RedisAppSettingsInjected { get; }
     string RedisAppSettingsWarning { get; }          // {0}=error
+
+    string ScaffoldUpdateEntityNotFound { get; }     // {0}=entity
+    string ScaffoldUpdateNoChanges { get; }
+    string ScaffoldUpdateDiffTitle { get; }
+    string ScaffoldUpdateUncommittedWarn { get; }
+    string ScaffoldUpdateUncommittedHint { get; }
+    string ScaffoldUpdateApplyChanges { get; }
+    string ScaffoldUpdateDestructiveWarn { get; }    // {0}=count
+    string ScaffoldUpdateConfirmRemoval { get; }
+    string FilesUpdated { get; }                     // {0}=count
+    string ScaffoldUpdateSuccess { get; }            // {0}=entity
+    string ScaffoldUpdateMigrationHint { get; }      // {0}=entity
 }
 
 
@@ -417,6 +429,18 @@ public abstract class BaseStrings(IReadOnlyDictionary<string, string> overrides)
     public string RedisProgramCsWarning           => T("  [yellow]Warning:[/] Could not modify Program.cs: {0}");
     public string RedisAppSettingsInjected        => T("  [green]+[/] Redis section added to {0}");
     public string RedisAppSettingsWarning         => T("  [yellow]Warning:[/] Could not modify {0}: {1}");
+
+    public string ScaffoldUpdateEntityNotFound  => T("[red]Error:[/] Entity [blue]{0}[/] not found. Run [blue]openbase scaffold --entity {0}[/] first.");
+    public string ScaffoldUpdateNoChanges       => T("[green]✓[/] No differences detected. Files are already up to date.");
+    public string ScaffoldUpdateDiffTitle       => T("\nDetected differences:");
+    public string ScaffoldUpdateUncommittedWarn => T("[yellow]⚠️  The following files have uncommitted changes:[/]");
+    public string ScaffoldUpdateUncommittedHint => T("[grey]Consider committing or stashing before continuing.[/]");
+    public string ScaffoldUpdateApplyChanges    => T("Apply changes?");
+    public string ScaffoldUpdateDestructiveWarn => T("[yellow]⚠️  {0} property(ies) will be REMOVED from multiple files.[/]");
+    public string ScaffoldUpdateConfirmRemoval  => T("Confirm removal?");
+    public string FilesUpdated                  => T("{0} file(s) updated:");
+    public string ScaffoldUpdateSuccess         => T("\n[green]Scaffold for entity [bold]{0}[/] updated successfully![/]");
+    public string ScaffoldUpdateMigrationHint   => T("[grey]Don't forget to create a migration: [blue]dotnet ef migrations add Update{0}[/][/]");
 }
 
 
@@ -602,6 +626,17 @@ public sealed class PtBrStrings() : BaseStrings(new Dictionary<string, string>
     ["RedisProgramCsWarning"]           = "  [yellow]Aviso:[/] Não foi possível modificar Program.cs: {0}",
     ["RedisAppSettingsInjected"]        = "  [green]+[/] Seção Redis adicionada ao {0}",
     ["RedisAppSettingsWarning"]         = "  [yellow]Aviso:[/] Não foi possível modificar {0}: {1}",
+    ["ScaffoldUpdateEntityNotFound"]  = "[red]Erro:[/] Entidade [blue]{0}[/] não encontrada. Execute [blue]openbase scaffold --entity {0}[/] primeiro.",
+    ["ScaffoldUpdateNoChanges"]       = "[green]✓[/] Nenhuma diferença detectada. Os arquivos já estão atualizados.",
+    ["ScaffoldUpdateDiffTitle"]       = "\nDiferenças detectadas:",
+    ["ScaffoldUpdateUncommittedWarn"] = "[yellow]⚠️  Os seguintes arquivos têm alterações não commitadas:[/]",
+    ["ScaffoldUpdateUncommittedHint"] = "[grey]Considere fazer commit ou stash antes de continuar.[/]",
+    ["ScaffoldUpdateApplyChanges"]    = "Aplicar mudanças?",
+    ["ScaffoldUpdateDestructiveWarn"] = "[yellow]⚠️  {0} propriedade(s) serão REMOVIDAS de múltiplos arquivos.[/]",
+    ["ScaffoldUpdateConfirmRemoval"]  = "Confirmar remoção?",
+    ["FilesUpdated"]                  = "{0} arquivo(s) atualizado(s):",
+    ["ScaffoldUpdateSuccess"]         = "\n[green]Scaffold da entidade [bold]{0}[/] atualizado com sucesso![/]",
+    ["ScaffoldUpdateMigrationHint"]   = "[grey]Não esqueça de criar a migration: [blue]dotnet ef migrations add Update{0}[/][/]",
 }) { }
 
 
@@ -785,6 +820,17 @@ public sealed class EsStrings() : BaseStrings(new Dictionary<string, string>
     ["RedisProgramCsWarning"]           = "  [yellow]Aviso:[/] No se pudo modificar Program.cs: {0}",
     ["RedisAppSettingsInjected"]        = "  [green]+[/] Sección Redis agregada a {0}",
     ["RedisAppSettingsWarning"]         = "  [yellow]Aviso:[/] No se pudo modificar {0}: {1}",
+    ["ScaffoldUpdateEntityNotFound"]  = "[red]Error:[/] Entidad [blue]{0}[/] no encontrada. Ejecute [blue]openbase scaffold --entity {0}[/] primero.",
+    ["ScaffoldUpdateNoChanges"]       = "[green]✓[/] No se detectaron diferencias. Los archivos ya están actualizados.",
+    ["ScaffoldUpdateDiffTitle"]       = "\nDiferencias detectadas:",
+    ["ScaffoldUpdateUncommittedWarn"] = "[yellow]⚠️  Los siguientes archivos tienen cambios no confirmados:[/]",
+    ["ScaffoldUpdateUncommittedHint"] = "[grey]Considere hacer commit o stash antes de continuar.[/]",
+    ["ScaffoldUpdateApplyChanges"]    = "¿Aplicar cambios?",
+    ["ScaffoldUpdateDestructiveWarn"] = "[yellow]⚠️  {0} propiedad(es) serán ELIMINADAS de múltiples archivos.[/]",
+    ["ScaffoldUpdateConfirmRemoval"]  = "¿Confirmar eliminación?",
+    ["FilesUpdated"]                  = "{0} archivo(s) actualizado(s):",
+    ["ScaffoldUpdateSuccess"]         = "\n[green]Scaffold de la entidad [bold]{0}[/] actualizado con éxito![/]",
+    ["ScaffoldUpdateMigrationHint"]   = "[grey]No olvide crear la migración: [blue]dotnet ef migrations add Update{0}[/][/]",
 }) { }
 
 
