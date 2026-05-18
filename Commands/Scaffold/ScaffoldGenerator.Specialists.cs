@@ -519,13 +519,13 @@ public sealed partial class ScaffoldGenerator
     private string SpecialistRequestDtoTemplate(string method, IReadOnlyList<SpecialistParam> p) => $$"""
         namespace {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Requests;
 
-        public sealed record {{method}}Request({{RecordParams(p)}});
+        public readonly record struct {{method}}Request({{RecordParams(p)}});
         """;
 
     private string CommandResponseDtoTemplate(string method) => $$"""
         namespace {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
 
-        public sealed record {{method}}Response(bool Success);
+        public readonly record struct {{method}}Response(bool Success);
         """;
 
     private string QueryResultRecordTemplate(string method, IReadOnlyList<SpecialistParam> cols) => $$"""
@@ -537,7 +537,7 @@ public sealed partial class ScaffoldGenerator
     private string QueryResponseDtoTemplate(string method, IReadOnlyList<SpecialistParam> cols) => $$"""
         namespace {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
 
-        public sealed record {{method}}Response({{RecordParams(cols)}});
+        public readonly record struct {{method}}Response({{RecordParams(cols)}});
         """;
 
     private string QueryMapperProfileTemplate(string method, bool paged)
