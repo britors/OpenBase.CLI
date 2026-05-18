@@ -53,7 +53,7 @@ public sealed partial class ScaffoldGenerator
     private string DtoTemplate(string subNs, string typeName, string body) => $$"""
         namespace {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.{{subNs}};
 
-        public sealed record {{typeName}}({{body}});
+        public readonly record struct {{typeName}}({{body}});
         """;
 
     private string CreateRequestTemplate()    => DtoTemplate(Requests,  $"Create{ctx.Entity}Request",    CreateParams());
