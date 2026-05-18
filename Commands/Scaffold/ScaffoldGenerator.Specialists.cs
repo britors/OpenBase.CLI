@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace OpenBase.CLI.Commands.Scaffold;
 
 public sealed partial class ScaffoldGenerator
@@ -90,6 +92,12 @@ public sealed partial class ScaffoldGenerator
         yield return (
             Path.Combine(ctx.PresentationPath, "Controllers", $"{ctx.Entity}Controller.{method}.cs"),
             QueryControllerPartial(method));
+
+        var featTests   = Path.Combine(ctx.TestsPath, "Application", "Features", $"{ctx.Entity}Features");
+        var appSvcTests = Path.Combine(ctx.TestsPath, "Application", Services);
+        yield return (Path.Combine(featTests, $"{method}QueryHandlerTests.cs"),          QueryHandlerTestsTemplate(method, p, cols, paged));
+        yield return (Path.Combine(featTests, $"{method}QueryValidatorTests.cs"),         QueryValidatorTestsTemplate(method, p));
+        yield return (Path.Combine(appSvcTests, $"{ctx.Entity}{method}AppServiceTests.cs"), QueryAppServiceTestsTemplate(method, p));
     }
 
     private string QueryRepositoryInterfacePartial(string method, IReadOnlyList<SpecialistParam> p, bool paged)
@@ -273,6 +281,12 @@ public sealed partial class ScaffoldGenerator
         yield return (
             Path.Combine(ctx.PresentationPath, "Controllers", $"{ctx.Entity}Controller.{method}.cs"),
             CommandControllerPartial(method));
+
+        var featTests   = Path.Combine(ctx.TestsPath, "Application", "Features", $"{ctx.Entity}Features");
+        var appSvcTests = Path.Combine(ctx.TestsPath, "Application", Services);
+        yield return (Path.Combine(featTests, $"{method}CommandHandlerTests.cs"),           CommandHandlerTestsTemplate(method, def.Parameters));
+        yield return (Path.Combine(featTests, $"{method}CommandValidatorTests.cs"),          CommandValidatorTestsTemplate(method, def.Parameters));
+        yield return (Path.Combine(appSvcTests, $"{ctx.Entity}{method}AppServiceTests.cs"), CommandAppServiceTestsTemplate(method, def.Parameters));
     }
 
     private string CommandRepositoryInterfacePartial(string method, IReadOnlyList<SpecialistParam> p) => $$"""
@@ -614,6 +628,249 @@ public sealed partial class ScaffoldGenerator
             public async Task<bool> ExecuteAsync(CancellationToken cancellationToken = default)
             {
                 throw new NotImplementedException();
+            }
+        }
+        """;
+
+    // ─── Test helpers ──────────────────────────────────────────────────────────
+
+    private static string SpecialistTestValue(SpecialistParam p) => p.CsType switch
+    {
+        "string"   => "\"Test\"",
+        "int"      => "1",
+        "bool"     => "true",
+        "decimal"  => "1.0m",
+        "Guid"     => "Guid.NewGuid()",
+        "DateTime" => "DateTime.UtcNow",
+        "long"     => "1L",
+        "double"   => "1.0",
+        "float"    => "1.0f",
+        "short"    => "(short)1",
+        _          => "default"
+    };
+
+    private static string SpecialistTestArgs(IReadOnlyList<SpecialistParam> p) =>
+        string.Join(", ", p.Select(SpecialistTestValue));
+
+    private static string AnyArgsLeading(IReadOnlyList<SpecialistParam> p) =>
+        p.Count == 0 ? string.Empty : string.Join(", ", p.Select(x => $"It.IsAny<{x.CsType}>()")) + ", ";
+
+    private string BuildSpecialistValidatorTests(string method, IReadOnlyList<SpecialistParam> p, string typeName)
+    {
+        var sb = new StringBuilder();
+        sb.Append($"[Fact]\n{I4}public void Validate_IsValid_WhenAllParamsAreProvided()");
+        sb.Append($"\n{I4}{{\n{I8}var result = _validator.Validate(new {typeName}({SpecialistTestArgs(p)}));");
+        sb.Append($"\n{I8}Assert.True(result.IsValid);\n{I4}}}");
+
+        foreach (var param in p.Where(x => x.CsType is "string" or "Guid"))
+        {
+            var empty = param.CsType == "string" ? "\"\"" : "Guid.Empty";
+            var args  = string.Join(", ", p.Select(x => x == param ? empty : SpecialistTestValue(x)));
+            sb.Append($"\n\n{I4}[Fact]\n{I4}public void Validate_IsInvalid_When{param.PascalName}IsEmpty()");
+            sb.Append($"\n{I4}{{\n{I8}var result = _validator.Validate(new {typeName}({args}));");
+            sb.Append($"\n{I8}Assert.False(result.IsValid);");
+            sb.Append($"\n{I8}Assert.Contains(result.Errors, e => e.PropertyName == \"{param.PascalName}\");");
+            sb.Append($"\n{I4}}}");
+        }
+
+        return sb.ToString();
+    }
+
+    // ─── Query — Tests ─────────────────────────────────────────────────────────
+
+    private string QueryHandlerTestsTemplate(string method, IReadOnlyList<SpecialistParam> p,
+        IReadOnlyList<SpecialistParam> cols, bool paged)
+    {
+        var responseType     = paged ? $"PaginatedResponse<{method}Response>" : $"IReadOnlyList<{method}Response>";
+        var resultType       = paged ? $"PaginatedQueryResult<{method}QueryResult>" : $"IReadOnlyList<{method}QueryResult>";
+        var colArgs          = SpecialistTestArgs(cols);
+        var resultSetup      = paged
+            ? $"new PaginatedQueryResult<{method}QueryResult>(1, 5, 1, [new({colArgs})])"
+            : $"new List<{method}QueryResult> {{ new({colArgs}) }}";
+        var paginatedUsing   = paged ? $"using {ctx.NS}.Application.DTOs.Base.Response;\n" : string.Empty;
+
+        return $$"""
+            using AutoMapper;
+            using Moq;
+            {{paginatedUsing}}using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
+            using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.{{method}}Feature;
+            using {{ctx.NS}}.Domain.Interfaces.Services;
+            using {{ctx.NS}}.Domain.QueryResults;
+
+            namespace {{ctx.NS}}.Tests.Unit.Application.Features.{{ctx.Entity}}Features;
+
+            public sealed class {{method}}QueryHandlerTests
+            {
+                private readonly Mock<I{{ctx.Entity}}DomainService> _{{ctx.ECamel}}DomainServiceMock = new();
+                private readonly Mock<IMapper> _mapperMock = new();
+                private readonly {{method}}QueryHandler _handler;
+
+                public {{method}}QueryHandlerTests()
+                {
+                    _handler = new {{method}}QueryHandler(_{{ctx.ECamel}}DomainServiceMock.Object, _mapperMock.Object);
+                }
+
+                [Fact]
+                public async Task Handle_CallsService_WithCorrectParameters()
+                {
+                    var query = new {{method}}Query({{SpecialistTestArgs(p)}});
+                    var serviceResult = {{resultSetup}};
+
+                    _{{ctx.ECamel}}DomainServiceMock
+                        .Setup(s => s.{{method}}Async({{AnyArgsLeading(p)}}It.IsAny<CancellationToken>()))
+                        .ReturnsAsync(serviceResult);
+                    _mapperMock
+                        .Setup(m => m.Map<{{responseType}}>(serviceResult))
+                        .Returns(default!);
+
+                    await _handler.Handle(query, CancellationToken.None);
+
+                    _{{ctx.ECamel}}DomainServiceMock.Verify(
+                        s => s.{{method}}Async({{AnyArgsLeading(p)}}It.IsAny<CancellationToken>()),
+                        Times.Once());
+                }
+            }
+            """;
+    }
+
+    private string QueryValidatorTestsTemplate(string method, IReadOnlyList<SpecialistParam> p) => $$"""
+        using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.{{method}}Feature;
+
+        namespace {{ctx.NS}}.Tests.Unit.Application.Features.{{ctx.Entity}}Features;
+
+        public sealed class {{method}}QueryValidatorTests
+        {
+            private readonly {{method}}QueryValidator _validator = new();
+
+            {{BuildSpecialistValidatorTests(method, p, $"{method}Query")}}
+        }
+        """;
+
+    private string QueryAppServiceTestsTemplate(string method, IReadOnlyList<SpecialistParam> p) => $$"""
+        using MediatR;
+        using Moq;
+        using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Requests;
+        using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.{{method}}Feature;
+        using {{ctx.NS}}.Application.Services;
+
+        namespace {{ctx.NS}}.Tests.Unit.Application.Services;
+
+        public sealed class {{ctx.Entity}}{{method}}AppServiceTests
+        {
+            private readonly Mock<IMediator> _mediatorMock = new();
+            private readonly Mock<AutoMapper.IMapper> _mapperMock = new();
+            private readonly {{ctx.Entity}}ApplicationService _service;
+
+            public {{ctx.Entity}}{{method}}AppServiceTests()
+            {
+                _service = new {{ctx.Entity}}ApplicationService(_mediatorMock.Object, _mapperMock.Object);
+            }
+
+            [Fact]
+            public async Task {{method}}Async_SendsQuery_ToMediator()
+            {
+                var request = new {{method}}Request({{SpecialistTestArgs(p)}});
+
+                await _service.{{method}}Async(request, CancellationToken.None);
+
+                _mediatorMock.Verify(
+                    m => m.Send(It.IsAny<{{method}}Query>(), It.IsAny<CancellationToken>()),
+                    Times.Once());
+            }
+        }
+        """;
+
+    // ─── Command — Tests ───────────────────────────────────────────────────────
+
+    private string CommandHandlerTestsTemplate(string method, IReadOnlyList<SpecialistParam> p) => $$"""
+        using Moq;
+        using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
+        using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.{{method}}Feature;
+        using {{ctx.NS}}.Domain.Interfaces.Services;
+
+        namespace {{ctx.NS}}.Tests.Unit.Application.Features.{{ctx.Entity}}Features;
+
+        public sealed class {{method}}CommandHandlerTests
+        {
+            private readonly Mock<I{{ctx.Entity}}DomainService> _{{ctx.ECamel}}DomainServiceMock = new();
+            private readonly {{method}}CommandHandler _handler;
+
+            public {{method}}CommandHandlerTests()
+            {
+                _handler = new {{method}}CommandHandler(_{{ctx.ECamel}}DomainServiceMock.Object);
+            }
+
+            [Fact]
+            public async Task Handle_ReturnsSuccess_WhenCommandSucceeds()
+            {
+                var command = new {{method}}Command({{SpecialistTestArgs(p)}});
+                _{{ctx.ECamel}}DomainServiceMock
+                    .Setup(s => s.{{method}}Async({{AnyArgsLeading(p)}}It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(true);
+
+                var result = await _handler.Handle(command, CancellationToken.None);
+
+                Assert.True(result.Success);
+            }
+
+            [Fact]
+            public async Task Handle_ReturnsFailure_WhenCommandFails()
+            {
+                var command = new {{method}}Command({{SpecialistTestArgs(p)}});
+                _{{ctx.ECamel}}DomainServiceMock
+                    .Setup(s => s.{{method}}Async({{AnyArgsLeading(p)}}It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(false);
+
+                var result = await _handler.Handle(command, CancellationToken.None);
+
+                Assert.False(result.Success);
+            }
+        }
+        """;
+
+    private string CommandValidatorTestsTemplate(string method, IReadOnlyList<SpecialistParam> p) => $$"""
+        using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.{{method}}Feature;
+
+        namespace {{ctx.NS}}.Tests.Unit.Application.Features.{{ctx.Entity}}Features;
+
+        public sealed class {{method}}CommandValidatorTests
+        {
+            private readonly {{method}}CommandValidator _validator = new();
+
+            {{BuildSpecialistValidatorTests(method, p, $"{method}Command")}}
+        }
+        """;
+
+    private string CommandAppServiceTestsTemplate(string method, IReadOnlyList<SpecialistParam> p) => $$"""
+        using MediatR;
+        using Moq;
+        using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Requests;
+        using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.{{method}}Feature;
+        using {{ctx.NS}}.Application.Services;
+
+        namespace {{ctx.NS}}.Tests.Unit.Application.Services;
+
+        public sealed class {{ctx.Entity}}{{method}}AppServiceTests
+        {
+            private readonly Mock<IMediator> _mediatorMock = new();
+            private readonly Mock<AutoMapper.IMapper> _mapperMock = new();
+            private readonly {{ctx.Entity}}ApplicationService _service;
+
+            public {{ctx.Entity}}{{method}}AppServiceTests()
+            {
+                _service = new {{ctx.Entity}}ApplicationService(_mediatorMock.Object, _mapperMock.Object);
+            }
+
+            [Fact]
+            public async Task {{method}}Async_SendsCommand_ToMediator()
+            {
+                var request = new {{method}}Request({{SpecialistTestArgs(p)}});
+
+                await _service.{{method}}Async(request, CancellationToken.None);
+
+                _mediatorMock.Verify(
+                    m => m.Send(It.IsAny<{{method}}Command>(), It.IsAny<CancellationToken>()),
+                    Times.Once());
             }
         }
         """;
