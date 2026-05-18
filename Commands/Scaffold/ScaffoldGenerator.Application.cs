@@ -78,7 +78,7 @@ public sealed partial class ScaffoldGenerator
 
         namespace {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.{{feature}};
 
-        public sealed record {{name}}({{parameters}}) : IRequest<{{response}}?>;
+        public sealed record {{name}}({{parameters}}) : IRequest<{{response}}>;
         """;
 
     private string CreateCommandTemplate() => CommandTemplate(
@@ -103,9 +103,9 @@ public sealed partial class ScaffoldGenerator
         public sealed class {{verb}}{{ctx.Entity}}CommandHandler(
                 I{{ctx.Entity}}DomainService {{ctx.ECamel}}DomainService,
                 IMapper mapper)
-            : IRequestHandler<{{verb}}{{ctx.Entity}}Command, {{verb}}{{ctx.Entity}}Response?>
+            : IRequestHandler<{{verb}}{{ctx.Entity}}Command, {{verb}}{{ctx.Entity}}Response>
         {
-            public async Task<{{verb}}{{ctx.Entity}}Response?>
+            public async Task<{{verb}}{{ctx.Entity}}Response>
                 Handle({{verb}}{{ctx.Entity}}Command request, CancellationToken cancellationToken)
             {
                 var {{ctx.ECamel}} = mapper.Map<{{ctx.Entity}}>(request);
@@ -126,9 +126,9 @@ public sealed partial class ScaffoldGenerator
         namespace {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Delete{{ctx.Entity}}Feature;
 
         internal sealed class Delete{{ctx.Entity}}CommandHandler(I{{ctx.Entity}}DomainService {{ctx.ECamel}}DomainService)
-            : IRequestHandler<Delete{{ctx.Entity}}Command, Delete{{ctx.Entity}}Response?>
+            : IRequestHandler<Delete{{ctx.Entity}}Command, Delete{{ctx.Entity}}Response>
         {
-            public async Task<Delete{{ctx.Entity}}Response?>
+            public async Task<Delete{{ctx.Entity}}Response>
                 Handle(Delete{{ctx.Entity}}Command request, CancellationToken cancellationToken)
             {
                 var success = await {{ctx.ECamel}}DomainService.RemoveByIdAsync(request.Id, cancellationToken);
@@ -255,9 +255,9 @@ public sealed partial class ScaffoldGenerator
 
         public partial interface I{{ctx.Entity}}ApplicationService : IApplicationService
         {
-            Task<Create{{ctx.Entity}}Response?> CreateAsync(Create{{ctx.Entity}}Request request, CancellationToken cancellationToken);
-            Task<Update{{ctx.Entity}}Response?> UpdateAsync(Update{{ctx.Entity}}Request request, CancellationToken cancellationToken);
-            Task<Delete{{ctx.Entity}}Response?> DeleteAsync(Delete{{ctx.Entity}}Request request, CancellationToken cancellationToken);
+            Task<Create{{ctx.Entity}}Response> CreateAsync(Create{{ctx.Entity}}Request request, CancellationToken cancellationToken);
+            Task<Update{{ctx.Entity}}Response> UpdateAsync(Update{{ctx.Entity}}Request request, CancellationToken cancellationToken);
+            Task<Delete{{ctx.Entity}}Response> DeleteAsync(Delete{{ctx.Entity}}Request request, CancellationToken cancellationToken);
             Task<{{ctx.Entity}}Response> GetByIdAsync(Find{{ctx.Entity}}ByIdRequest request, CancellationToken cancellationToken);
             Task<PaginatedResponse<{{ctx.Entity}}Response>> GetAsync(Get{{ctx.Entity}}Request request, CancellationToken cancellationToken);
         }
@@ -314,19 +314,19 @@ public sealed partial class ScaffoldGenerator
 
         public sealed partial class {{ctx.Entity}}ApplicationService(IMediator mediator, IMapper mapper) : I{{ctx.Entity}}ApplicationService
         {
-            public async Task<Create{{ctx.Entity}}Response?> CreateAsync(Create{{ctx.Entity}}Request request, CancellationToken cancellationToken)
+            public async Task<Create{{ctx.Entity}}Response> CreateAsync(Create{{ctx.Entity}}Request request, CancellationToken cancellationToken)
             {
                 var command = mapper.Map<Create{{ctx.Entity}}Command>(request);
                 return await mediator.Send(command, cancellationToken);
             }
 
-            public async Task<Update{{ctx.Entity}}Response?> UpdateAsync(Update{{ctx.Entity}}Request request, CancellationToken cancellationToken)
+            public async Task<Update{{ctx.Entity}}Response> UpdateAsync(Update{{ctx.Entity}}Request request, CancellationToken cancellationToken)
             {
                 var command = mapper.Map<Update{{ctx.Entity}}Command>(request);
                 return await mediator.Send(command, cancellationToken);
             }
 
-            public async Task<Delete{{ctx.Entity}}Response?> DeleteAsync(Delete{{ctx.Entity}}Request request, CancellationToken cancellationToken)
+            public async Task<Delete{{ctx.Entity}}Response> DeleteAsync(Delete{{ctx.Entity}}Request request, CancellationToken cancellationToken)
             {
                 var command = mapper.Map<Delete{{ctx.Entity}}Command>(request);
                 return await mediator.Send(command, cancellationToken);
