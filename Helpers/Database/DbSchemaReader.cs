@@ -64,7 +64,12 @@ public sealed class DbSchemaReader : IDbSchemaReader
 
         using var reader = cmd.ExecuteReader();
         while (reader.Read())
-            tables.Add(new DbTableInfo(reader.GetString(0), reader.GetString(1)));
+        {
+            var tableName = reader.GetString(1);
+            if (tableName.Equals("__EFMigrationsHistory", StringComparison.OrdinalIgnoreCase))
+                continue;
+            tables.Add(new DbTableInfo(reader.GetString(0), tableName));
+        }
 
         return tables;
     }
