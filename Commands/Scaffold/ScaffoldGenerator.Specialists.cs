@@ -39,13 +39,13 @@ public sealed partial class ScaffoldGenerator
         var sql    = SpecialistParam.ToParameterizedSql(def.Sql, def.Parameters);
 
         yield return (
-            Path.Combine(ctx.DomainPath, "Interfaces", "Repositories", $"I{ctx.Entity}Repository.{method}.cs"),
+            Path.Combine(ctx.DomainPath, Interfaces, Repositories, $"I{ctx.Entity}Repository.{method}.cs"),
             QueryRepositoryInterfacePartial(method, def.Parameters));
         yield return (
-            Path.Combine(ctx.InfraDataPath, "Repositories", $"{ctx.Entity}Repository.{method}.cs"),
+            Path.Combine(ctx.InfraDataPath, Repositories, $"{ctx.Entity}Repository.{method}.cs"),
             QueryRepositoryPartial(method, def.Parameters, sql));
         yield return (
-            Path.Combine(ctx.DomainPath, "Interfaces", Services, $"I{ctx.Entity}DomainService.{method}.cs"),
+            Path.Combine(ctx.DomainPath, Interfaces, Services, $"I{ctx.Entity}DomainService.{method}.cs"),
             QueryInterfacePartial(method, def.Parameters));
         yield return (
             Path.Combine(ctx.DomainPath, Services, $"{ctx.Entity}DomainService.{method}.cs"),
@@ -166,13 +166,13 @@ public sealed partial class ScaffoldGenerator
         var sql    = SpecialistParam.ToParameterizedSql(def.Sql, def.Parameters);
 
         yield return (
-            Path.Combine(ctx.DomainPath, "Interfaces", "Repositories", $"I{ctx.Entity}Repository.{method}.cs"),
+            Path.Combine(ctx.DomainPath, Interfaces, Repositories, $"I{ctx.Entity}Repository.{method}.cs"),
             CommandRepositoryInterfacePartial(method, def.Parameters));
         yield return (
-            Path.Combine(ctx.InfraDataPath, "Repositories", $"{ctx.Entity}Repository.{method}.cs"),
+            Path.Combine(ctx.InfraDataPath, Repositories, $"{ctx.Entity}Repository.{method}.cs"),
             CommandRepositoryPartial(method, def.Parameters, sql));
         yield return (
-            Path.Combine(ctx.DomainPath, "Interfaces", Services, $"I{ctx.Entity}DomainService.{method}.cs"),
+            Path.Combine(ctx.DomainPath, Interfaces, Services, $"I{ctx.Entity}DomainService.{method}.cs"),
             CommandInterfacePartial(method, def.Parameters));
         yield return (
             Path.Combine(ctx.DomainPath, Services, $"{ctx.Entity}DomainService.{method}.cs"),
@@ -285,7 +285,7 @@ public sealed partial class ScaffoldGenerator
     private IEnumerable<(string, string)> HttpCallSpecialistFiles(string method)
     {
         var feat           = Path.Combine(ctx.AppPath, "Features", $"{ctx.Entity}Features", $"{method}Feature");
-        var httpInterfaces = Path.Combine(ctx.AppPath, "Interfaces", "HttpServices");
+        var httpInterfaces = Path.Combine(ctx.AppPath, Interfaces, "HttpServices");
         var httpServices   = Path.Combine(ctx.InfraDataPath, "HttpServices");
 
         yield return (Path.Combine(feat, $"{method}Command.cs"),          HttpCallCommandTemplate(method));
