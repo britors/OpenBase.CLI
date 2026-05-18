@@ -177,6 +177,55 @@ dotnet ef migrations add AddProduct
 dotnet ef database update
 ```
 
+#### Updating an existing entity
+
+When the database table changes (new column, removed column, type change), use `--update` to sync the generated files:
+
+```bash
+openbase scaffold --entity Product --update
+```
+
+The command reads the current table structure from the database (**Model First**), compares it with the existing `Entity.cs`, and shows a diff before applying any changes:
+
+```
+Detected differences:
+  + Description (string?)   → new column
+  - Weight (decimal)        → removed column
+  ~ Price: decimal → float  → type changed
+
+Apply changes? [y/n]
+⚠️  1 property(ies) will be REMOVED from multiple files.
+Confirm removal? [y/n]
+
+16 file(s) updated:
+  src/Domain/Entities/Product.cs
+  src/Application/DTOs/Product/Requests/CreateProductRequest.cs
+  ...
+
+Scaffold for entity Product updated successfully!
+Don't forget to create a migration: dotnet ef migrations add UpdateProduct
+```
+
+**Files updated by `--update` (16):**
+
+| Layer | Files |
+|-------|-------|
+| Domain | `Entity.cs`, `IDomainService.cs`, `DomainService.cs` |
+| Application DTOs | `Create/Update/GetRequest`, `EntityResponse`, `Create/UpdateResponse` |
+| Application Features | `CreateCommand`, `UpdateCommand`, `Create/UpdateValidator`, `GetQuery`, `GetQueryHandler` |
+| Infrastructure | `{Entity}Configuration.cs` (EF Core) |
+
+Files **not overwritten** (may contain custom code): handlers, repositories, controller, and test files.
+
+> **Recommended**: commit or stash any uncommitted changes before running `--update`. The command warns you if it detects modified files related to the entity.
+
+After the update, generate a new migration:
+
+```bash
+dotnet ef migrations add UpdateProduct
+dotnet ef database update
+```
+
 ---
 
 ### 6. Add an extension
@@ -328,7 +377,7 @@ builder.Services.AddRedisCache(builder.Configuration);
 | `run`                    | Builds and runs the project, opening Swagger in browser  | `openbase run`                                                 |
 | `install`                | Installs the required NuGet templates                    | `openbase install`                                             |
 | `new`                    | Creates a new project from the templates                 | `openbase new --type api --template sqlserver --name X`<br>`openbase new --type api --template pgsql --name X`<br>`openbase new --type api --template oracle --name X` |
-| `scaffold`               | Generates all layers for an entity (interactive)         | `openbase scaffold --entity Product`                           |
+| `scaffold`               | Generates all layers for an entity; `--update` syncs with table changes | `openbase scaffold --entity Product`<br>`openbase scaffold --entity Product --update` |
 | `extension add`          | Adds an installable extension to the project             | `openbase extension add jwt`                                   |
 | `update`                 | Updates the CLI and templates to the latest version      | `openbase update`                                              |
 | `history`                | Shows the update history per component                   | `openbase history --type cli`                                  |

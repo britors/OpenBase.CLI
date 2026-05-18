@@ -26,7 +26,7 @@ public class HelpCommand : Command<HelpSettings>
         table.AddRow("[blue]run[/]", SR.Current.HelpRunDesc, "openbase [green]run[/]\nopenbase [green]run --configuration Release[/]\nopenbase [green]run --no-build[/]");
         table.AddRow("[blue]install[/]", SR.Current.HelpInstallDesc, "openbase [green]install[/]");
         table.AddRow("[blue]new[/]", SR.Current.HelpNewDesc, "openbase [green]new --type api --template sqlserver --name MeuProjeto[/]\nopenbase [green]new --type api --template pgsql --name MeuProjeto[/]\nopenbase [green]new --type api --template oracle --name MeuProjeto[/]");
-        table.AddRow("[blue]scaffold[/]", SR.Current.HelpScaffoldDesc, "openbase [green]scaffold --entity Produto[/]");
+        table.AddRow("[blue]scaffold[/]", SR.Current.HelpScaffoldDesc, "openbase [green]scaffold --entity Produto[/]\nopenbase [green]scaffold --entity Produto --update[/]");
         table.AddRow("[blue]extension add[/]", SR.Current.HelpExtensionAddDesc, "openbase [green]extension add jwt[/]\nopenbase [green]extension add healthchecks[/]\nopenbase [green]extension add redis[/]");
         table.AddRow("[blue]extension list[/]", SR.Current.HelpExtensionListDesc, "openbase [green]extension list[/]");
         table.AddRow("[blue]history[/]", SR.Current.HelpHistoryDesc, "openbase [green]history --type cli[/]");
