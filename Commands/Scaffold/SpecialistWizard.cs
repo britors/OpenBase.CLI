@@ -19,20 +19,50 @@ internal sealed class SpecialistWizard(IAnsiConsole console)
         if (type == SpecialistType.HttpCall)
             return new SpecialistDefinition(methodName, type, string.Empty, []);
 
-        var sql = console.Ask<string>(SR.Current.SpecialistSqlPrompt);
+        var sql        = console.Ask<string>(SR.Current.SpecialistSqlPrompt);
         var paramNames = SpecialistParam.ExtractNames(sql);
 
-        if (paramNames.Count == 0)
-            return new SpecialistDefinition(methodName, type, sql, []);
-
-        console.MarkupLine(string.Format(SR.Current.SpecialistParamsDetected,
-            string.Join(", ", paramNames.Select(n => $"[blue]{{{{{n}}}}}[/]"))));
+        if (paramNames.Count > 0)
+            console.MarkupLine(string.Format(SR.Current.SpecialistParamsDetected,
+                string.Join(", ", paramNames.Select(n => $"[blue]{{{{{n}}}}}[/]"))));
 
         var parameters = paramNames
-            .Select(name => new SpecialistParam(name, AskParamCsType(name)))
+            .Select(name => new SpecialistParam(name, AskCsType(SR.Current.SpecialistParamTypePrompt, name)))
             .ToList();
 
-        return new SpecialistDefinition(methodName, type, sql, parameters);
+        if (type == SpecialistType.Command)
+            return new SpecialistDefinition(methodName, type, sql, parameters);
+
+        var isPaginated    = console.Confirm(SR.Current.SpecialistPaginatedPrompt, defaultValue: false);
+        var resultColumns  = AskResultColumns();
+
+        return new SpecialistDefinition(methodName, type, sql, parameters)
+        {
+            IsPaginated   = isPaginated,
+            ResultColumns = resultColumns,
+        };
+    }
+
+    private List<SpecialistParam> AskResultColumns()
+    {
+        var columns = new List<SpecialistParam>();
+        console.MarkupLine(SR.Current.SpecialistResultColumnsTitle);
+
+        while (true)
+        {
+            var prompt = string.Format(SR.Current.SpecialistResultColumnName, columns.Count + 1);
+            var name   = console.Ask<string>(prompt);
+
+            if (string.IsNullOrWhiteSpace(name)) break;
+
+            if (!char.IsUpper(name[0]))
+                name = char.ToUpperInvariant(name[0]) + name[1..];
+
+            var csType = AskCsType(SR.Current.SpecialistResultColumnTypePrompt, name);
+            columns.Add(new SpecialistParam(name, csType));
+        }
+
+        return columns;
     }
 
     private string? AskMethodName()
@@ -78,9 +108,9 @@ internal sealed class SpecialistWizard(IAnsiConsole console)
         return SpecialistType.Query;
     }
 
-    private string AskParamCsType(string paramName) =>
+    private string AskCsType(string promptTemplate, string name) =>
         console.Prompt(
             new SelectionPrompt<string>()
-                .Title(string.Format(SR.Current.SpecialistParamTypePrompt, paramName))
-                .AddChoices("int", "string", "bool", "decimal", "Guid", "DateTime", "long", "double", "float", "short"));
+                .Title(string.Format(promptTemplate, name))
+                .AddChoices("string", "int", "bool", "decimal", "Guid", "DateTime", "long", "double", "float", "short"));
 }

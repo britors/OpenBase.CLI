@@ -47,129 +47,182 @@ public sealed partial class ScaffoldGenerator
 
     private IEnumerable<(string, string)> QuerySpecialistFiles(SpecialistDefinition def)
     {
-        var method = def.MethodName;
-        var feat   = Path.Combine(ctx.AppPath, "Features", $"{ctx.Entity}Features", $"{method}Feature");
-        var sql    = SpecialistParam.ToParameterizedSql(def.Sql, def.Parameters);
+        var method  = def.MethodName;
+        var p       = def.Parameters;
+        var cols    = def.ResultColumns;
+        var paged   = def.IsPaginated;
+        var feat    = Path.Combine(ctx.AppPath, "Features", $"{ctx.Entity}Features", $"{method}Feature");
+        var sql     = SpecialistParam.ToParameterizedSql(def.Sql, p);
 
         yield return (
+            Path.Combine(ctx.DomainPath, "QueryResults", $"{method}QueryResult.cs"),
+            QueryResultRecordTemplate(method, cols));
+        yield return (
             Path.Combine(ctx.DomainPath, Interfaces, Repositories, $"I{ctx.Entity}Repository.{method}.cs"),
-            QueryRepositoryInterfacePartial(method, def.Parameters));
+            QueryRepositoryInterfacePartial(method, p, paged));
         yield return (
             Path.Combine(ctx.InfraDataPath, Repositories, $"{ctx.Entity}Repository.{method}.cs"),
-            QueryRepositoryPartial(method, def.Parameters, sql));
+            QueryRepositoryPartial(method, p, sql, paged));
         yield return (
             Path.Combine(ctx.DomainPath, Interfaces, Services, $"I{ctx.Entity}DomainService.{method}.cs"),
-            QueryInterfacePartial(method, def.Parameters));
+            QueryInterfacePartial(method, p, paged));
         yield return (
             Path.Combine(ctx.DomainPath, Services, $"{ctx.Entity}DomainService.{method}.cs"),
-            QueryServicePartial(method, def.Parameters));
-        yield return (Path.Combine(feat, $"{method}Query.cs"),          QuerySpecTemplate(method, def.Parameters));
-        yield return (Path.Combine(feat, $"{method}QueryHandler.cs"),   QueryHandlerSpecTemplate(method, def.Parameters));
+            QueryServicePartial(method, p, paged));
+        yield return (Path.Combine(feat, $"{method}Query.cs"),          QuerySpecTemplate(method, p, paged));
+        yield return (Path.Combine(feat, $"{method}QueryHandler.cs"),   QueryHandlerSpecTemplate(method, p, paged));
         yield return (Path.Combine(feat, $"{method}QueryValidator.cs"), QueryValidatorSpecTemplate(method));
         yield return (
             Path.Combine(ctx.AppPath, "DTOs", ctx.Entity, Requests, $"{method}Request.cs"),
-            SpecialistRequestDtoTemplate(method, def.Parameters));
+            SpecialistRequestDtoTemplate(method, p));
+        yield return (
+            Path.Combine(ctx.AppPath, "DTOs", ctx.Entity, Responses, $"{method}Response.cs"),
+            QueryResponseDtoTemplate(method, cols));
+        yield return (
+            Path.Combine(ctx.AppPath, "Mappers", $"{method}MapperProfile.cs"),
+            QueryMapperProfileTemplate(method, paged));
         yield return (
             Path.Combine(ctx.AppPath, Interfaces, Services, $"I{ctx.Entity}ApplicationService.{method}.cs"),
-            QueryIAppServicePartial(method));
+            QueryIAppServicePartial(method, paged));
         yield return (
             Path.Combine(ctx.AppPath, Services, $"{ctx.Entity}ApplicationService.{method}.cs"),
-            QueryAppServicePartial(method, def.Parameters));
+            QueryAppServicePartial(method, p, paged));
         yield return (
             Path.Combine(ctx.PresentationPath, "Controllers", $"{ctx.Entity}Controller.{method}.cs"),
             QueryControllerPartial(method));
     }
 
-    private string QueryRepositoryInterfacePartial(string method, IReadOnlyList<SpecialistParam> p) => $$"""
-        using {{ctx.NS}}.Domain.Entities;
+    private string QueryRepositoryInterfacePartial(string method, IReadOnlyList<SpecialistParam> p, bool paged)
+    {
+        var returnType = paged
+            ? $"PaginatedQueryResult<{method}QueryResult>"
+            : $"IReadOnlyList<{method}QueryResult>";
+        return $$"""
+            using {{ctx.NS}}.Domain.QueryResults;
 
-        namespace {{ctx.NS}}.Domain.Interfaces.Repositories;
+            namespace {{ctx.NS}}.Domain.Interfaces.Repositories;
 
-        public partial interface I{{ctx.Entity}}Repository
-        {
-            Task<IReadOnlyList<{{ctx.Entity}}>> {{method}}Async(
-                {{MethodParamsLeading(p)}}CancellationToken cancellationToken = default);
-        }
-        """;
-
-    private string QueryRepositoryPartial(string method, IReadOnlyList<SpecialistParam> p, string sql) => $$"""
-        using Dapper;
-        using {{ctx.NS}}.Domain.Entities;
-
-        namespace {{ctx.NS}}.Infra.Data.Repositories;
-
-        public sealed partial class {{ctx.Entity}}Repository
-        {
-            private const string {{method}}Sql = "{{sql.Replace("\"", "\\\"")}}";
-
-            public async Task<IReadOnlyList<{{ctx.Entity}}>> {{method}}Async(
-                {{MethodParamsLeading(p)}}CancellationToken cancellationToken = default)
+            public partial interface I{{ctx.Entity}}Repository
             {
-                var result = await dbSession.Connection.QueryAsync<{{ctx.Entity}}>(
-                    {{method}}Sql, {{DapperAnon(p)}});
-                return result.ToList();
+                Task<{{returnType}}> {{method}}Async(
+                    {{MethodParamsLeading(p)}}CancellationToken cancellationToken = default);
             }
-        }
-        """;
+            """;
+    }
 
-    private string QueryInterfacePartial(string method, IReadOnlyList<SpecialistParam> p) => $$"""
-        using {{ctx.NS}}.Domain.Entities;
+    private string QueryRepositoryPartial(string method, IReadOnlyList<SpecialistParam> p, string sql, bool paged)
+    {
+        var returnType = paged
+            ? $"PaginatedQueryResult<{method}QueryResult>"
+            : $"IReadOnlyList<{method}QueryResult>";
+        var returnExpr = paged
+            ? $"new PaginatedQueryResult<{method}QueryResult>(0, 0, 0, result.ToList())"
+            : "result.ToList()";
+        return $$"""
+            using Dapper;
+            using {{ctx.NS}}.Domain.QueryResults;
 
-        namespace {{ctx.NS}}.Domain.Interfaces.Services;
+            namespace {{ctx.NS}}.Infra.Data.Repositories;
 
-        public partial interface I{{ctx.Entity}}DomainService
-        {
-            Task<IReadOnlyList<{{ctx.Entity}}>> {{method}}Async(
-                {{MethodParamsLeading(p)}}CancellationToken cancellationToken = default);
-        }
-        """;
-
-    private string QueryServicePartial(string method, IReadOnlyList<SpecialistParam> p) => $$"""
-        using {{ctx.NS}}.Domain.Entities;
-
-        namespace {{ctx.NS}}.Domain.Services;
-
-        public sealed partial class {{ctx.Entity}}DomainService
-        {
-            public async Task<IReadOnlyList<{{ctx.Entity}}>> {{method}}Async(
-                {{MethodParamsLeading(p)}}CancellationToken cancellationToken = default)
-                => await {{ctx.ECamel}}Repository.{{method}}Async(
-                    {{CallArgsLeading(p)}}cancellationToken);
-        }
-        """;
-
-    private string QuerySpecTemplate(string method, IReadOnlyList<SpecialistParam> p) => $$"""
-        using MediatR;
-        using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
-
-        namespace {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.{{method}}Feature;
-
-        public sealed record {{method}}Query({{RecordParams(p)}})
-            : IRequest<IReadOnlyList<{{ctx.Entity}}Response>>;
-        """;
-
-    private string QueryHandlerSpecTemplate(string method, IReadOnlyList<SpecialistParam> p) => $$"""
-        using AutoMapper;
-        using MediatR;
-        using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
-        using {{ctx.NS}}.Domain.Interfaces.Services;
-
-        namespace {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.{{method}}Feature;
-
-        internal sealed class {{method}}QueryHandler(
-                I{{ctx.Entity}}DomainService {{ctx.ECamel}}DomainService,
-                IMapper mapper)
-            : IRequestHandler<{{method}}Query, IReadOnlyList<{{ctx.Entity}}Response>>
-        {
-            public async Task<IReadOnlyList<{{ctx.Entity}}Response>>
-                Handle({{method}}Query request, CancellationToken cancellationToken)
+            public sealed partial class {{ctx.Entity}}Repository
             {
-                var result = await {{ctx.ECamel}}DomainService.{{method}}Async(
-                    {{RequestCallArgs(p)}}cancellationToken);
-                return mapper.Map<IReadOnlyList<{{ctx.Entity}}Response>>(result);
+                private const string {{method}}Sql = "{{sql.Replace("\"", "\\\"")}}";
+
+                public async Task<{{returnType}}> {{method}}Async(
+                    {{MethodParamsLeading(p)}}CancellationToken cancellationToken = default)
+                {
+                    var result = await dbSession.Connection.QueryAsync<{{method}}QueryResult>(
+                        {{method}}Sql, {{DapperAnon(p)}});
+                    return {{returnExpr}};
+                }
             }
-        }
-        """;
+            """;
+    }
+
+    private string QueryInterfacePartial(string method, IReadOnlyList<SpecialistParam> p, bool paged)
+    {
+        var returnType = paged
+            ? $"PaginatedQueryResult<{method}QueryResult>"
+            : $"IReadOnlyList<{method}QueryResult>";
+        return $$"""
+            using {{ctx.NS}}.Domain.QueryResults;
+
+            namespace {{ctx.NS}}.Domain.Interfaces.Services;
+
+            public partial interface I{{ctx.Entity}}DomainService
+            {
+                Task<{{returnType}}> {{method}}Async(
+                    {{MethodParamsLeading(p)}}CancellationToken cancellationToken = default);
+            }
+            """;
+    }
+
+    private string QueryServicePartial(string method, IReadOnlyList<SpecialistParam> p, bool paged)
+    {
+        var returnType = paged
+            ? $"PaginatedQueryResult<{method}QueryResult>"
+            : $"IReadOnlyList<{method}QueryResult>";
+        return $$"""
+            using {{ctx.NS}}.Domain.QueryResults;
+
+            namespace {{ctx.NS}}.Domain.Services;
+
+            public sealed partial class {{ctx.Entity}}DomainService
+            {
+                public async Task<{{returnType}}> {{method}}Async(
+                    {{MethodParamsLeading(p)}}CancellationToken cancellationToken = default)
+                    => await {{ctx.ECamel}}Repository.{{method}}Async(
+                        {{CallArgsLeading(p)}}cancellationToken);
+            }
+            """;
+    }
+
+    private string QuerySpecTemplate(string method, IReadOnlyList<SpecialistParam> p, bool paged)
+    {
+        var responseType = paged
+            ? $"PaginatedResponse<{method}Response>"
+            : $"IReadOnlyList<{method}Response>";
+        var paginatedUsing = paged
+            ? $"using {ctx.NS}.Application.DTOs.Base.Response;\n"
+            : string.Empty;
+        return $$"""
+            using MediatR;
+            {{paginatedUsing}}using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
+
+            namespace {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.{{method}}Feature;
+
+            public sealed record {{method}}Query({{RecordParams(p)}})
+                : IRequest<{{responseType}}>;
+            """;
+    }
+
+    private string QueryHandlerSpecTemplate(string method, IReadOnlyList<SpecialistParam> p, bool paged)
+    {
+        var responseType   = paged ? $"PaginatedResponse<{method}Response>" : $"IReadOnlyList<{method}Response>";
+        var paginatedUsing = paged ? $"using {ctx.NS}.Application.DTOs.Base.Response;\n" : string.Empty;
+        return $$"""
+            using AutoMapper;
+            using MediatR;
+            {{paginatedUsing}}using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
+            using {{ctx.NS}}.Domain.Interfaces.Services;
+
+            namespace {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.{{method}}Feature;
+
+            internal sealed class {{method}}QueryHandler(
+                    I{{ctx.Entity}}DomainService {{ctx.ECamel}}DomainService,
+                    IMapper mapper)
+                : IRequestHandler<{{method}}Query, {{responseType}}>
+            {
+                public async Task<{{responseType}}>
+                    Handle({{method}}Query request, CancellationToken cancellationToken)
+                {
+                    var result = await {{ctx.ECamel}}DomainService.{{method}}Async(
+                        {{RequestCallArgs(p)}}cancellationToken);
+                    return mapper.Map<{{responseType}}>(result);
+                }
+            }
+            """;
+    }
 
     private string QueryValidatorSpecTemplate(string method) => $$"""
         using FluentValidation;
@@ -327,36 +380,46 @@ public sealed partial class ScaffoldGenerator
 
     // ─── Query — Application + Presentation ───────────────────────────────────
 
-    private string QueryIAppServicePartial(string method) => $$"""
-        using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Requests;
-        using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
+    private string QueryIAppServicePartial(string method, bool paged)
+    {
+        var responseType   = paged ? $"PaginatedResponse<{method}Response>" : $"IReadOnlyList<{method}Response>";
+        var paginatedUsing = paged ? $"using {ctx.NS}.Application.DTOs.Base.Response;\n" : string.Empty;
+        return $$"""
+            {{paginatedUsing}}using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Requests;
+            using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
 
-        namespace {{ctx.NS}}.Application.Interfaces.Services;
+            namespace {{ctx.NS}}.Application.Interfaces.Services;
 
-        public partial interface I{{ctx.Entity}}ApplicationService
-        {
-            Task<IReadOnlyList<{{ctx.Entity}}Response>> {{method}}Async(
-                {{method}}Request request, CancellationToken cancellationToken = default);
-        }
-        """;
-
-    private string QueryAppServicePartial(string method, IReadOnlyList<SpecialistParam> p) => $$"""
-        using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Requests;
-        using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
-        using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.{{method}}Feature;
-
-        namespace {{ctx.NS}}.Application.Services;
-
-        public sealed partial class {{ctx.Entity}}ApplicationService
-        {
-            public async Task<IReadOnlyList<{{ctx.Entity}}Response>> {{method}}Async(
-                {{method}}Request request, CancellationToken cancellationToken = default)
+            public partial interface I{{ctx.Entity}}ApplicationService
             {
-                var query = new {{method}}Query({{RequestArgs(p)}});
-                return await mediator.Send(query, cancellationToken);
+                Task<{{responseType}}> {{method}}Async(
+                    {{method}}Request request, CancellationToken cancellationToken = default);
             }
-        }
-        """;
+            """;
+    }
+
+    private string QueryAppServicePartial(string method, IReadOnlyList<SpecialistParam> p, bool paged)
+    {
+        var responseType   = paged ? $"PaginatedResponse<{method}Response>" : $"IReadOnlyList<{method}Response>";
+        var paginatedUsing = paged ? $"using {ctx.NS}.Application.DTOs.Base.Response;\n" : string.Empty;
+        return $$"""
+            {{paginatedUsing}}using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Requests;
+            using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
+            using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.{{method}}Feature;
+
+            namespace {{ctx.NS}}.Application.Services;
+
+            public sealed partial class {{ctx.Entity}}ApplicationService
+            {
+                public async Task<{{responseType}}> {{method}}Async(
+                    {{method}}Request request, CancellationToken cancellationToken = default)
+                {
+                    var query = new {{method}}Query({{RequestArgs(p)}});
+                    return await mediator.Send(query, cancellationToken);
+                }
+            }
+            """;
+    }
 
     private string QueryControllerPartial(string method) => $$"""
         using Microsoft.AspNetCore.Mvc;
@@ -448,6 +511,41 @@ public sealed partial class ScaffoldGenerator
 
         public sealed record {{method}}Response(bool Success);
         """;
+
+    private string QueryResultRecordTemplate(string method, IReadOnlyList<SpecialistParam> cols) => $$"""
+        namespace {{ctx.NS}}.Domain.QueryResults;
+
+        public readonly record struct {{method}}QueryResult({{RecordParams(cols)}});
+        """;
+
+    private string QueryResponseDtoTemplate(string method, IReadOnlyList<SpecialistParam> cols) => $$"""
+        namespace {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
+
+        public sealed record {{method}}Response({{RecordParams(cols)}});
+        """;
+
+    private string QueryMapperProfileTemplate(string method, bool paged)
+    {
+        var paginatedUsing   = paged ? $"using {ctx.NS}.Application.DTOs.Base.Response;\n" : string.Empty;
+        var paginatedMapping = paged
+            ? $"\n        CreateMap<PaginatedQueryResult<{method}QueryResult>, PaginatedResponse<{method}Response>>();"
+            : string.Empty;
+        return $$"""
+            using AutoMapper;
+            {{paginatedUsing}}using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
+            using {{ctx.NS}}.Domain.QueryResults;
+
+            namespace {{ctx.NS}}.Application.Mappers;
+
+            public sealed class {{method}}MapperProfile : Profile
+            {
+                public {{method}}MapperProfile()
+                {
+                    CreateMap<{{method}}QueryResult, {{method}}Response>();{{paginatedMapping}}
+                }
+            }
+            """;
+    }
 
     // ─── HTTP Call ─────────────────────────────────────────────────────────────
 

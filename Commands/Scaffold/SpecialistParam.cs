@@ -32,4 +32,8 @@ public sealed record SpecialistDefinition(
     string MethodName,
     SpecialistType Type,
     string Sql,
-    IReadOnlyList<SpecialistParam> Parameters);
+    IReadOnlyList<SpecialistParam> Parameters)
+{
+    public IReadOnlyList<SpecialistParam> ResultColumns { get; init; } = [];
+    public bool IsPaginated { get; init; }
+}
