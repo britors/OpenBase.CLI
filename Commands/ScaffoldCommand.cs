@@ -306,8 +306,11 @@ public class ScaffoldCommand(
     {
         try
         {
+            var gitPath = ResolveExecutable("git");
+            if (gitPath is null) return;
+
             using var proc = new System.Diagnostics.Process();
-            proc.StartInfo = new System.Diagnostics.ProcessStartInfo("git", "status --short")
+            proc.StartInfo = new System.Diagnostics.ProcessStartInfo(gitPath, "status --short")
             {
                 WorkingDirectory = solutionDir,
                 RedirectStandardOutput = true,
@@ -332,6 +335,15 @@ public class ScaffoldCommand(
             console.MarkupLine(SR.Current.ScaffoldUpdateUncommittedHint);
         }
         catch { /* git not available, silently ignore */ }
+    }
+
+    private static string? ResolveExecutable(string name)
+    {
+        var fileName = OperatingSystem.IsWindows() ? name + ".exe" : name;
+        return (Environment.GetEnvironmentVariable("PATH") ?? string.Empty)
+            .Split(Path.PathSeparator)
+            .Select(dir => Path.Combine(dir, fileName))
+            .FirstOrDefault(File.Exists);
     }
 
     private (List<string> Created, List<string> Skipped, List<string> Failed) WriteFiles(
