@@ -51,7 +51,7 @@ internal sealed class SpecialistWizard(IAnsiConsole console)
         while (true)
         {
             var prompt = string.Format(SR.Current.SpecialistResultColumnName, columns.Count + 1);
-            var name   = console.Ask<string>(prompt);
+            var name   = console.Prompt(new TextPrompt<string>(prompt).AllowEmpty());
 
             if (string.IsNullOrWhiteSpace(name)) break;
 
