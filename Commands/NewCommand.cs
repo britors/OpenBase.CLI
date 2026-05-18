@@ -126,8 +126,9 @@ public class NewCommand : AsyncCommand<NewSettings>
         }
 
         UpdateAppSettings(settings.Name, strategy, config, _fileWriter);
-        _console.MarkupLine($"[grey]  cd {settings.Name}[/]");
+        _console.MarkupLine($"[grey]  cd {Markup.Escape(settings.Name)}[/]");
         _console.MarkupLine("[grey]  dotnet run --project src/...[/]");
+        _console.MarkupLine(SR.Current.ShellIntegrationHint);
 
         var connectionString = strategy.BuildConnectionString(config.DbName, config.DbServer, config.DbUser, config.DbPassword);
         await RunBulkImportAsync(settings.Name, connectionString, strategy.DbFlavor, cancellationToken);
