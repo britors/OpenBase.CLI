@@ -4,6 +4,8 @@ namespace OpenBase.CLI.Commands.Scaffold;
 
 public sealed partial class ScaffoldGenerator
 {
+    private const string CsString = "string";
+
     public IEnumerable<(string Path, string Content)> GetSpecialistFiles(SpecialistDefinition def) =>
         def.Type switch
         {
@@ -53,7 +55,7 @@ public sealed partial class ScaffoldGenerator
         var p       = def.Parameters;
         var cols    = def.ResultColumns;
         var paged   = def.IsPaginated;
-        var feat    = Path.Combine(ctx.AppPath, "Features", $"{ctx.Entity}Features", $"{method}Feature");
+        var feat    = Path.Combine(ctx.AppPath, Features, $"{ctx.Entity}Features", $"{method}Feature");
         var sql     = SpecialistParam.ToParameterizedSql(def.Sql, p);
 
         yield return (
@@ -93,8 +95,8 @@ public sealed partial class ScaffoldGenerator
             Path.Combine(ctx.PresentationPath, "Controllers", $"{ctx.Entity}Controller.{method}.cs"),
             QueryControllerPartial(method));
 
-        var featTests   = Path.Combine(ctx.TestsPath, "Application", "Features", $"{ctx.Entity}Features");
-        var appSvcTests = Path.Combine(ctx.TestsPath, "Application", Services);
+        var featTests   = Path.Combine(ctx.TestsPath, Application, Features, $"{ctx.Entity}Features");
+        var appSvcTests = Path.Combine(ctx.TestsPath, Application, Services);
         yield return (Path.Combine(featTests, $"{method}QueryHandlerTests.cs"),          QueryHandlerTestsTemplate(method, p, cols, paged));
         yield return (Path.Combine(featTests, $"{method}QueryValidatorTests.cs"),         QueryValidatorTestsTemplate(method, p));
         yield return (Path.Combine(appSvcTests, $"{ctx.Entity}{method}AppServiceTests.cs"), QueryAppServiceTestsTemplate(method, p));
@@ -248,7 +250,7 @@ public sealed partial class ScaffoldGenerator
     private IEnumerable<(string, string)> CommandSpecialistFiles(SpecialistDefinition def)
     {
         var method = def.MethodName;
-        var feat   = Path.Combine(ctx.AppPath, "Features", $"{ctx.Entity}Features", $"{method}Feature");
+        var feat   = Path.Combine(ctx.AppPath, Features, $"{ctx.Entity}Features", $"{method}Feature");
         var sql    = SpecialistParam.ToParameterizedSql(def.Sql, def.Parameters);
 
         yield return (
@@ -282,8 +284,8 @@ public sealed partial class ScaffoldGenerator
             Path.Combine(ctx.PresentationPath, "Controllers", $"{ctx.Entity}Controller.{method}.cs"),
             CommandControllerPartial(method));
 
-        var featTests   = Path.Combine(ctx.TestsPath, "Application", "Features", $"{ctx.Entity}Features");
-        var appSvcTests = Path.Combine(ctx.TestsPath, "Application", Services);
+        var featTests   = Path.Combine(ctx.TestsPath, Application, Features, $"{ctx.Entity}Features");
+        var appSvcTests = Path.Combine(ctx.TestsPath, Application, Services);
         yield return (Path.Combine(featTests, $"{method}CommandHandlerTests.cs"),           CommandHandlerTestsTemplate(method, def.Parameters));
         yield return (Path.Combine(featTests, $"{method}CommandValidatorTests.cs"),          CommandValidatorTestsTemplate(method, def.Parameters));
         yield return (Path.Combine(appSvcTests, $"{ctx.Entity}{method}AppServiceTests.cs"), CommandAppServiceTestsTemplate(method, def.Parameters));
@@ -371,7 +373,7 @@ public sealed partial class ScaffoldGenerator
     private string CommandValidatorSpecTemplate(string method, IReadOnlyList<SpecialistParam> p)
     {
         var rules = p
-            .Where(x => x.CsType is "string" or "Guid")
+            .Where(x => x.CsType is CsString or "Guid")
             .Select(x => $"RuleFor(x => x.{x.PascalName}).NotEmpty();")
             .ToList();
 
@@ -565,7 +567,7 @@ public sealed partial class ScaffoldGenerator
 
     private IEnumerable<(string, string)> HttpCallSpecialistFiles(string method)
     {
-        var feat           = Path.Combine(ctx.AppPath, "Features", $"{ctx.Entity}Features", $"{method}Feature");
+        var feat           = Path.Combine(ctx.AppPath, Features, $"{ctx.Entity}Features", $"{method}Feature");
         var httpInterfaces = Path.Combine(ctx.AppPath, Interfaces, "HttpServices");
         var httpServices   = Path.Combine(ctx.InfraDataPath, "HttpServices");
 
@@ -636,7 +638,7 @@ public sealed partial class ScaffoldGenerator
 
     private static string SpecialistTestValue(SpecialistParam p) => p.CsType switch
     {
-        "string"   => "\"Test\"",
+        CsString   => "\"Test\"",
         "int"      => "1",
         "bool"     => "true",
         "decimal"  => "1.0m",
@@ -655,16 +657,16 @@ public sealed partial class ScaffoldGenerator
     private static string AnyArgsLeading(IReadOnlyList<SpecialistParam> p) =>
         p.Count == 0 ? string.Empty : string.Join(", ", p.Select(x => $"It.IsAny<{x.CsType}>()")) + ", ";
 
-    private string BuildSpecialistValidatorTests(string method, IReadOnlyList<SpecialistParam> p, string typeName)
+    private static string BuildSpecialistValidatorTests(IReadOnlyList<SpecialistParam> p, string typeName)
     {
         var sb = new StringBuilder();
         sb.Append($"[Fact]\n{I4}public void Validate_IsValid_WhenAllParamsAreProvided()");
         sb.Append($"\n{I4}{{\n{I8}var result = _validator.Validate(new {typeName}({SpecialistTestArgs(p)}));");
         sb.Append($"\n{I8}Assert.True(result.IsValid);\n{I4}}}");
 
-        foreach (var param in p.Where(x => x.CsType is "string" or "Guid"))
+        foreach (var param in p.Where(x => x.CsType is CsString or "Guid"))
         {
-            var empty = param.CsType == "string" ? "\"\"" : "Guid.Empty";
+            var empty = param.CsType == CsString ? "\"\"" : "Guid.Empty";
             var args  = string.Join(", ", p.Select(x => x == param ? empty : SpecialistTestValue(x)));
             sb.Append($"\n\n{I4}[Fact]\n{I4}public void Validate_IsInvalid_When{param.PascalName}IsEmpty()");
             sb.Append($"\n{I4}{{\n{I8}var result = _validator.Validate(new {typeName}({args}));");
@@ -681,9 +683,8 @@ public sealed partial class ScaffoldGenerator
     private string QueryHandlerTestsTemplate(string method, IReadOnlyList<SpecialistParam> p,
         IReadOnlyList<SpecialistParam> cols, bool paged)
     {
-        var responseType     = paged ? $"PaginatedResponse<{method}Response>" : $"IReadOnlyList<{method}Response>";
-        var resultType       = paged ? $"PaginatedQueryResult<{method}QueryResult>" : $"IReadOnlyList<{method}QueryResult>";
-        var colArgs          = SpecialistTestArgs(cols);
+        var responseType   = paged ? $"PaginatedResponse<{method}Response>" : $"IReadOnlyList<{method}Response>";
+        var colArgs        = SpecialistTestArgs(cols);
         var resultSetup      = paged
             ? $"new PaginatedQueryResult<{method}QueryResult>(1, 5, 1, [new({colArgs})])"
             : $"new List<{method}QueryResult> {{ new({colArgs}) }}";
@@ -742,7 +743,7 @@ public sealed partial class ScaffoldGenerator
         {
             private readonly {{method}}QueryValidator _validator = new();
 
-            {{BuildSpecialistValidatorTests(method, p, $"{method}Query")}}
+            {{BuildSpecialistValidatorTests(p, $"{method}Query")}}
         }
         """;
 
@@ -837,7 +838,7 @@ public sealed partial class ScaffoldGenerator
         {
             private readonly {{method}}CommandValidator _validator = new();
 
-            {{BuildSpecialistValidatorTests(method, p, $"{method}Command")}}
+            {{BuildSpecialistValidatorTests(p, $"{method}Command")}}
         }
         """;
 
