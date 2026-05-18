@@ -226,7 +226,91 @@ dotnet ef database update
 
 ---
 
-### 6. Add an extension
+### 6. Add specialist methods
+
+After scaffolding an entity, add custom Query or Command methods to extend all Clean Architecture layers at once:
+
+```bash
+openbase specialist --entity Product
+```
+
+The wizard guides you through each method definition:
+
+```
+Method name (PascalCase): FindProductByCategory
+Method type:
+> Query — MediatR query (read)
+  Command — MediatR command (write)
+
+Enter the SQL/operation with parameters as {{ paramName }}:
+  SELECT p.Name, p.Price, c.Description
+  FROM Products p JOIN Categories c ON c.Id = p.CategoryId
+  WHERE c.Name LIKE @CategoryName
+
+Parameters detected: {{ CategoryName }}
+  CategoryName — C# type: string
+
+Does the query return paginated results? [y/n] (n): n
+
+Define the result columns:
+  Column 1 name (blank to finish): Name
+  Name — C# type: string
+  Column 2 name (blank to finish): Price
+  Price — C# type: decimal
+  Column 3 name (blank to finish): Description
+  Description — C# type: string
+  Column 4 name (blank to finish):
+
+Add another specialist method? [y/n] (n): n
+```
+
+#### Files generated per Query specialist (14 files)
+
+| Layer | File | Notes |
+|---|---|---|
+| Domain | `QueryResults/{method}QueryResult.cs` | `readonly record struct` — Dapper target, stack-allocated |
+| Domain | `Interfaces/Repositories/I{Entity}Repository.{method}.cs` | Partial interface |
+| Domain | `Interfaces/Services/I{Entity}DomainService.{method}.cs` | Partial interface |
+| Domain | `Services/{Entity}DomainService.{method}.cs` | Partial class |
+| Infrastructure | `Repositories/{Entity}Repository.{method}.cs` | Dapper query using `{method}QueryResult` |
+| Application | `DTOs/{Entity}/Requests/{method}Request.cs` | HTTP request DTO |
+| Application | `DTOs/{Entity}/Responses/{method}Response.cs` | Response DTO with result columns |
+| Application | `Mappers/{method}MapperProfile.cs` | `CreateMap<{method}QueryResult, {method}Response>()` |
+| Application | `Features/{method}Feature/{method}Query.cs` | MediatR query record |
+| Application | `Features/{method}Feature/{method}QueryHandler.cs` | Handler with AutoMapper |
+| Application | `Features/{method}Feature/{method}QueryValidator.cs` | FluentValidation validator |
+| Application | `Interfaces/Services/I{Entity}ApplicationService.{method}.cs` | Partial interface |
+| Application | `Services/{Entity}ApplicationService.{method}.cs` | Partial class |
+| Presentation | `Controllers/{Entity}Controller.{method}.cs` | `[HttpGet]` with `[FromQuery]` |
+
+For **paginated** queries the return types change to `PaginatedQueryResult<{method}QueryResult>` / `PaginatedResponse<{method}Response>` across all layers, and the mapper profile also includes:
+
+```csharp
+CreateMap<PaginatedQueryResult<{method}QueryResult>, PaginatedResponse<{method}Response>>();
+```
+
+#### Files generated per Command specialist (13 files)
+
+| Layer | File | Notes |
+|---|---|---|
+| Domain | `Interfaces/Repositories/I{Entity}Repository.{method}.cs` | Partial interface |
+| Domain | `Interfaces/Services/I{Entity}DomainService.{method}.cs` | Partial interface |
+| Domain | `Services/{Entity}DomainService.{method}.cs` | Partial class |
+| Infrastructure | `Repositories/{Entity}Repository.{method}.cs` | Dapper execute |
+| Application | `DTOs/{Entity}/Requests/{method}Request.cs` | HTTP request DTO |
+| Application | `DTOs/{Entity}/Responses/{method}Response.cs` | `record {method}Response(bool Success)` |
+| Application | `Features/{method}Feature/{method}Command.cs` | MediatR command record |
+| Application | `Features/{method}Feature/{method}CommandHandler.cs` | Returns `{method}Response` |
+| Application | `Features/{method}Feature/{method}CommandValidator.cs` | FluentValidation validator |
+| Application | `Interfaces/Services/I{Entity}ApplicationService.{method}.cs` | Partial interface |
+| Application | `Services/{Entity}ApplicationService.{method}.cs` | Partial class |
+| Presentation | `Controllers/{Entity}Controller.{method}.cs` | `[HttpPost]` with `[FromBody]` |
+
+> Specialist methods can also be added right after running `openbase scaffold` — the wizard offers the option at the end of the scaffold flow.
+
+---
+
+### 7. Add an extension
 
 Extensions add cross-cutting capabilities to an existing OpenBase project. Run from the solution root:
 
@@ -376,6 +460,7 @@ builder.Services.AddRedisCache(builder.Configuration);
 | `install`                | Installs the required NuGet templates                    | `openbase install`                                             |
 | `new`                    | Creates a new project from the templates                 | `openbase new --type api --template sqlserver --name X`<br>`openbase new --type api --template pgsql --name X`<br>`openbase new --type api --template oracle --name X` |
 | `scaffold`               | Generates all layers for an entity; `--update` syncs with table changes | `openbase scaffold --entity Product`<br>`openbase scaffold --entity Product --update` |
+| `specialist`             | Adds specialist Query/Command methods to an existing entity across all layers | `openbase specialist --entity Product` |
 | `extension add`          | Adds an installable extension to the project             | `openbase extension add jwt`                                   |
 | `update`                 | Updates the CLI and templates to the latest version      | `openbase update`                                              |
 | `history`                | Shows the update history per component                   | `openbase history --type cli`                                  |
