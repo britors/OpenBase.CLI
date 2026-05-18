@@ -71,13 +71,13 @@ public sealed partial class ScaffoldGenerator
             SpecialistRequestDtoTemplate(method, def.Parameters));
         yield return (
             Path.Combine(ctx.AppPath, Interfaces, Services, $"I{ctx.Entity}ApplicationService.{method}.cs"),
-            QueryIAppServicePartial(method, def.Parameters));
+            QueryIAppServicePartial(method));
         yield return (
             Path.Combine(ctx.AppPath, Services, $"{ctx.Entity}ApplicationService.{method}.cs"),
             QueryAppServicePartial(method, def.Parameters));
         yield return (
             Path.Combine(ctx.PresentationPath, "Controllers", $"{ctx.Entity}Controller.{method}.cs"),
-            QueryControllerPartial(method, def.Parameters));
+            QueryControllerPartial(method));
     }
 
     private string QueryRepositoryInterfacePartial(string method, IReadOnlyList<SpecialistParam> p) => $$"""
@@ -213,13 +213,13 @@ public sealed partial class ScaffoldGenerator
             CommandResponseDtoTemplate(method));
         yield return (
             Path.Combine(ctx.AppPath, Interfaces, Services, $"I{ctx.Entity}ApplicationService.{method}.cs"),
-            CommandIAppServicePartial(method, def.Parameters));
+            CommandIAppServicePartial(method));
         yield return (
             Path.Combine(ctx.AppPath, Services, $"{ctx.Entity}ApplicationService.{method}.cs"),
             CommandAppServicePartial(method, def.Parameters));
         yield return (
             Path.Combine(ctx.PresentationPath, "Controllers", $"{ctx.Entity}Controller.{method}.cs"),
-            CommandControllerPartial(method, def.Parameters));
+            CommandControllerPartial(method));
     }
 
     private string CommandRepositoryInterfacePartial(string method, IReadOnlyList<SpecialistParam> p) => $$"""
@@ -327,7 +327,7 @@ public sealed partial class ScaffoldGenerator
 
     // ─── Query — Application + Presentation ───────────────────────────────────
 
-    private string QueryIAppServicePartial(string method, IReadOnlyList<SpecialistParam> p) => $$"""
+    private string QueryIAppServicePartial(string method) => $$"""
         using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Requests;
         using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
 
@@ -358,7 +358,7 @@ public sealed partial class ScaffoldGenerator
         }
         """;
 
-    private string QueryControllerPartial(string method, IReadOnlyList<SpecialistParam> p) => $$"""
+    private string QueryControllerPartial(string method) => $$"""
         using Microsoft.AspNetCore.Mvc;
         using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Requests;
 
@@ -382,7 +382,7 @@ public sealed partial class ScaffoldGenerator
 
     // ─── Command — Application + Presentation ─────────────────────────────────
 
-    private string CommandIAppServicePartial(string method, IReadOnlyList<SpecialistParam> p) => $$"""
+    private string CommandIAppServicePartial(string method) => $$"""
         using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Requests;
         using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
 
@@ -413,7 +413,7 @@ public sealed partial class ScaffoldGenerator
         }
         """;
 
-    private string CommandControllerPartial(string method, IReadOnlyList<SpecialistParam> p) => $$"""
+    private string CommandControllerPartial(string method) => $$"""
         using Microsoft.AspNetCore.Mvc;
         using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Requests;
 
