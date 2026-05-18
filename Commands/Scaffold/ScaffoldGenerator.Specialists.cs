@@ -14,10 +14,23 @@ public sealed partial class ScaffoldGenerator
     // ─── shared param helpers ──────────────────────────────────────────────────
 
     private static string MethodParams(IReadOnlyList<SpecialistParam> p) =>
-        string.Join(", ", p.Select(x => $"{x.CsType} {x.CamelName}"));
+        string.Join(", ", p.Select(x => $"{x.CsType} {x.PascalName}"));
 
     private static string MethodParamsLeading(IReadOnlyList<SpecialistParam> p) =>
         p.Count == 0 ? string.Empty : MethodParams(p) + ", ";
+
+    private static string CallArgsLeading(IReadOnlyList<SpecialistParam> p) =>
+        p.Count == 0 ? string.Empty : string.Join(", ", p.Select(x => x.PascalName)) + ", ";
+
+    private static string CallArgs(IReadOnlyList<SpecialistParam> p) =>
+        string.Join(", ", p.Select(x => x.PascalName));
+
+    private static string FromQueryParams(IReadOnlyList<SpecialistParam> p) =>
+        p.Count == 0 ? string.Empty : string.Join(", ", p.Select(x => $"[FromQuery] {x.CsType} {x.PascalName}")) + ", ";
+
+    private static string ToKebab(string s) =>
+        string.Concat(s.Select((c, i) =>
+            i > 0 && char.IsUpper(c) ? $"-{char.ToLowerInvariant(c)}" : char.ToLowerInvariant(c).ToString()));
 
     private static string RecordParams(IReadOnlyList<SpecialistParam> p) =>
         string.Join(", ", p.Select(x => $"{x.CsType} {x.PascalName}"));
@@ -28,7 +41,7 @@ public sealed partial class ScaffoldGenerator
     private static string DapperAnon(IReadOnlyList<SpecialistParam> p) =>
         p.Count == 0
             ? "new { }"
-            : $"new {{ {string.Join(", ", p.Select(x => $"{x.PascalName} = {x.CamelName}"))} }}";
+            : $"new {{ {string.Join(", ", p.Select(x => $"{x.PascalName} = {x.PascalName}"))} }}";
 
     // ─── Query ─────────────────────────────────────────────────────────────────
 
@@ -53,6 +66,15 @@ public sealed partial class ScaffoldGenerator
         yield return (Path.Combine(feat, $"{method}Query.cs"),          QuerySpecTemplate(method, def.Parameters));
         yield return (Path.Combine(feat, $"{method}QueryHandler.cs"),   QueryHandlerSpecTemplate(method, def.Parameters));
         yield return (Path.Combine(feat, $"{method}QueryValidator.cs"), QueryValidatorSpecTemplate(method));
+        yield return (
+            Path.Combine(ctx.AppPath, Interfaces, Services, $"I{ctx.Entity}ApplicationService.{method}.cs"),
+            QueryIAppServicePartial(method, def.Parameters));
+        yield return (
+            Path.Combine(ctx.AppPath, Services, $"{ctx.Entity}ApplicationService.{method}.cs"),
+            QueryAppServicePartial(method, def.Parameters));
+        yield return (
+            Path.Combine(ctx.PresentationPath, "Controllers", $"{ctx.Entity}Controller.{method}.cs"),
+            QueryControllerPartial(method, def.Parameters));
     }
 
     private string QueryRepositoryInterfacePartial(string method, IReadOnlyList<SpecialistParam> p) => $$"""
@@ -109,7 +131,7 @@ public sealed partial class ScaffoldGenerator
             public async Task<IReadOnlyList<{{ctx.Entity}}>> {{method}}Async(
                 {{MethodParamsLeading(p)}}CancellationToken cancellationToken = default)
                 => await {{ctx.ECamel}}Repository.{{method}}Async(
-                    {{MethodParamsLeading(p)}}cancellationToken);
+                    {{CallArgsLeading(p)}}cancellationToken);
         }
         """;
 
@@ -180,6 +202,15 @@ public sealed partial class ScaffoldGenerator
         yield return (Path.Combine(feat, $"{method}Command.cs"),          CommandSpecTemplate(method, def.Parameters));
         yield return (Path.Combine(feat, $"{method}CommandHandler.cs"),   CommandHandlerSpecTemplate(method, def.Parameters));
         yield return (Path.Combine(feat, $"{method}CommandValidator.cs"), CommandValidatorSpecTemplate(method, def.Parameters));
+        yield return (
+            Path.Combine(ctx.AppPath, Interfaces, Services, $"I{ctx.Entity}ApplicationService.{method}.cs"),
+            CommandIAppServicePartial(method, def.Parameters));
+        yield return (
+            Path.Combine(ctx.AppPath, Services, $"{ctx.Entity}ApplicationService.{method}.cs"),
+            CommandAppServicePartial(method, def.Parameters));
+        yield return (
+            Path.Combine(ctx.PresentationPath, "Controllers", $"{ctx.Entity}Controller.{method}.cs"),
+            CommandControllerPartial(method, def.Parameters));
     }
 
     private string CommandRepositoryInterfacePartial(string method, IReadOnlyList<SpecialistParam> p) => $$"""
@@ -229,7 +260,7 @@ public sealed partial class ScaffoldGenerator
             public async Task<bool> {{method}}Async(
                 {{MethodParamsLeading(p)}}CancellationToken cancellationToken = default)
                 => await {{ctx.ECamel}}Repository.{{method}}Async(
-                    {{MethodParamsLeading(p)}}cancellationToken);
+                    {{CallArgsLeading(p)}}cancellationToken);
         }
         """;
 
@@ -275,6 +306,115 @@ public sealed partial class ScaffoldGenerator
                 public {{method}}CommandValidator()
                 {
                     {{body}}
+                }
+            }
+            """;
+    }
+
+    // ─── Query — Application + Presentation ───────────────────────────────────
+
+    private string QueryIAppServicePartial(string method, IReadOnlyList<SpecialistParam> p) => $$"""
+        using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
+
+        namespace {{ctx.NS}}.Application.Interfaces.Services;
+
+        public partial interface I{{ctx.Entity}}ApplicationService
+        {
+            Task<IReadOnlyList<{{ctx.Entity}}Response>> {{method}}Async(
+                {{MethodParamsLeading(p)}}CancellationToken cancellationToken = default);
+        }
+        """;
+
+    private string QueryAppServicePartial(string method, IReadOnlyList<SpecialistParam> p) => $$"""
+        using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
+        using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.{{method}}Feature;
+
+        namespace {{ctx.NS}}.Application.Services;
+
+        public sealed partial class {{ctx.Entity}}ApplicationService
+        {
+            public async Task<IReadOnlyList<{{ctx.Entity}}Response>> {{method}}Async(
+                {{MethodParamsLeading(p)}}CancellationToken cancellationToken = default)
+            {
+                var query = new {{method}}Query({{CallArgs(p)}});
+                return await mediator.Send(query, cancellationToken);
+            }
+        }
+        """;
+
+    private string QueryControllerPartial(string method, IReadOnlyList<SpecialistParam> p) => $$"""
+        using Microsoft.AspNetCore.Mvc;
+
+        namespace {{ctx.NS}}.Presentation.Api.Controllers;
+
+        public partial class {{ctx.Entity}}Controller
+        {
+            /// <summary>{{method}}.</summary>
+            [HttpGet("{{ToKebab(method)}}")]
+            [ProducesResponseType(StatusCodes.Status200OK)]
+            public async Task<IActionResult> {{method}}Async(
+                {{FromQueryParams(p)}}CancellationToken cancellationToken = default)
+            {
+                var result = await {{ctx.ECamel}}ApplicationService.{{method}}Async(
+                    {{CallArgsLeading(p)}}cancellationToken);
+                return Ok(result);
+            }
+        }
+        """;
+
+    // ─── Command — Application + Presentation ─────────────────────────────────
+
+    private string CommandIAppServicePartial(string method, IReadOnlyList<SpecialistParam> p) => $$"""
+        namespace {{ctx.NS}}.Application.Interfaces.Services;
+
+        public partial interface I{{ctx.Entity}}ApplicationService
+        {
+            Task<bool> {{method}}Async(
+                {{MethodParamsLeading(p)}}CancellationToken cancellationToken = default);
+        }
+        """;
+
+    private string CommandAppServicePartial(string method, IReadOnlyList<SpecialistParam> p) => $$"""
+        using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.{{method}}Feature;
+
+        namespace {{ctx.NS}}.Application.Services;
+
+        public sealed partial class {{ctx.Entity}}ApplicationService
+        {
+            public async Task<bool> {{method}}Async(
+                {{MethodParamsLeading(p)}}CancellationToken cancellationToken = default)
+            {
+                var command = new {{method}}Command({{CallArgs(p)}});
+                return await mediator.Send(command, cancellationToken);
+            }
+        }
+        """;
+
+    private string CommandControllerPartial(string method, IReadOnlyList<SpecialistParam> p)
+    {
+        var hasParams  = p.Count > 0;
+        var bodyParam  = hasParams ? $"[FromBody] {method}Command request, " : string.Empty;
+        var callArgs   = hasParams ? string.Join(", ", p.Select(x => $"request.{x.PascalName}")) + ", " : string.Empty;
+        var featureUsing = hasParams
+            ? $"using {ctx.NS}.Application.Features.{ctx.Entity}Features.{method}Feature;\n"
+            : string.Empty;
+
+        return $$"""
+            using Microsoft.AspNetCore.Mvc;
+            {{featureUsing}}
+            namespace {{ctx.NS}}.Presentation.Api.Controllers;
+
+            public partial class {{ctx.Entity}}Controller
+            {
+                /// <summary>{{method}}.</summary>
+                [HttpPost("{{ToKebab(method)}}")]
+                [ProducesResponseType(StatusCodes.Status200OK)]
+                public async Task<IActionResult> {{method}}Async(
+                    {{bodyParam}}CancellationToken cancellationToken = default)
+                {
+                    var result = await {{ctx.ECamel}}ApplicationService.{{method}}Async(
+                        {{callArgs}}cancellationToken);
+                    return Ok(result);
                 }
             }
             """;

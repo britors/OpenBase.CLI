@@ -253,7 +253,7 @@ public sealed partial class ScaffoldGenerator
 
         namespace {{ctx.NS}}.Application.Interfaces.Services;
 
-        public interface I{{ctx.Entity}}ApplicationService : IApplicationService
+        public partial interface I{{ctx.Entity}}ApplicationService : IApplicationService
         {
             Task<Create{{ctx.Entity}}Response?> CreateAsync(Create{{ctx.Entity}}Request request, CancellationToken cancellationToken);
             Task<Update{{ctx.Entity}}Response?> UpdateAsync(Update{{ctx.Entity}}Request request, CancellationToken cancellationToken);
@@ -312,7 +312,7 @@ public sealed partial class ScaffoldGenerator
 
         namespace {{ctx.NS}}.Application.Services;
 
-        public sealed class {{ctx.Entity}}ApplicationService(IMediator mediator, IMapper mapper) : I{{ctx.Entity}}ApplicationService
+        public sealed partial class {{ctx.Entity}}ApplicationService(IMediator mediator, IMapper mapper) : I{{ctx.Entity}}ApplicationService
         {
             public async Task<Create{{ctx.Entity}}Response?> CreateAsync(Create{{ctx.Entity}}Request request, CancellationToken cancellationToken)
             {

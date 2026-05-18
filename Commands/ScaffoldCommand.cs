@@ -195,9 +195,11 @@ public class ScaffoldCommand(
         if (!console.Profile.Capabilities.Interactive) return;
         if (!console.Confirm(SR.Current.SpecialistAddPrompt, defaultValue: false)) return;
 
+        var wizard = new SpecialistWizard(console);
+
         do
         {
-            var definition = AskSpecialistDefinition();
+            var definition = wizard.AskDefinition();
             if (definition is null) return;
 
             var files = generator.GetSpecialistFiles(definition).ToList();
@@ -210,83 +212,6 @@ public class ScaffoldCommand(
 
         } while (console.Confirm(SR.Current.SpecialistAddAnother, defaultValue: false));
     }
-
-    private SpecialistDefinition? AskSpecialistDefinition()
-    {
-        var methodName = AskSpecialistMethodName();
-        if (methodName is null) return null;
-
-        var type = AskSpecialistType();
-
-        if (type == SpecialistType.HttpCall)
-            return new SpecialistDefinition(methodName, type, string.Empty, []);
-
-        var sql = console.Ask<string>(SR.Current.SpecialistSqlPrompt);
-        var paramNames = SpecialistParam.ExtractNames(sql);
-
-        if (paramNames.Count == 0)
-            return new SpecialistDefinition(methodName, type, sql, []);
-
-        console.MarkupLine(string.Format(SR.Current.SpecialistParamsDetected,
-            string.Join(", ", paramNames.Select(n => $"[blue]{{{{{n}}}}}[/]"))));
-
-        var parameters = paramNames
-            .Select(name => new SpecialistParam(name, AskParamCsType(name)))
-            .ToList();
-
-        return new SpecialistDefinition(methodName, type, sql, parameters);
-    }
-
-    private string? AskSpecialistMethodName()
-    {
-        var reserved = new HashSet<string>(["Create", "Update", "Delete", "FindById", "Get"], StringComparer.OrdinalIgnoreCase);
-
-        while (true)
-        {
-            var name = console.Ask<string>(SR.Current.SpecialistMethodNamePrompt);
-
-            if (string.IsNullOrWhiteSpace(name))
-            {
-                console.MarkupLine($"[red]{SR.Current.SpecialistMethodRequired}[/]");
-                continue;
-            }
-            if (!char.IsUpper(name[0]))
-            {
-                console.MarkupLine($"[red]{SR.Current.SpecialistMethodPascalCase}[/]");
-                continue;
-            }
-            if (!name.All(char.IsLetterOrDigit))
-            {
-                console.MarkupLine($"[red]{SR.Current.SpecialistMethodAlphanumeric}[/]");
-                continue;
-            }
-            if (reserved.Contains(name))
-            {
-                console.MarkupLine($"[red]{string.Format(SR.Current.SpecialistMethodReserved, name)}[/]");
-                continue;
-            }
-
-            return name;
-        }
-    }
-
-    private SpecialistType AskSpecialistType()
-    {
-        var choice = console.Prompt(
-            new SelectionPrompt<string>()
-                .Title(SR.Current.SpecialistTypePrompt)
-                .AddChoices(SR.Current.SpecialistQueryChoice, SR.Current.SpecialistCommandChoice, SR.Current.SpecialistHttpCallChoice));
-
-        if (choice == SR.Current.SpecialistCommandChoice) return SpecialistType.Command;
-        if (choice == SR.Current.SpecialistHttpCallChoice) return SpecialistType.HttpCall;
-        return SpecialistType.Query;
-    }
-
-    private string AskParamCsType(string paramName) =>
-        console.Prompt(
-            new SelectionPrompt<string>()
-                .Title(string.Format(SR.Current.SpecialistParamTypePrompt, paramName))
-                .AddChoices("int", "string", "bool", "decimal", "Guid", "DateTime", "long", "double", "float", "short"));
 
     private int ExecuteUpdate(ScaffoldSettings settings, string solutionDir, string rootNamespace, DbFlavor dbFlavor)
     {
