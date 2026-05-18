@@ -235,6 +235,9 @@ public interface IStrings
     string SpecialistMethodAlphanumeric { get; }
     string SpecialistMethodReserved { get; }          // {0}=name
     string SpecialistFilesCreated { get; }            // {0}=count
+    string SpecialistSqlPrompt { get; }
+    string SpecialistParamsDetected { get; }          // {0}=param list
+    string SpecialistParamTypePrompt { get; }         // {0}=param name
 
     string ScaffoldUpdateEntityNotFound { get; }     // {0}=entity
     string ScaffoldUpdateNoChanges { get; }
@@ -485,6 +488,9 @@ public abstract class BaseStrings(IReadOnlyDictionary<string, string> overrides)
     public string SpecialistMethodAlphanumeric => T("The method name must contain only letters and numbers.");
     public string SpecialistMethodReserved    => T("'{0}' is reserved by the basic scaffold.");
     public string SpecialistFilesCreated      => T("{0} specialist file(s) created:");
+    public string SpecialistSqlPrompt        => T("Enter the SQL/operation with parameters as {{ paramName }}:");
+    public string SpecialistParamsDetected   => T("Parameters detected: {0}");
+    public string SpecialistParamTypePrompt  => T("  {0} — C# type:");
 
     public string ScaffoldUpdateEntityNotFound  => T("[red]Error:[/] Entity [blue]{0}[/] not found. Run [blue]openbase scaffold --entity {0}[/] first.");
     public string ScaffoldUpdateNoChanges       => T("[green]✓[/] No differences detected. Files are already up to date.");
@@ -707,6 +713,9 @@ public sealed class PtBrStrings() : BaseStrings(new Dictionary<string, string>
     ["SpecialistMethodAlphanumeric"] = "O nome do método deve conter apenas letras e números.",
     ["SpecialistMethodReserved"]    = "'{0}' é reservado pelo scaffold básico.",
     ["SpecialistFilesCreated"]      = "{0} arquivo(s) especialista(s) criado(s):",
+    ["SpecialistSqlPrompt"]        = "Informe o SQL/operação com parâmetros no formato {{ nomeParam }}:",
+    ["SpecialistParamsDetected"]   = "Parâmetros detectados: {0}",
+    ["SpecialistParamTypePrompt"]  = "  {0} — tipo C#:",
     ["ScaffoldUpdateEntityNotFound"]  = "[red]Erro:[/] Entidade [blue]{0}[/] não encontrada. Execute [blue]openbase scaffold --entity {0}[/] primeiro.",
     ["ScaffoldUpdateNoChanges"]       = "[green]✓[/] Nenhuma diferença detectada. Os arquivos já estão atualizados.",
     ["ScaffoldUpdateDiffTitle"]       = "\nDiferenças detectadas:",
@@ -926,6 +935,9 @@ public sealed class EsStrings() : BaseStrings(new Dictionary<string, string>
     ["SpecialistMethodAlphanumeric"] = "El nombre del método debe contener solo letras y números.",
     ["SpecialistMethodReserved"]    = "'{0}' está reservado por el scaffold básico.",
     ["SpecialistFilesCreated"]      = "{0} archivo(s) especialista(s) creado(s):",
+    ["SpecialistSqlPrompt"]        = "Ingrese el SQL/operación con parámetros en formato {{ nombreParam }}:",
+    ["SpecialistParamsDetected"]   = "Parámetros detectados: {0}",
+    ["SpecialistParamTypePrompt"]  = "  {0} — tipo C#:",
     ["ScaffoldUpdateEntityNotFound"]  = "[red]Error:[/] Entidad [blue]{0}[/] no encontrada. Ejecute [blue]openbase scaffold --entity {0}[/] primero.",
     ["ScaffoldUpdateNoChanges"]       = "[green]✓[/] No se detectaron diferencias. Los archivos ya están actualizados.",
     ["ScaffoldUpdateDiffTitle"]       = "\nDiferencias detectadas:",

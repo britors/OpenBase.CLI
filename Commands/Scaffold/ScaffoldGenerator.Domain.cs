@@ -27,7 +27,7 @@ public sealed partial class ScaffoldGenerator
 
         namespace {{ctx.NS}}.Domain.Interfaces.Repositories;
 
-        public interface I{{ctx.Entity}}Repository : IRepositoryBase<{{ctx.Entity}}>
+        public partial interface I{{ctx.Entity}}Repository : IRepositoryBase<{{ctx.Entity}}>
         {
         }
         """;

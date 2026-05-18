@@ -39,7 +39,7 @@ public sealed partial class ScaffoldGenerator
 
         namespace {{ctx.NS}}.Infra.Data.Repositories;
 
-        public sealed class {{ctx.Entity}}Repository(
+        public sealed partial class {{ctx.Entity}}Repository(
             DbSession dbSession,
             OneBaseDataBaseContext context)
             : RepositoryBase<{{ctx.Entity}}>(dbSession, context), I{{ctx.Entity}}Repository, IDataRepository

@@ -197,11 +197,10 @@ public class ScaffoldCommand(
 
         do
         {
-            var methodName = AskSpecialistMethodName();
-            if (methodName is null) return;
+            var definition = AskSpecialistDefinition();
+            if (definition is null) return;
 
-            var type  = AskSpecialistType();
-            var files = generator.GetSpecialistFiles(methodName, type).ToList();
+            var files = generator.GetSpecialistFiles(definition).ToList();
             var (created, skipped, failed) = WriteFiles(files, solutionDir, entityName);
 
             PrintFileList(string.Format(SR.Current.SpecialistFilesCreated, created.Count), created, "green");
@@ -210,6 +209,32 @@ public class ScaffoldCommand(
                 PrintFileList(string.Format(SR.Current.FilesErrors, failed.Count), failed, "red", "red");
 
         } while (console.Confirm(SR.Current.SpecialistAddAnother, defaultValue: false));
+    }
+
+    private SpecialistDefinition? AskSpecialistDefinition()
+    {
+        var methodName = AskSpecialistMethodName();
+        if (methodName is null) return null;
+
+        var type = AskSpecialistType();
+
+        if (type == SpecialistType.HttpCall)
+            return new SpecialistDefinition(methodName, type, string.Empty, []);
+
+        var sql = console.Ask<string>(SR.Current.SpecialistSqlPrompt);
+        var paramNames = SpecialistParam.ExtractNames(sql);
+
+        if (paramNames.Count == 0)
+            return new SpecialistDefinition(methodName, type, sql, []);
+
+        console.MarkupLine(string.Format(SR.Current.SpecialistParamsDetected,
+            string.Join(", ", paramNames.Select(n => $"[blue]{{{{{n}}}}}[/]"))));
+
+        var parameters = paramNames
+            .Select(name => new SpecialistParam(name, AskParamCsType(name)))
+            .ToList();
+
+        return new SpecialistDefinition(methodName, type, sql, parameters);
     }
 
     private string? AskSpecialistMethodName()
@@ -256,6 +281,12 @@ public class ScaffoldCommand(
         if (choice == SR.Current.SpecialistHttpCallChoice) return SpecialistType.HttpCall;
         return SpecialistType.Query;
     }
+
+    private string AskParamCsType(string paramName) =>
+        console.Prompt(
+            new SelectionPrompt<string>()
+                .Title(string.Format(SR.Current.SpecialistParamTypePrompt, paramName))
+                .AddChoices("int", "string", "bool", "decimal", "Guid", "DateTime", "long", "double", "float", "short"));
 
     private int ExecuteUpdate(ScaffoldSettings settings, string solutionDir, string rootNamespace, DbFlavor dbFlavor)
     {
