@@ -1,8 +1,6 @@
 # OpenBase CLI
 
-<p align="center">
-  <img src="banner.png" alt="OpenBase CLI" />
-</p>
+![OpenBase CLI](https://raw.githubusercontent.com/britors/OpenBase.CLI/main/banner.png)
 
 The official command-line interface for the **OpenBase** ecosystem.
 
