@@ -92,7 +92,8 @@ public class ScaffoldCommand(
             UseJwt = useJwt
         };
 
-        var files = new ScaffoldGenerator(ctx).GetFiles().ToList();
+        var generator = new ScaffoldGenerator(ctx);
+        var files = generator.GetFiles().ToList();
         var (created, skipped, failed) = WriteFiles(files, solutionDir, settings.Entity);
         AddTestProjectToSolution(ctx.TestsCsprojPath, solutionDir);
 
@@ -112,6 +113,8 @@ public class ScaffoldCommand(
             return 0;
 
         console.MarkupLine(string.Format(SR.Current.ScaffoldSuccess, settings.Entity));
+
+        AskAndGenerateSpecialists(generator, solutionDir, settings.Entity);
 
         var autoInjected = dbSetResult is DbSetInjectionResult.Injected or DbSetInjectionResult.AlreadyExists;
 
@@ -185,6 +188,73 @@ public class ScaffoldCommand(
 
         if (!success && !string.IsNullOrWhiteSpace(error))
             console.MarkupLine($"[yellow]Aviso:[/] Não foi possível adicionar o projeto de testes à solution: {Markup.Escape(error)}");
+    }
+
+    private void AskAndGenerateSpecialists(ScaffoldGenerator generator, string solutionDir, string entityName)
+    {
+        if (!console.Profile.Capabilities.Interactive) return;
+        if (!console.Confirm(SR.Current.SpecialistAddPrompt, defaultValue: false)) return;
+
+        do
+        {
+            var methodName = AskSpecialistMethodName();
+            if (methodName is null) return;
+
+            var type  = AskSpecialistType();
+            var files = generator.GetSpecialistFiles(methodName, type).ToList();
+            var (created, skipped, failed) = WriteFiles(files, solutionDir, entityName);
+
+            PrintFileList(string.Format(SR.Current.SpecialistFilesCreated, created.Count), created, "green");
+            PrintFileList(string.Format(SR.Current.FilesSkipped, skipped.Count), skipped, "yellow");
+            if (failed.Count > 0)
+                PrintFileList(string.Format(SR.Current.FilesErrors, failed.Count), failed, "red", "red");
+
+        } while (console.Confirm(SR.Current.SpecialistAddAnother, defaultValue: false));
+    }
+
+    private string? AskSpecialistMethodName()
+    {
+        var reserved = new HashSet<string>(["Create", "Update", "Delete", "FindById", "Get"], StringComparer.OrdinalIgnoreCase);
+
+        while (true)
+        {
+            var name = console.Ask<string>(SR.Current.SpecialistMethodNamePrompt);
+
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                console.MarkupLine($"[red]{SR.Current.SpecialistMethodRequired}[/]");
+                continue;
+            }
+            if (!char.IsUpper(name[0]))
+            {
+                console.MarkupLine($"[red]{SR.Current.SpecialistMethodPascalCase}[/]");
+                continue;
+            }
+            if (!name.All(char.IsLetterOrDigit))
+            {
+                console.MarkupLine($"[red]{SR.Current.SpecialistMethodAlphanumeric}[/]");
+                continue;
+            }
+            if (reserved.Contains(name))
+            {
+                console.MarkupLine($"[red]{string.Format(SR.Current.SpecialistMethodReserved, name)}[/]");
+                continue;
+            }
+
+            return name;
+        }
+    }
+
+    private SpecialistType AskSpecialistType()
+    {
+        var choice = console.Prompt(
+            new SelectionPrompt<string>()
+                .Title(SR.Current.SpecialistTypePrompt)
+                .AddChoices(SR.Current.SpecialistQueryChoice, SR.Current.SpecialistCommandChoice, SR.Current.SpecialistHttpCallChoice));
+
+        if (choice == SR.Current.SpecialistCommandChoice) return SpecialistType.Command;
+        if (choice == SR.Current.SpecialistHttpCallChoice) return SpecialistType.HttpCall;
+        return SpecialistType.Query;
     }
 
     private int ExecuteUpdate(ScaffoldSettings settings, string solutionDir, string rootNamespace, DbFlavor dbFlavor)

@@ -208,6 +208,19 @@ public interface IStrings
     string RedisAppSettingsInjected { get; }
     string RedisAppSettingsWarning { get; }          // {0}=error
 
+    string SpecialistAddPrompt { get; }
+    string SpecialistMethodNamePrompt { get; }
+    string SpecialistTypePrompt { get; }
+    string SpecialistQueryChoice { get; }
+    string SpecialistCommandChoice { get; }
+    string SpecialistHttpCallChoice { get; }
+    string SpecialistAddAnother { get; }
+    string SpecialistMethodRequired { get; }
+    string SpecialistMethodPascalCase { get; }
+    string SpecialistMethodAlphanumeric { get; }
+    string SpecialistMethodReserved { get; }          // {0}=name
+    string SpecialistFilesCreated { get; }            // {0}=count
+
     string ScaffoldUpdateEntityNotFound { get; }     // {0}=entity
     string ScaffoldUpdateNoChanges { get; }
     string ScaffoldUpdateDiffTitle { get; }
@@ -430,6 +443,19 @@ public abstract class BaseStrings(IReadOnlyDictionary<string, string> overrides)
     public string RedisAppSettingsInjected        => T("  [green]+[/] Redis section added to {0}");
     public string RedisAppSettingsWarning         => T("  [yellow]Warning:[/] Could not modify {0}: {1}");
 
+    public string SpecialistAddPrompt         => T("Add specialist methods?");
+    public string SpecialistMethodNamePrompt  => T("Method name (PascalCase):");
+    public string SpecialistTypePrompt        => T("Method type:");
+    public string SpecialistQueryChoice       => T("Query — MediatR query (read)");
+    public string SpecialistCommandChoice     => T("Command — MediatR command (write)");
+    public string SpecialistHttpCallChoice    => T("HTTP call — external call (not implemented)");
+    public string SpecialistAddAnother        => T("Add another specialist method?");
+    public string SpecialistMethodRequired    => T("The method name is required.");
+    public string SpecialistMethodPascalCase  => T("The method name must start with an uppercase letter (PascalCase).");
+    public string SpecialistMethodAlphanumeric => T("The method name must contain only letters and numbers.");
+    public string SpecialistMethodReserved    => T("'{0}' is reserved by the basic scaffold.");
+    public string SpecialistFilesCreated      => T("{0} specialist file(s) created:");
+
     public string ScaffoldUpdateEntityNotFound  => T("[red]Error:[/] Entity [blue]{0}[/] not found. Run [blue]openbase scaffold --entity {0}[/] first.");
     public string ScaffoldUpdateNoChanges       => T("[green]✓[/] No differences detected. Files are already up to date.");
     public string ScaffoldUpdateDiffTitle       => T("\nDetected differences:");
@@ -626,6 +652,18 @@ public sealed class PtBrStrings() : BaseStrings(new Dictionary<string, string>
     ["RedisProgramCsWarning"]           = "  [yellow]Aviso:[/] Não foi possível modificar Program.cs: {0}",
     ["RedisAppSettingsInjected"]        = "  [green]+[/] Seção Redis adicionada ao {0}",
     ["RedisAppSettingsWarning"]         = "  [yellow]Aviso:[/] Não foi possível modificar {0}: {1}",
+    ["SpecialistAddPrompt"]         = "Deseja adicionar métodos especialistas?",
+    ["SpecialistMethodNamePrompt"]  = "Nome do método (PascalCase):",
+    ["SpecialistTypePrompt"]        = "Tipo do método:",
+    ["SpecialistQueryChoice"]       = "Query — consulta MediatR (leitura)",
+    ["SpecialistCommandChoice"]     = "Command — comando MediatR (escrita)",
+    ["SpecialistHttpCallChoice"]    = "HTTP call — chamada externa (não implementada)",
+    ["SpecialistAddAnother"]        = "Adicionar outro método especialista?",
+    ["SpecialistMethodRequired"]    = "O nome do método é obrigatório.",
+    ["SpecialistMethodPascalCase"]  = "O nome do método deve começar com letra maiúscula (PascalCase).",
+    ["SpecialistMethodAlphanumeric"] = "O nome do método deve conter apenas letras e números.",
+    ["SpecialistMethodReserved"]    = "'{0}' é reservado pelo scaffold básico.",
+    ["SpecialistFilesCreated"]      = "{0} arquivo(s) especialista(s) criado(s):",
     ["ScaffoldUpdateEntityNotFound"]  = "[red]Erro:[/] Entidade [blue]{0}[/] não encontrada. Execute [blue]openbase scaffold --entity {0}[/] primeiro.",
     ["ScaffoldUpdateNoChanges"]       = "[green]✓[/] Nenhuma diferença detectada. Os arquivos já estão atualizados.",
     ["ScaffoldUpdateDiffTitle"]       = "\nDiferenças detectadas:",
@@ -820,6 +858,18 @@ public sealed class EsStrings() : BaseStrings(new Dictionary<string, string>
     ["RedisProgramCsWarning"]           = "  [yellow]Aviso:[/] No se pudo modificar Program.cs: {0}",
     ["RedisAppSettingsInjected"]        = "  [green]+[/] Sección Redis agregada a {0}",
     ["RedisAppSettingsWarning"]         = "  [yellow]Aviso:[/] No se pudo modificar {0}: {1}",
+    ["SpecialistAddPrompt"]         = "¿Desea agregar métodos especialistas?",
+    ["SpecialistMethodNamePrompt"]  = "Nombre del método (PascalCase):",
+    ["SpecialistTypePrompt"]        = "Tipo de método:",
+    ["SpecialistQueryChoice"]       = "Query — consulta MediatR (lectura)",
+    ["SpecialistCommandChoice"]     = "Command — comando MediatR (escritura)",
+    ["SpecialistHttpCallChoice"]    = "HTTP call — llamada externa (no implementada)",
+    ["SpecialistAddAnother"]        = "¿Agregar otro método especialista?",
+    ["SpecialistMethodRequired"]    = "El nombre del método es obligatorio.",
+    ["SpecialistMethodPascalCase"]  = "El nombre del método debe comenzar con mayúscula (PascalCase).",
+    ["SpecialistMethodAlphanumeric"] = "El nombre del método debe contener solo letras y números.",
+    ["SpecialistMethodReserved"]    = "'{0}' está reservado por el scaffold básico.",
+    ["SpecialistFilesCreated"]      = "{0} archivo(s) especialista(s) creado(s):",
     ["ScaffoldUpdateEntityNotFound"]  = "[red]Error:[/] Entidad [blue]{0}[/] no encontrada. Ejecute [blue]openbase scaffold --entity {0}[/] primero.",
     ["ScaffoldUpdateNoChanges"]       = "[green]✓[/] No se detectaron diferencias. Los archivos ya están actualizados.",
     ["ScaffoldUpdateDiffTitle"]       = "\nDiferencias detectadas:",
