@@ -208,15 +208,18 @@ public class NewCommand : AsyncCommand<NewSettings>
         DbFlavor dbFlavor,
         CancellationToken cancellationToken)
     {
-        var solutionDir = Path.GetFullPath(projectName);
-        var slnFile     = _fileWriter.FindSolutionFile(solutionDir);
+        var bulk = new BulkImportContext(
+            projectName,
+            Path.GetFullPath(projectName),
+            connectionString,
+            dbFlavor,
+            _fileWriter.FindSolutionFile(Path.GetFullPath(projectName)));
+
         ScaffoldContext? lastCtx = null;
 
         foreach (var (table, entityName) in toScaffold)
         {
-            var ctx = await ScaffoldSingleEntityAsync(
-                table, entityName, projectName, solutionDir, connectionString, dbFlavor, slnFile, cancellationToken);
-
+            var ctx = await ScaffoldSingleEntityAsync(table, entityName, bulk, cancellationToken);
             if (ctx is not null) lastCtx = ctx;
         }
 
@@ -231,17 +234,13 @@ public class NewCommand : AsyncCommand<NewSettings>
     private async Task<ScaffoldContext?> ScaffoldSingleEntityAsync(
         DbTableInfo table,
         string entityName,
-        string projectName,
-        string solutionDir,
-        string connectionString,
-        DbFlavor dbFlavor,
-        string? slnFile,
+        BulkImportContext bulk,
         CancellationToken cancellationToken)
     {
         IReadOnlyList<EntityProperty> properties;
         try
         {
-            properties = _dbSchemaReader.ReadColumns(connectionString, table.Schema, table.TableName, dbFlavor);
+            properties = _dbSchemaReader.ReadColumns(bulk.ConnectionString, table.Schema, table.TableName, bulk.DbFlavor);
         }
         catch (Exception ex)
         {
@@ -255,10 +254,10 @@ public class NewCommand : AsyncCommand<NewSettings>
             return null;
         }
 
-        var ctx = new ScaffoldContext(entityName, projectName, solutionDir)
+        var ctx = new ScaffoldContext(entityName, bulk.ProjectName, bulk.SolutionDir)
         {
             Properties = properties,
-            DbFlavor   = dbFlavor,
+            DbFlavor   = bulk.DbFlavor,
             TableName  = table.TableName,
         };
 
@@ -275,8 +274,8 @@ public class NewCommand : AsyncCommand<NewSettings>
 
         new DbContextEditor(_fileWriter).InjectDbSet(ctx);
 
-        if (slnFile is not null && _fileWriter.FileExists(ctx.TestsCsprojPath))
-            await _dotNetRunner.RunAsync($"sln \"{slnFile}\" add \"{ctx.TestsCsprojPath}\"", cancellationToken);
+        if (bulk.SlnFile is not null && _fileWriter.FileExists(ctx.TestsCsprojPath))
+            await _dotNetRunner.RunAsync($"sln \"{bulk.SlnFile}\" add \"{ctx.TestsCsprojPath}\"", cancellationToken);
 
         return ctx;
     }
@@ -328,3 +327,10 @@ public class NewCommand : AsyncCommand<NewSettings>
         json[keyVariants[0]] = new JsonObject { [JsonKeyLicenseKey] = licenseKey };
     }
 }
+
+internal sealed record BulkImportContext(
+    string ProjectName,
+    string SolutionDir,
+    string ConnectionString,
+    DbFlavor DbFlavor,
+    string? SlnFile);
