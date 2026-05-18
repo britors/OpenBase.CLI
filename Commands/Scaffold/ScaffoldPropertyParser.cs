@@ -8,7 +8,8 @@ public static class ScaffoldPropertyParser
     // Matches generated property declarations: public {Type} {Name} { get; init; }
     private static readonly Regex PropertyRegex = new(
         @"public\s+(?<type>[^\s{]+)\s+(?<name>[A-Z]\w*)\s*\{\s*get;\s*init;\s*\}",
-        RegexOptions.Compiled | RegexOptions.Multiline);
+        RegexOptions.Compiled | RegexOptions.Multiline,
+        matchTimeout: TimeSpan.FromSeconds(5));
 
     public static IReadOnlyList<EntityProperty> Parse(string entityFileContent)
     {
