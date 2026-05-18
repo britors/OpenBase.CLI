@@ -126,8 +126,8 @@ public sealed partial class ScaffoldGenerator
             ? $"PaginatedQueryResult<{method}QueryResult>"
             : $"IReadOnlyList<{method}QueryResult>";
         var returnExpr = paged
-            ? $"new PaginatedQueryResult<{method}QueryResult>(0, 0, 0, result.ToList())"
-            : "result.ToList()";
+            ? $"new PaginatedQueryResult<{method}QueryResult>(0, 0, 0, [..result])"
+            : "[..result]";
         return $$"""
             using Dapper;
             using {{ctx.NS}}.Domain.QueryResults;
