@@ -35,7 +35,7 @@ public sealed partial class ScaffoldGenerator
                 CancellationToken cancellationToken = default)
             {
                 var result = await {{ctx.ECamel}}ApplicationService.CreateAsync(request, cancellationToken);
-                return CreatedAtAction(nameof(GetByIdAsync), new { id = result!.Id }, result);
+                return CreatedAtAction(nameof(GetByIdAsync), new { id = result.Id }, result);
             }
 
             /// <summary>Remove um(a) {{ctx.Entity}}.</summary>
@@ -48,11 +48,7 @@ public sealed partial class ScaffoldGenerator
             {
                 var request = new Delete{{ctx.Entity}}Request(id);
                 var result = await {{ctx.ECamel}}ApplicationService.DeleteAsync(request, cancellationToken);
-
-                if (result is null)
-                    return NotFound();
-
-                return NoContent();
+                return result.Success ? NoContent() : NotFound();
             }
 
             /// <summary>Atualiza um(a) {{ctx.Entity}}.</summary>
@@ -67,10 +63,6 @@ public sealed partial class ScaffoldGenerator
             {
                 var requestWithId = request with { Id = id };
                 var result = await {{ctx.ECamel}}ApplicationService.UpdateAsync(requestWithId, cancellationToken);
-
-                if (result is null)
-                    return NotFound();
-
                 return Ok(result);
             }
 
@@ -95,10 +87,6 @@ public sealed partial class ScaffoldGenerator
             {
                 var result = await {{ctx.ECamel}}ApplicationService.GetByIdAsync(
                     new Find{{ctx.Entity}}ByIdRequest(id), cancellationToken);
-
-                if (result is null)
-                    return NotFound();
-
                 return Ok(result);
             }
         }

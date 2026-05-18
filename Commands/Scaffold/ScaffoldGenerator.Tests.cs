@@ -119,7 +119,6 @@ public sealed partial class ScaffoldGenerator
 
                 var result = await _handler.Handle(command, CancellationToken.None);
 
-                Assert.NotNull(result);
                 Assert.Equal(1, result.Id);
                 {{HandlerTestAssertions("result")}}
             }
@@ -154,7 +153,6 @@ public sealed partial class ScaffoldGenerator
 
                 var result = await _handler.Handle(command, CancellationToken.None);
 
-                Assert.NotNull(result);
                 Assert.True(result.Success);
             }
 
@@ -166,7 +164,6 @@ public sealed partial class ScaffoldGenerator
 
                 var result = await _handler.Handle(command, CancellationToken.None);
 
-                Assert.NotNull(result);
                 Assert.False(result.Success);
             }
         }
@@ -208,7 +205,6 @@ public sealed partial class ScaffoldGenerator
 
                 var result = await _handler.Handle(query, CancellationToken.None);
 
-                Assert.NotNull(result);
                 Assert.Equal(1, result.Id);
             }
         }
