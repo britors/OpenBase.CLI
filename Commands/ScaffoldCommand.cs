@@ -21,6 +21,10 @@ public class ScaffoldSettings : CommandSettings
     [Description("Namespace raiz do projeto (detectado automaticamente se omitido)")]
     public string? RootNamespace { get; set; }
 
+    [CommandOption("-u|--update")]
+    [Description("Atualiza os arquivos gerados com base na estrutura atual da tabela no banco de dados")]
+    public bool Update { get; set; }
+
     public override ValidationResult Validate()
     {
         if (string.IsNullOrWhiteSpace(Entity))
@@ -62,6 +66,10 @@ public class ScaffoldCommand(
         }
 
         var dbFlavor = dbFlavorDetector.Detect(solutionDir);
+
+        if (settings.Update)
+            return ExecuteUpdate(settings, solutionDir, rootNamespace, dbFlavor);
+
         var mode = AskScaffoldMode();
 
         var collected = CollectProperties(solutionDir, rootNamespace, dbFlavor, mode);
@@ -177,6 +185,153 @@ public class ScaffoldCommand(
 
         if (!success && !string.IsNullOrWhiteSpace(error))
             console.MarkupLine($"[yellow]Aviso:[/] Não foi possível adicionar o projeto de testes à solution: {Markup.Escape(error)}");
+    }
+
+    private int ExecuteUpdate(ScaffoldSettings settings, string solutionDir, string rootNamespace, DbFlavor dbFlavor)
+    {
+        var entityFilePath = Path.Combine(solutionDir, "src", $"{rootNamespace}.Domain", "Entities", $"{settings.Entity}.cs");
+
+        if (!fileWriter.FileExists(entityFilePath))
+        {
+            console.MarkupLine(string.Format(SR.Current.ScaffoldUpdateEntityNotFound, settings.Entity));
+            return 1;
+        }
+
+        var oldProperties = ScaffoldPropertyParser.Parse(fileWriter.ReadAllText(entityFilePath));
+
+        var result = modelFirstCollector.Collect(solutionDir, rootNamespace, dbFlavor);
+        if (result is null) return 1;
+
+        var (newProperties, tableName) = result.Value;
+        var diff = ScaffoldDiff.Compute(oldProperties, newProperties);
+
+        if (!diff.HasChanges)
+        {
+            console.MarkupLine(SR.Current.ScaffoldUpdateNoChanges);
+            return 0;
+        }
+
+        PrintDiff(diff);
+        WarnIfUncommittedChanges(solutionDir, settings.Entity);
+
+        if (console.Profile.Capabilities.Interactive && !console.Confirm(SR.Current.ScaffoldUpdateApplyChanges, defaultValue: true))
+            return 0;
+
+        if (diff.Removed.Count > 0 && console.Profile.Capabilities.Interactive)
+        {
+            console.MarkupLine(string.Format(SR.Current.ScaffoldUpdateDestructiveWarn, diff.Removed.Count));
+            if (!console.Confirm(SR.Current.ScaffoldUpdateConfirmRemoval, defaultValue: false))
+                return 0;
+        }
+
+        var testsPath = DetectTestsPath(solutionDir, rootNamespace);
+        var presentationPath = Path.Combine(solutionDir, "src", $"{rootNamespace}.Presentation.Api");
+        var useJwt = fileWriter.FileExists(Path.Combine(presentationPath, "Extensions", "JwtExtensions.cs"));
+
+        var ctx = new ScaffoldContext(settings.Entity, rootNamespace, solutionDir)
+        {
+            Properties = newProperties,
+            DbFlavor = dbFlavor,
+            TestsPath = testsPath,
+            TableName = tableName,
+            UseJwt = useJwt
+        };
+
+        var files = new ScaffoldGenerator(ctx).GetPropertyDependentFiles().ToList();
+        var (updated, failed) = OverwriteFiles(files, solutionDir, settings.Entity);
+
+        PrintFileList(string.Format(SR.Current.FilesUpdated, updated.Count), updated, "green");
+
+        if (failed.Count > 0)
+        {
+            PrintFileList(string.Format(SR.Current.FilesErrors, failed.Count), failed, "red", "red");
+            return 1;
+        }
+
+        console.MarkupLine(string.Format(SR.Current.ScaffoldUpdateSuccess, settings.Entity));
+        console.MarkupLine(string.Format(SR.Current.ScaffoldUpdateMigrationHint, settings.Entity));
+        return 0;
+    }
+
+    private (List<string> Updated, List<string> Failed) OverwriteFiles(
+        IEnumerable<(string Path, string Content)> files,
+        string solutionDir,
+        string entityName)
+    {
+        var updated = new List<string>();
+        var failed  = new List<string>();
+
+        console.Status()
+            .Spinner(Spinner.Known.Dots)
+            .Start(string.Format(SR.Current.GeneratingScaffold, entityName), _ =>
+            {
+                foreach (var (path, content) in files)
+                {
+                    var rel = Path.GetRelativePath(solutionDir, path);
+                    try
+                    {
+                        fileWriter.EnsureDirectory(Path.GetDirectoryName(path)!);
+                        fileWriter.WriteAllText(path, content);
+                        updated.Add(rel);
+                    }
+                    catch (Exception ex)
+                    {
+                        failed.Add($"{rel}: {ex.Message}");
+                    }
+                }
+            });
+
+        return (updated, failed);
+    }
+
+    private void PrintDiff(ScaffoldDiff diff)
+    {
+        console.MarkupLine(SR.Current.ScaffoldUpdateDiffTitle);
+
+        foreach (var p in diff.Added)
+            console.MarkupLine($"  [green]+[/] {Markup.Escape(p.Name)} ({Markup.Escape(p.ActualCsType)})  [grey]→ nova coluna[/]");
+
+        foreach (var p in diff.Removed)
+            console.MarkupLine($"  [red]-[/] {Markup.Escape(p.Name)} ({Markup.Escape(p.ActualCsType)})  [grey]→ coluna removida[/]");
+
+        foreach (var (old, neo) in diff.Changed)
+        {
+            var oldDesc = $"{old.ActualCsType}";
+            var newDesc = $"{neo.ActualCsType}";
+            console.MarkupLine($"  [yellow]~[/] {Markup.Escape(old.Name)}: {Markup.Escape(oldDesc)} → {Markup.Escape(newDesc)}  [grey]→ tipo alterado[/]");
+        }
+    }
+
+    private void WarnIfUncommittedChanges(string solutionDir, string entityName)
+    {
+        try
+        {
+            using var proc = new System.Diagnostics.Process();
+            proc.StartInfo = new System.Diagnostics.ProcessStartInfo("git", "status --short")
+            {
+                WorkingDirectory = solutionDir,
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+            proc.Start();
+            var output = proc.StandardOutput.ReadToEnd();
+            proc.WaitForExit();
+
+            var entityFiles = output.Split('\n')
+                .Where(l => l.Contains(entityName, StringComparison.OrdinalIgnoreCase))
+                .Select(l => l.Trim())
+                .Where(l => l.Length > 0)
+                .ToList();
+
+            if (entityFiles.Count == 0) return;
+
+            console.MarkupLine(SR.Current.ScaffoldUpdateUncommittedWarn);
+            foreach (var f in entityFiles)
+                console.MarkupLine($"  [yellow]{Markup.Escape(f)}[/]");
+            console.MarkupLine(SR.Current.ScaffoldUpdateUncommittedHint);
+        }
+        catch { /* git not available, silently ignore */ }
     }
 
     private (List<string> Created, List<string> Skipped, List<string> Failed) WriteFiles(

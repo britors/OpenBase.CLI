@@ -22,6 +22,43 @@ public sealed partial class ScaffoldGenerator(ScaffoldContext ctx)
             .Concat(PresentationFiles())
             .Concat(TestFiles());
 
+    public IEnumerable<(string Path, string Content)> GetPropertyDependentFiles()
+    {
+        // Domain
+        yield return (Path.Combine(ctx.DomainPath, "Entities", $"{ctx.Entity}.cs"), EntityTemplate());
+        yield return (Path.Combine(ctx.DomainPath, "Interfaces", Services, $"I{ctx.Entity}DomainService.cs"), IDomainServiceTemplate());
+        yield return (Path.Combine(ctx.DomainPath, Services, $"{ctx.Entity}DomainService.cs"), DomainServiceTemplate());
+
+        // Application — DTOs
+        var dtoReq = Path.Combine(ctx.AppPath, "DTOs", ctx.Entity, Requests);
+        var dtoRes = Path.Combine(ctx.AppPath, "DTOs", ctx.Entity, Responses);
+        yield return (Path.Combine(dtoReq, $"Create{ctx.Entity}Request.cs"), CreateRequestTemplate());
+        yield return (Path.Combine(dtoReq, $"Update{ctx.Entity}Request.cs"), UpdateRequestTemplate());
+        yield return (Path.Combine(dtoReq, $"Get{ctx.Entity}Request.cs"), GetRequestTemplate());
+        yield return (Path.Combine(dtoRes, $"{ctx.Entity}Response.cs"), ResponseTemplate());
+        yield return (Path.Combine(dtoRes, $"Create{ctx.Entity}Response.cs"), CreateResponseTemplate());
+        yield return (Path.Combine(dtoRes, $"Update{ctx.Entity}Response.cs"), UpdateResponseTemplate());
+
+        // Application — Features (property-dependent)
+        var feat   = Path.Combine(ctx.AppPath, "Features", $"{ctx.Entity}Features");
+        var create = Path.Combine(feat, $"Create{ctx.Entity}Feature");
+        yield return (Path.Combine(create, $"Create{ctx.Entity}Command.cs"), CreateCommandTemplate());
+        yield return (Path.Combine(create, $"Create{ctx.Entity}CommandValidator.cs"), CreateCommandValidatorTemplate());
+
+        var get = Path.Combine(feat, $"Get{ctx.EPlural}Feature");
+        yield return (Path.Combine(get, $"Get{ctx.Entity}Query.cs"), GetQueryTemplate());
+        yield return (Path.Combine(get, $"Get{ctx.Entity}QueryHandler.cs"), GetQueryHandlerTemplate());
+
+        var update = Path.Combine(feat, $"Update{ctx.Entity}Feature");
+        yield return (Path.Combine(update, $"Update{ctx.Entity}Command.cs"), UpdateCommandTemplate());
+        yield return (Path.Combine(update, $"Update{ctx.Entity}CommandValidator.cs"), UpdateCommandValidatorTemplate());
+
+        // Infrastructure
+        yield return (
+            Path.Combine(ctx.InfraContextPath, "Configurations", $"{ctx.Entity}Configuration.cs"),
+            EfConfigurationTemplate());
+    }
+
 
     private string EntityPropertyDeclarations() =>
         string.Join($"\n{I4}", ctx.Properties.Select(PropertyDeclaration));
