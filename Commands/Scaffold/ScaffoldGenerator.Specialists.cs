@@ -141,7 +141,7 @@ public sealed partial class ScaffoldGenerator
                 public async Task<{{returnType}}> {{method}}Async(
                     {{MethodParamsLeading(p)}}CancellationToken cancellationToken = default)
                 {
-                    var result = await dbSession.Connection.QueryAsync<{{method}}QueryResult>(
+                    var result = await dbSession.Connection!.QueryAsync<{{method}}QueryResult>(
                         {{method}}Sql, {{DapperAnon(p)}});
                     return {{returnExpr}};
                 }
@@ -313,7 +313,7 @@ public sealed partial class ScaffoldGenerator
             public async Task<bool> {{method}}Async(
                 {{MethodParamsLeading(p)}}CancellationToken cancellationToken = default)
             {
-                var affected = await dbSession.Connection.ExecuteAsync(
+                var affected = await dbSession.Connection!.ExecuteAsync(
                     {{method}}Sql, {{DapperAnon(p)}});
                 return affected > 0;
             }
