@@ -76,6 +76,10 @@ app.Configure(config =>
         .WithDescription(SR.Current.CmdScaffoldDescription)
         .WithExample("scaffold", "--entity", "Produto");
 
+    config.AddCommand<SpecialistCommand>("specialist")
+        .WithDescription(SR.Current.CmdSpecialistDescription)
+        .WithExample("specialist", "--entity", "Produto");
+
     config.AddCommand<HistoryCommand>("history")
         .WithDescription(SR.Current.CmdHistoryDescription)
         .WithExample("history")

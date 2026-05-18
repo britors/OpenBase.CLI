@@ -180,6 +180,9 @@ public interface IStrings
     string ExtensionReferenceAddWarning { get; }     // {0}=reference {1}=error
     string ExtensionFileSkipped { get; }             // {0}=filename
     string ExtensionFileCreated { get; }             // {0}=relative path
+    string CmdSpecialistDescription { get; }
+    string HelpSpecialistDesc { get; }
+
     string CmdExtensionDescription { get; }
     string CmdExtensionAddDescription { get; }
     string CmdExtensionListDescription { get; }
@@ -410,6 +413,9 @@ public abstract class BaseStrings(IReadOnlyDictionary<string, string> overrides)
     public string ColVersionComponent         => T("[bold]Component[/]");
     public string ColVersion                  => T("[bold]Version[/]");
 
+    public string CmdSpecialistDescription    => T("Adds specialist methods to an existing scaffolded entity.");
+    public string HelpSpecialistDesc          => T("Adds specialist Query/Command methods to an existing entity");
+
     public string CmdInstallDescription       => T("Installs the OpenBase template ecosystem.");
     public string CmdUpdateDescription        => T("Syncs and updates all OpenBase templates.");
     public string CmdNewDescription           => T("Creates a new project based on a template.");
@@ -626,6 +632,8 @@ public sealed class PtBrStrings() : BaseStrings(new Dictionary<string, string>
     ["HelpSupport"]                  = " Suporte ",
     ["ColVersionComponent"]          = "[bold]Componente[/]",
     ["ColVersion"]                   = "[bold]Versão[/]",
+    ["CmdSpecialistDescription"]      = "Adiciona métodos especialistas a um scaffold de entidade existente.",
+    ["HelpSpecialistDesc"]           = "Adiciona métodos especialistas (Query/Command) a uma entidade já scaffolded",
     ["CmdInstallDescription"]        = "Instala o ecossistema de templates OpenBase.",
     ["CmdUpdateDescription"]         = "Sincroniza e atualiza todos os templates OpenBase.",
     ["CmdNewDescription"]            = "Cria um novo projeto baseado em um template.",
@@ -848,6 +856,8 @@ public sealed class EsStrings() : BaseStrings(new Dictionary<string, string>
     ["HelpSupport"]                  = " Soporte ",
     ["ColVersionComponent"]          = "[bold]Componente[/]",
     ["ColVersion"]                   = "[bold]Versión[/]",
+    ["CmdSpecialistDescription"]      = "Agrega métodos especialistas a un scaffold de entidad existente.",
+    ["HelpSpecialistDesc"]           = "Agrega métodos especialistas (Query/Command) a una entidad ya scaffolded",
     ["CmdInstallDescription"]        = "Instala el ecosistema de templates OpenBase.",
     ["CmdUpdateDescription"]         = "Sincroniza y actualiza todos los templates OpenBase.",
     ["CmdNewDescription"]            = "Crea un nuevo proyecto basado en un template.",

@@ -23,7 +23,7 @@ public sealed partial class ScaffoldGenerator
         [ApiController]
         {{authAttr}}[Route("api/{{ctx.ELower}}")]
         [Produces("application/json")]
-        public class {{ctx.Entity}}Controller(I{{ctx.Entity}}ApplicationService {{ctx.ECamel}}ApplicationService)
+        public partial class {{ctx.Entity}}Controller(I{{ctx.Entity}}ApplicationService {{ctx.ECamel}}ApplicationService)
             : ControllerBase
         {
             /// <summary>Cria um(a) {{ctx.Entity}}.</summary>

@@ -11,33 +11,11 @@ using Spectre.Console.Cli;
 
 namespace OpenBase.CLI.Commands;
 
-public class ScaffoldSettings : CommandSettings
+public class ScaffoldSettings : EntityCommandSettings
 {
-    [CommandOption("-e|--entity <ENTIDADE>")]
-    [Description("O nome da entidade a ser gerada (PascalCase, ex: Produto)")]
-    public string Entity { get; set; } = string.Empty;
-
-    [CommandOption("-n|--namespace <NAMESPACE>")]
-    [Description("Namespace raiz do projeto (detectado automaticamente se omitido)")]
-    public string? RootNamespace { get; set; }
-
     [CommandOption("-u|--update")]
     [Description("Atualiza os arquivos gerados com base na estrutura atual da tabela no banco de dados")]
     public bool Update { get; set; }
-
-    public override ValidationResult Validate()
-    {
-        if (string.IsNullOrWhiteSpace(Entity))
-            return ValidationResult.Error(SR.Current.EntityParamRequired);
-
-        if (!char.IsUpper(Entity[0]))
-            return ValidationResult.Error(SR.Current.EntityMustBePascalCase);
-
-        if (!Entity.All(char.IsLetterOrDigit))
-            return ValidationResult.Error(SR.Current.EntityMustBeAlphanumeric);
-
-        return ValidationResult.Success();
-    }
 }
 
 public class ScaffoldCommand(
@@ -94,18 +72,18 @@ public class ScaffoldCommand(
 
         var generator = new ScaffoldGenerator(ctx);
         var files = generator.GetFiles().ToList();
-        var (created, skipped, failed) = WriteFiles(files, solutionDir, settings.Entity);
+        var (created, skipped, failed) = FileHelper.WriteFiles(files, solutionDir, settings.Entity);
         AddTestProjectToSolution(ctx.TestsCsprojPath, solutionDir);
 
         var dbEditor = new DbContextEditor(fileWriter);
         var dbSetResult = dbEditor.InjectDbSet(ctx);
 
-        PrintFileList(string.Format(SR.Current.FilesCreated, created.Count), created, "green");
-        PrintFileList(string.Format(SR.Current.FilesSkipped, skipped.Count), skipped, "yellow");
+        FileHelper.PrintFileList(string.Format(SR.Current.FilesCreated, created.Count), created, "green");
+        FileHelper.PrintFileList(string.Format(SR.Current.FilesSkipped, skipped.Count), skipped, "yellow");
 
         if (failed.Count > 0)
         {
-            PrintFileList(string.Format(SR.Current.FilesErrors, failed.Count), failed, "red", "red");
+            FileHelper.PrintFileList(string.Format(SR.Current.FilesErrors, failed.Count), failed, "red", "red");
             return 1;
         }
 
@@ -137,6 +115,8 @@ public class ScaffoldCommand(
         return 0;
     }
 
+
+    private ScaffoldFileHelper FileHelper => new(console, fileWriter);
 
     public DbSetInjectionResult InjectDbSet(ScaffoldContext ctx) =>
         new DbContextEditor(fileWriter).InjectDbSet(ctx);
@@ -195,98 +175,23 @@ public class ScaffoldCommand(
         if (!console.Profile.Capabilities.Interactive) return;
         if (!console.Confirm(SR.Current.SpecialistAddPrompt, defaultValue: false)) return;
 
+        var wizard = new SpecialistWizard(console);
+
         do
         {
-            var definition = AskSpecialistDefinition();
+            var definition = wizard.AskDefinition();
             if (definition is null) return;
 
             var files = generator.GetSpecialistFiles(definition).ToList();
-            var (created, skipped, failed) = WriteFiles(files, solutionDir, entityName);
+            var (created, skipped, failed) = FileHelper.WriteFiles(files, solutionDir, entityName);
 
-            PrintFileList(string.Format(SR.Current.SpecialistFilesCreated, created.Count), created, "green");
-            PrintFileList(string.Format(SR.Current.FilesSkipped, skipped.Count), skipped, "yellow");
+            FileHelper.PrintFileList(string.Format(SR.Current.SpecialistFilesCreated, created.Count), created, "green");
+            FileHelper.PrintFileList(string.Format(SR.Current.FilesSkipped, skipped.Count), skipped, "yellow");
             if (failed.Count > 0)
-                PrintFileList(string.Format(SR.Current.FilesErrors, failed.Count), failed, "red", "red");
+                FileHelper.PrintFileList(string.Format(SR.Current.FilesErrors, failed.Count), failed, "red", "red");
 
         } while (console.Confirm(SR.Current.SpecialistAddAnother, defaultValue: false));
     }
-
-    private SpecialistDefinition? AskSpecialistDefinition()
-    {
-        var methodName = AskSpecialistMethodName();
-        if (methodName is null) return null;
-
-        var type = AskSpecialistType();
-
-        if (type == SpecialistType.HttpCall)
-            return new SpecialistDefinition(methodName, type, string.Empty, []);
-
-        var sql = console.Ask<string>(SR.Current.SpecialistSqlPrompt);
-        var paramNames = SpecialistParam.ExtractNames(sql);
-
-        if (paramNames.Count == 0)
-            return new SpecialistDefinition(methodName, type, sql, []);
-
-        console.MarkupLine(string.Format(SR.Current.SpecialistParamsDetected,
-            string.Join(", ", paramNames.Select(n => $"[blue]{{{{{n}}}}}[/]"))));
-
-        var parameters = paramNames
-            .Select(name => new SpecialistParam(name, AskParamCsType(name)))
-            .ToList();
-
-        return new SpecialistDefinition(methodName, type, sql, parameters);
-    }
-
-    private string? AskSpecialistMethodName()
-    {
-        var reserved = new HashSet<string>(["Create", "Update", "Delete", "FindById", "Get"], StringComparer.OrdinalIgnoreCase);
-
-        while (true)
-        {
-            var name = console.Ask<string>(SR.Current.SpecialistMethodNamePrompt);
-
-            if (string.IsNullOrWhiteSpace(name))
-            {
-                console.MarkupLine($"[red]{SR.Current.SpecialistMethodRequired}[/]");
-                continue;
-            }
-            if (!char.IsUpper(name[0]))
-            {
-                console.MarkupLine($"[red]{SR.Current.SpecialistMethodPascalCase}[/]");
-                continue;
-            }
-            if (!name.All(char.IsLetterOrDigit))
-            {
-                console.MarkupLine($"[red]{SR.Current.SpecialistMethodAlphanumeric}[/]");
-                continue;
-            }
-            if (reserved.Contains(name))
-            {
-                console.MarkupLine($"[red]{string.Format(SR.Current.SpecialistMethodReserved, name)}[/]");
-                continue;
-            }
-
-            return name;
-        }
-    }
-
-    private SpecialistType AskSpecialistType()
-    {
-        var choice = console.Prompt(
-            new SelectionPrompt<string>()
-                .Title(SR.Current.SpecialistTypePrompt)
-                .AddChoices(SR.Current.SpecialistQueryChoice, SR.Current.SpecialistCommandChoice, SR.Current.SpecialistHttpCallChoice));
-
-        if (choice == SR.Current.SpecialistCommandChoice) return SpecialistType.Command;
-        if (choice == SR.Current.SpecialistHttpCallChoice) return SpecialistType.HttpCall;
-        return SpecialistType.Query;
-    }
-
-    private string AskParamCsType(string paramName) =>
-        console.Prompt(
-            new SelectionPrompt<string>()
-                .Title(string.Format(SR.Current.SpecialistParamTypePrompt, paramName))
-                .AddChoices("int", "string", "bool", "decimal", "Guid", "DateTime", "long", "double", "float", "short"));
 
     private int ExecuteUpdate(ScaffoldSettings settings, string solutionDir, string rootNamespace, DbFlavor dbFlavor)
     {
@@ -341,11 +246,11 @@ public class ScaffoldCommand(
         var files = new ScaffoldGenerator(ctx).GetPropertyDependentFiles().ToList();
         var (updated, failed) = OverwriteFiles(files, solutionDir, settings.Entity);
 
-        PrintFileList(string.Format(SR.Current.FilesUpdated, updated.Count), updated, "green");
+        FileHelper.PrintFileList(string.Format(SR.Current.FilesUpdated, updated.Count), updated, "green");
 
         if (failed.Count > 0)
         {
-            PrintFileList(string.Format(SR.Current.FilesErrors, failed.Count), failed, "red", "red");
+            FileHelper.PrintFileList(string.Format(SR.Current.FilesErrors, failed.Count), failed, "red", "red");
             return 1;
         }
 
@@ -450,50 +355,4 @@ public class ScaffoldCommand(
             .FirstOrDefault(File.Exists);
     }
 
-    private (List<string> Created, List<string> Skipped, List<string> Failed) WriteFiles(
-        IEnumerable<(string Path, string Content)> files,
-        string solutionDir,
-        string entityName)
-    {
-        var created = new List<string>();
-        var skipped = new List<string>();
-        var failed  = new List<string>();
-
-        console.Status()
-            .Spinner(Spinner.Known.Dots)
-            .Start(string.Format(SR.Current.GeneratingScaffold, entityName), _ =>
-            {
-                foreach (var (path, content) in files)
-                {
-                    var rel = Path.GetRelativePath(solutionDir, path);
-                    try
-                    {
-                        fileWriter.EnsureDirectory(Path.GetDirectoryName(path)!);
-
-                        if (fileWriter.FileExists(path))
-                        {
-                            skipped.Add(rel);
-                            continue;
-                        }
-
-                        fileWriter.WriteAllText(path, content);
-                        created.Add(rel);
-                    }
-                    catch (Exception ex)
-                    {
-                        failed.Add($"{rel}: {ex.Message}");
-                    }
-                }
-            });
-
-        return (created, skipped, failed);
-    }
-
-    private void PrintFileList(string header, List<string> files, string headerColor, string fileColor = "grey")
-    {
-        if (files.Count == 0) return;
-        console.MarkupLine($"\n[{headerColor}]{header}[/]");
-        foreach (var f in files)
-            console.MarkupLine($"  [{fileColor}]{Markup.Escape(f)}[/]");
-    }
 }
