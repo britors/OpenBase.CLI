@@ -32,6 +32,10 @@ public interface IStrings
     string DatabaseUpdateFailed { get; }
     string DotnetEfDatabaseUpdate { get; }
     string DatabaseUpdatedSuccess { get; }
+    string GeneratingUpdateMigration { get; }       // {0}=entity
+    string UpdateMigrationGenerated { get; }        // {0}=entity
+    string RunUpdateMigrationManually { get; }      // {0}=entity
+
     string HowToGenerateScaffold { get; }
     string CodeFirstChoice { get; }
     string ModelFirstChoice { get; }
@@ -208,6 +212,30 @@ public interface IStrings
     string RedisAppSettingsInjected { get; }
     string RedisAppSettingsWarning { get; }          // {0}=error
 
+    string TestingDbConnection { get; }
+    string DbConnectionSuccess { get; }
+    string DbConnectionFailed { get; }
+    string ImportFullModelPrompt { get; }
+    string ListingTables { get; }
+    string NoTablesFound { get; }
+    string TablesFound { get; }                  // {0}=count
+    string TableEntityNamePrompt { get; }        // {0}=schema {1}=table
+    string TableSkipped { get; }
+    string BulkScaffoldSuccess { get; }          // {0}=count
+
+    string SpecialistAddPrompt { get; }
+    string SpecialistMethodNamePrompt { get; }
+    string SpecialistTypePrompt { get; }
+    string SpecialistQueryChoice { get; }
+    string SpecialistCommandChoice { get; }
+    string SpecialistHttpCallChoice { get; }
+    string SpecialistAddAnother { get; }
+    string SpecialistMethodRequired { get; }
+    string SpecialistMethodPascalCase { get; }
+    string SpecialistMethodAlphanumeric { get; }
+    string SpecialistMethodReserved { get; }          // {0}=name
+    string SpecialistFilesCreated { get; }            // {0}=count
+
     string ScaffoldUpdateEntityNotFound { get; }     // {0}=entity
     string ScaffoldUpdateNoChanges { get; }
     string ScaffoldUpdateDiffTitle { get; }
@@ -254,6 +282,10 @@ public abstract class BaseStrings(IReadOnlyDictionary<string, string> overrides)
     public string DatabaseUpdateFailed        => T("[red]Error:[/] Failed to run database update.");
     public string DotnetEfDatabaseUpdate      => "[blue]dotnet ef database update[/]";
     public string DatabaseUpdatedSuccess      => T("[green]Database updated successfully.[/]");
+    public string GeneratingUpdateMigration   => T("Generating migration [blue]Update{0}[/]...");
+    public string UpdateMigrationGenerated    => T("[green]Migration Update{0} generated.[/]");
+    public string RunUpdateMigrationManually  => T("Run manually: [blue]dotnet ef migrations add Update{0}[/]");
+
     public string HowToGenerateScaffold       => T("\nHow would you like to generate the scaffold?");
     public string CodeFirstChoice             => T("Code First (define properties manually)");
     public string ModelFirstChoice            => T("Model First (read structure from an existing table)");
@@ -430,6 +462,30 @@ public abstract class BaseStrings(IReadOnlyDictionary<string, string> overrides)
     public string RedisAppSettingsInjected        => T("  [green]+[/] Redis section added to {0}");
     public string RedisAppSettingsWarning         => T("  [yellow]Warning:[/] Could not modify {0}: {1}");
 
+    public string TestingDbConnection    => T("Testing database connection...");
+    public string DbConnectionSuccess    => T("[green]✓[/] Database connection established successfully.");
+    public string DbConnectionFailed     => T("[yellow]Warning:[/] Could not connect to the database. Check the connection string in appsettings.json.");
+    public string ImportFullModelPrompt  => T("Import the full database model (scaffold all tables)?");
+    public string ListingTables          => T("Listing tables...");
+    public string NoTablesFound          => T("[yellow]No user tables found in the database.[/]");
+    public string TablesFound            => T("{0} table(s) found. Enter the entity name for each (PascalCase) or leave blank to skip:");
+    public string TableEntityNamePrompt  => T("  [{0}].[{1}] → Entity name:");
+    public string TableSkipped           => T("  [grey]skipped[/]");
+    public string BulkScaffoldSuccess    => T("\n[green]{0} entity(ies) scaffolded successfully![/]");
+
+    public string SpecialistAddPrompt         => T("Add specialist methods?");
+    public string SpecialistMethodNamePrompt  => T("Method name (PascalCase):");
+    public string SpecialistTypePrompt        => T("Method type:");
+    public string SpecialistQueryChoice       => T("Query — MediatR query (read)");
+    public string SpecialistCommandChoice     => T("Command — MediatR command (write)");
+    public string SpecialistHttpCallChoice    => T("HTTP call — external call (not implemented)");
+    public string SpecialistAddAnother        => T("Add another specialist method?");
+    public string SpecialistMethodRequired    => T("The method name is required.");
+    public string SpecialistMethodPascalCase  => T("The method name must start with an uppercase letter (PascalCase).");
+    public string SpecialistMethodAlphanumeric => T("The method name must contain only letters and numbers.");
+    public string SpecialistMethodReserved    => T("'{0}' is reserved by the basic scaffold.");
+    public string SpecialistFilesCreated      => T("{0} specialist file(s) created:");
+
     public string ScaffoldUpdateEntityNotFound  => T("[red]Error:[/] Entity [blue]{0}[/] not found. Run [blue]openbase scaffold --entity {0}[/] first.");
     public string ScaffoldUpdateNoChanges       => T("[green]✓[/] No differences detected. Files are already up to date.");
     public string ScaffoldUpdateDiffTitle       => T("\nDetected differences:");
@@ -475,6 +531,9 @@ public sealed class PtBrStrings() : BaseStrings(new Dictionary<string, string>
     ["ExecutingDatabaseUpdate"]      = "Executando [blue]database update[/]...",
     ["DatabaseUpdateFailed"]         = "[red]Erro:[/] Falha ao executar database update.",
     ["DatabaseUpdatedSuccess"]       = "[green]Banco de dados atualizado com sucesso.[/]",
+    ["GeneratingUpdateMigration"]    = "Gerando migration [blue]Update{0}[/]...",
+    ["UpdateMigrationGenerated"]     = "[green]Migration Update{0} gerada.[/]",
+    ["RunUpdateMigrationManually"]   = "Execute manualmente: [blue]dotnet ef migrations add Update{0}[/]",
     ["HowToGenerateScaffold"]        = "\nComo deseja gerar o scaffold?",
     ["CodeFirstChoice"]              = "Code First (definir propriedades manualmente)",
     ["ModelFirstChoice"]             = "Model First (ler estrutura de uma tabela existente)",
@@ -626,6 +685,28 @@ public sealed class PtBrStrings() : BaseStrings(new Dictionary<string, string>
     ["RedisProgramCsWarning"]           = "  [yellow]Aviso:[/] Não foi possível modificar Program.cs: {0}",
     ["RedisAppSettingsInjected"]        = "  [green]+[/] Seção Redis adicionada ao {0}",
     ["RedisAppSettingsWarning"]         = "  [yellow]Aviso:[/] Não foi possível modificar {0}: {1}",
+    ["TestingDbConnection"]    = "Testando conexão com o banco de dados...",
+    ["DbConnectionSuccess"]    = "[green]✓[/] Conexão com o banco de dados estabelecida com sucesso.",
+    ["DbConnectionFailed"]     = "[yellow]Aviso:[/] Não foi possível conectar ao banco de dados. Verifique a connection string no appsettings.json.",
+    ["ImportFullModelPrompt"]  = "Importar todo o modelo do banco de dados (scaffold de todas as tabelas)?",
+    ["ListingTables"]          = "Listando tabelas...",
+    ["NoTablesFound"]          = "[yellow]Nenhuma tabela de usuário encontrada no banco de dados.[/]",
+    ["TablesFound"]            = "{0} tabela(s) encontrada(s). Informe o nome da entidade para cada uma (PascalCase) ou deixe em branco para pular:",
+    ["TableEntityNamePrompt"]  = "  [{0}].[{1}] → Nome da entidade:",
+    ["TableSkipped"]           = "  [grey]ignorada[/]",
+    ["BulkScaffoldSuccess"]    = "\n[green]{0} entidade(s) gerada(s) com sucesso![/]",
+    ["SpecialistAddPrompt"]         = "Deseja adicionar métodos especialistas?",
+    ["SpecialistMethodNamePrompt"]  = "Nome do método (PascalCase):",
+    ["SpecialistTypePrompt"]        = "Tipo do método:",
+    ["SpecialistQueryChoice"]       = "Query — consulta MediatR (leitura)",
+    ["SpecialistCommandChoice"]     = "Command — comando MediatR (escrita)",
+    ["SpecialistHttpCallChoice"]    = "HTTP call — chamada externa (não implementada)",
+    ["SpecialistAddAnother"]        = "Adicionar outro método especialista?",
+    ["SpecialistMethodRequired"]    = "O nome do método é obrigatório.",
+    ["SpecialistMethodPascalCase"]  = "O nome do método deve começar com letra maiúscula (PascalCase).",
+    ["SpecialistMethodAlphanumeric"] = "O nome do método deve conter apenas letras e números.",
+    ["SpecialistMethodReserved"]    = "'{0}' é reservado pelo scaffold básico.",
+    ["SpecialistFilesCreated"]      = "{0} arquivo(s) especialista(s) criado(s):",
     ["ScaffoldUpdateEntityNotFound"]  = "[red]Erro:[/] Entidade [blue]{0}[/] não encontrada. Execute [blue]openbase scaffold --entity {0}[/] primeiro.",
     ["ScaffoldUpdateNoChanges"]       = "[green]✓[/] Nenhuma diferença detectada. Os arquivos já estão atualizados.",
     ["ScaffoldUpdateDiffTitle"]       = "\nDiferenças detectadas:",
@@ -668,6 +749,9 @@ public sealed class EsStrings() : BaseStrings(new Dictionary<string, string>
     ["ExecutingDatabaseUpdate"]      = "Ejecutando [blue]database update[/]...",
     ["DatabaseUpdateFailed"]         = "[red]Error:[/] Error al ejecutar database update.",
     ["DatabaseUpdatedSuccess"]       = "[green]Base de datos actualizada con éxito.[/]",
+    ["GeneratingUpdateMigration"]    = "Generando migración [blue]Update{0}[/]...",
+    ["UpdateMigrationGenerated"]     = "[green]Migración Update{0} generada.[/]",
+    ["RunUpdateMigrationManually"]   = "Ejecute manualmente: [blue]dotnet ef migrations add Update{0}[/]",
     ["HowToGenerateScaffold"]        = "\n¿Cómo desea generar el scaffold?",
     ["CodeFirstChoice"]              = "Code First (definir propiedades manualmente)",
     ["ModelFirstChoice"]             = "Model First (leer estructura de una tabla existente)",
@@ -820,6 +904,28 @@ public sealed class EsStrings() : BaseStrings(new Dictionary<string, string>
     ["RedisProgramCsWarning"]           = "  [yellow]Aviso:[/] No se pudo modificar Program.cs: {0}",
     ["RedisAppSettingsInjected"]        = "  [green]+[/] Sección Redis agregada a {0}",
     ["RedisAppSettingsWarning"]         = "  [yellow]Aviso:[/] No se pudo modificar {0}: {1}",
+    ["TestingDbConnection"]    = "Probando conexión con la base de datos...",
+    ["DbConnectionSuccess"]    = "[green]✓[/] Conexión con la base de datos establecida con éxito.",
+    ["DbConnectionFailed"]     = "[yellow]Aviso:[/] No se pudo conectar a la base de datos. Verifique la connection string en appsettings.json.",
+    ["ImportFullModelPrompt"]  = "¿Importar todo el modelo de la base de datos (scaffold de todas las tablas)?",
+    ["ListingTables"]          = "Listando tablas...",
+    ["NoTablesFound"]          = "[yellow]No se encontraron tablas de usuario en la base de datos.[/]",
+    ["TablesFound"]            = "{0} tabla(s) encontrada(s). Ingrese el nombre de la entidad para cada una (PascalCase) o deje en blanco para omitir:",
+    ["TableEntityNamePrompt"]  = "  [{0}].[{1}] → Nombre de entidad:",
+    ["TableSkipped"]           = "  [grey]omitida[/]",
+    ["BulkScaffoldSuccess"]    = "\n[green]{0} entidad(es) generada(s) con éxito![/]",
+    ["SpecialistAddPrompt"]         = "¿Desea agregar métodos especialistas?",
+    ["SpecialistMethodNamePrompt"]  = "Nombre del método (PascalCase):",
+    ["SpecialistTypePrompt"]        = "Tipo de método:",
+    ["SpecialistQueryChoice"]       = "Query — consulta MediatR (lectura)",
+    ["SpecialistCommandChoice"]     = "Command — comando MediatR (escritura)",
+    ["SpecialistHttpCallChoice"]    = "HTTP call — llamada externa (no implementada)",
+    ["SpecialistAddAnother"]        = "¿Agregar otro método especialista?",
+    ["SpecialistMethodRequired"]    = "El nombre del método es obligatorio.",
+    ["SpecialistMethodPascalCase"]  = "El nombre del método debe comenzar con mayúscula (PascalCase).",
+    ["SpecialistMethodAlphanumeric"] = "El nombre del método debe contener solo letras y números.",
+    ["SpecialistMethodReserved"]    = "'{0}' está reservado por el scaffold básico.",
+    ["SpecialistFilesCreated"]      = "{0} archivo(s) especialista(s) creado(s):",
     ["ScaffoldUpdateEntityNotFound"]  = "[red]Error:[/] Entidad [blue]{0}[/] no encontrada. Ejecute [blue]openbase scaffold --entity {0}[/] primero.",
     ["ScaffoldUpdateNoChanges"]       = "[green]✓[/] No se detectaron diferencias. Los archivos ya están actualizados.",
     ["ScaffoldUpdateDiffTitle"]       = "\nDiferencias detectadas:",

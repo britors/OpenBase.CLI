@@ -1,3 +1,5 @@
+using OpenBase.CLI.Models;
+
 namespace OpenBase.CLI.Helpers.Database;
 
 public sealed class OracleTemplateStrategy : IDbTemplateStrategy
@@ -9,6 +11,7 @@ public sealed class OracleTemplateStrategy : IDbTemplateStrategy
     public string ShortName     => OracleShortName;
     public string ConnectionKey => OracleConnectionKey;
     public string DefaultServer => OracleDefaultServer;
+    public DbFlavor DbFlavor    => DbFlavor.Oracle;
 
     public string BuildConnectionString(string dbName, string server, string user, string password)
         => $"Data Source={server};User Id={user};Password={password};";

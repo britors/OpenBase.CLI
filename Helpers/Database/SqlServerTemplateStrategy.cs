@@ -1,3 +1,5 @@
+using OpenBase.CLI.Models;
+
 namespace OpenBase.CLI.Helpers.Database;
 
 public sealed class SqlServerTemplateStrategy : IDbTemplateStrategy
@@ -9,6 +11,7 @@ public sealed class SqlServerTemplateStrategy : IDbTemplateStrategy
     public string ShortName     => SqlShortName;
     public string ConnectionKey => SqlConnectionKey;
     public string DefaultServer => SqlDefaultServer;
+    public DbFlavor DbFlavor    => DbFlavor.SqlServer;
 
     public string BuildConnectionString(string dbName, string server, string user, string password)
         => string.IsNullOrWhiteSpace(user)

@@ -7,25 +7,90 @@ namespace OpenBase.CLI.Commands.Scaffold;
 
 internal sealed class EfMigrationRunner(IDotNetRunner dotNetRunner, IFileWriter fileWriter, IAnsiConsole console)
 {
-    public void RunMigrations(ScaffoldContext ctx, string entity)
+    public void RunMigrations(ScaffoldContext ctx, string entity) =>
+        RunMigrationFlow(
+            ctx,
+            migrationName:   $"Add{entity}",
+            generateLabel:   string.Format(SR.Current.GeneratingMigration, entity),
+            generatedLabel:  string.Format(SR.Current.MigrationGenerated, entity),
+            manualLabel:     string.Format(SR.Current.RunMigrationManually, entity));
+
+    public void RunBulkReconciliationMigration(ScaffoldContext ctx, string migrationName)
+    {
+        RestorePackages(ctx);
+
+        var (migOk, migError) = RunEfCommand(
+            $"migrations add {migrationName}",
+            string.Format(SR.Current.GeneratingMigration, migrationName),
+            ctx);
+
+        if (!migOk)
+        {
+            console.MarkupLine(SR.Current.MigrationFailed);
+            if (!string.IsNullOrWhiteSpace(migError))
+                console.MarkupLine($"[grey]{Markup.Escape(migError)}[/]");
+            return;
+        }
+
+        var migrationsDir = Path.Combine(ctx.InfraContextPath, "Migrations");
+        var migFile = fileWriter.FindFile(migrationsDir, $"*_{migrationName}.cs");
+
+        if (migFile is not null)
+        {
+            var patched = DbContextEditor.EmptyMigrationUpMethod(fileWriter.ReadAllText(migFile));
+            fileWriter.WriteAllText(migFile, patched);
+        }
+
+        console.MarkupLine(string.Format(SR.Current.MigrationGenerated, migrationName));
+
+        if (!console.Profile.Capabilities.Interactive ||
+            !console.Confirm(SR.Current.RunDatabaseUpdateNow, defaultValue: true))
+            return;
+
+        var (updateOk, updateError) = RunEfCommand("database update", SR.Current.ExecutingDatabaseUpdate, ctx);
+
+        if (!updateOk)
+        {
+            console.MarkupLine(SR.Current.DatabaseUpdateFailed);
+            if (!string.IsNullOrWhiteSpace(updateError))
+                console.MarkupLine($"[grey]{Markup.Escape(updateError)}[/]");
+            console.MarkupLine(SR.Current.DotnetEfDatabaseUpdate);
+            return;
+        }
+
+        console.MarkupLine(SR.Current.DatabaseUpdatedSuccess);
+    }
+
+    public void RunUpdateMigration(ScaffoldContext ctx, string entity) =>
+        RunMigrationFlow(
+            ctx,
+            migrationName:   $"Update{entity}",
+            generateLabel:   string.Format(SR.Current.GeneratingUpdateMigration, entity),
+            generatedLabel:  string.Format(SR.Current.UpdateMigrationGenerated, entity),
+            manualLabel:     string.Format(SR.Current.RunUpdateMigrationManually, entity));
+
+    private void RunMigrationFlow(
+        ScaffoldContext ctx,
+        string migrationName,
+        string generateLabel,
+        string generatedLabel,
+        string manualLabel)
     {
         RestorePackages(ctx);
 
         var (migrationOk, migrationError) = RunEfCommand(
-            $"migrations add Add{entity}",
-            string.Format(SR.Current.GeneratingMigration, entity),
-            ctx);
+            $"migrations add {migrationName}", generateLabel, ctx);
 
         if (!migrationOk)
         {
             console.MarkupLine(SR.Current.MigrationFailed);
             if (!string.IsNullOrWhiteSpace(migrationError))
                 console.MarkupLine($"[grey]{Markup.Escape(migrationError)}[/]");
-            console.MarkupLine(string.Format(SR.Current.RunMigrationManually, entity));
+            console.MarkupLine(manualLabel);
             return;
         }
 
-        console.MarkupLine(string.Format(SR.Current.MigrationGenerated, entity));
+        console.MarkupLine(generatedLabel);
 
         if (!console.Profile.Capabilities.Interactive ||
             !console.Confirm(SR.Current.RunDatabaseUpdateNow, defaultValue: true))
