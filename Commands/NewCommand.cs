@@ -186,7 +186,7 @@ public class NewCommand : AsyncCommand<NewSettings>
         foreach (var table in tables)
         {
             var name = (await _console.AskAsync<string>(
-                string.Format(SR.Current.TableEntityNamePrompt, table.Schema, table.TableName),
+                string.Format(SR.Current.TableEntityNamePrompt, Markup.Escape(table.Schema), Markup.Escape(table.TableName)),
                 cancellationToken)).Trim();
 
             if (string.IsNullOrWhiteSpace(name) || !char.IsUpper(name[0]) || !name.All(char.IsLetterOrDigit))
@@ -250,7 +250,7 @@ public class NewCommand : AsyncCommand<NewSettings>
 
         if (properties.Count == 0)
         {
-            _console.MarkupLine(string.Format(SR.Current.NoColumnsFound, table.Schema, table.TableName));
+            _console.MarkupLine(string.Format(SR.Current.NoColumnsFound, Markup.Escape(table.Schema), Markup.Escape(table.TableName)));
             return null;
         }
 

@@ -482,7 +482,7 @@ public abstract class BaseStrings(IReadOnlyDictionary<string, string> overrides)
     public string ListingTables          => T("Listing tables...");
     public string NoTablesFound          => T("[yellow]No user tables found in the database.[/]");
     public string TablesFound            => T("{0} table(s) found. Enter the entity name for each (PascalCase) or leave blank to skip:");
-    public string TableEntityNamePrompt  => T("  [{0}].[{1}] → Entity name:");
+    public string TableEntityNamePrompt  => T("  [[{0}]].[[{1}]] → Entity name:");
     public string TableSkipped           => T("  [grey]skipped[/]");
     public string BulkScaffoldSuccess    => T("\n[green]{0} entity(ies) scaffolded successfully![/]");
 
@@ -714,7 +714,7 @@ public sealed class PtBrStrings() : BaseStrings(new Dictionary<string, string>
     ["ListingTables"]          = "Listando tabelas...",
     ["NoTablesFound"]          = "[yellow]Nenhuma tabela de usuário encontrada no banco de dados.[/]",
     ["TablesFound"]            = "{0} tabela(s) encontrada(s). Informe o nome da entidade para cada uma (PascalCase) ou deixe em branco para pular:",
-    ["TableEntityNamePrompt"]  = "  [{0}].[{1}] → Nome da entidade:",
+    ["TableEntityNamePrompt"]  = "  [[{0}]].[[{1}]] → Nome da entidade:",
     ["TableSkipped"]           = "  [grey]ignorada[/]",
     ["BulkScaffoldSuccess"]    = "\n[green]{0} entidade(s) gerada(s) com sucesso![/]",
     ["SpecialistAddPrompt"]         = "Deseja adicionar métodos especialistas?",
@@ -942,7 +942,7 @@ public sealed class EsStrings() : BaseStrings(new Dictionary<string, string>
     ["ListingTables"]          = "Listando tablas...",
     ["NoTablesFound"]          = "[yellow]No se encontraron tablas de usuario en la base de datos.[/]",
     ["TablesFound"]            = "{0} tabla(s) encontrada(s). Ingrese el nombre de la entidad para cada una (PascalCase) o deje en blanco para omitir:",
-    ["TableEntityNamePrompt"]  = "  [{0}].[{1}] → Nombre de entidad:",
+    ["TableEntityNamePrompt"]  = "  [[{0}]].[[{1}]] → Nombre de entidad:",
     ["TableSkipped"]           = "  [grey]omitida[/]",
     ["BulkScaffoldSuccess"]    = "\n[green]{0} entidad(es) generada(s) con éxito![/]",
     ["SpecialistAddPrompt"]         = "¿Desea agregar métodos especialistas?",

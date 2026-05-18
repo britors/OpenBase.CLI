@@ -27,7 +27,7 @@ public sealed class ConsoleModelFirstPropertyCollector(
 
         if (columns is null || columns.Count == 0)
         {
-            console.MarkupLine(string.Format(SR.Current.NoColumnsFound, schema, tableName));
+            console.MarkupLine(string.Format(SR.Current.NoColumnsFound, Markup.Escape(schema), Markup.Escape(tableName)));
             console.MarkupLine(SR.Current.CheckSchemaAndTableName);
             return null;
         }
@@ -78,7 +78,7 @@ public sealed class ConsoleModelFirstPropertyCollector(
 
         console.Status()
             .Spinner(Spinner.Known.Dots)
-            .Start(string.Format(SR.Current.ReadingTableStructure, schema, tableName), _ =>
+            .Start(string.Format(SR.Current.ReadingTableStructure, Markup.Escape(schema), Markup.Escape(tableName)), _ =>
             {
                 try
                 {
