@@ -32,6 +32,10 @@ public interface IStrings
     string DatabaseUpdateFailed { get; }
     string DotnetEfDatabaseUpdate { get; }
     string DatabaseUpdatedSuccess { get; }
+    string GeneratingUpdateMigration { get; }       // {0}=entity
+    string UpdateMigrationGenerated { get; }        // {0}=entity
+    string RunUpdateMigrationManually { get; }      // {0}=entity
+
     string HowToGenerateScaffold { get; }
     string CodeFirstChoice { get; }
     string ModelFirstChoice { get; }
@@ -267,6 +271,10 @@ public abstract class BaseStrings(IReadOnlyDictionary<string, string> overrides)
     public string DatabaseUpdateFailed        => T("[red]Error:[/] Failed to run database update.");
     public string DotnetEfDatabaseUpdate      => "[blue]dotnet ef database update[/]";
     public string DatabaseUpdatedSuccess      => T("[green]Database updated successfully.[/]");
+    public string GeneratingUpdateMigration   => T("Generating migration [blue]Update{0}[/]...");
+    public string UpdateMigrationGenerated    => T("[green]Migration Update{0} generated.[/]");
+    public string RunUpdateMigrationManually  => T("Run manually: [blue]dotnet ef migrations add Update{0}[/]");
+
     public string HowToGenerateScaffold       => T("\nHow would you like to generate the scaffold?");
     public string CodeFirstChoice             => T("Code First (define properties manually)");
     public string ModelFirstChoice            => T("Model First (read structure from an existing table)");
@@ -501,6 +509,9 @@ public sealed class PtBrStrings() : BaseStrings(new Dictionary<string, string>
     ["ExecutingDatabaseUpdate"]      = "Executando [blue]database update[/]...",
     ["DatabaseUpdateFailed"]         = "[red]Erro:[/] Falha ao executar database update.",
     ["DatabaseUpdatedSuccess"]       = "[green]Banco de dados atualizado com sucesso.[/]",
+    ["GeneratingUpdateMigration"]    = "Gerando migration [blue]Update{0}[/]...",
+    ["UpdateMigrationGenerated"]     = "[green]Migration Update{0} gerada.[/]",
+    ["RunUpdateMigrationManually"]   = "Execute manualmente: [blue]dotnet ef migrations add Update{0}[/]",
     ["HowToGenerateScaffold"]        = "\nComo deseja gerar o scaffold?",
     ["CodeFirstChoice"]              = "Code First (definir propriedades manualmente)",
     ["ModelFirstChoice"]             = "Model First (ler estrutura de uma tabela existente)",
@@ -706,6 +717,9 @@ public sealed class EsStrings() : BaseStrings(new Dictionary<string, string>
     ["ExecutingDatabaseUpdate"]      = "Ejecutando [blue]database update[/]...",
     ["DatabaseUpdateFailed"]         = "[red]Error:[/] Error al ejecutar database update.",
     ["DatabaseUpdatedSuccess"]       = "[green]Base de datos actualizada con éxito.[/]",
+    ["GeneratingUpdateMigration"]    = "Generando migración [blue]Update{0}[/]...",
+    ["UpdateMigrationGenerated"]     = "[green]Migración Update{0} generada.[/]",
+    ["RunUpdateMigrationManually"]   = "Ejecute manualmente: [blue]dotnet ef migrations add Update{0}[/]",
     ["HowToGenerateScaffold"]        = "\n¿Cómo desea generar el scaffold?",
     ["CodeFirstChoice"]              = "Code First (definir propiedades manualmente)",
     ["ModelFirstChoice"]             = "Model First (leer estructura de una tabla existente)",

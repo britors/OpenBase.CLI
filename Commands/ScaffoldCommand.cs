@@ -319,7 +319,10 @@ public class ScaffoldCommand(
         }
 
         console.MarkupLine(string.Format(SR.Current.ScaffoldUpdateSuccess, settings.Entity));
-        console.MarkupLine(string.Format(SR.Current.ScaffoldUpdateMigrationHint, settings.Entity));
+
+        new EfMigrationRunner(dotNetRunner, fileWriter, console)
+            .RunUpdateMigration(ctx, settings.Entity);
+
         return 0;
     }
 

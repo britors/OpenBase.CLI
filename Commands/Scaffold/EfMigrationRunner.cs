@@ -7,25 +7,44 @@ namespace OpenBase.CLI.Commands.Scaffold;
 
 internal sealed class EfMigrationRunner(IDotNetRunner dotNetRunner, IFileWriter fileWriter, IAnsiConsole console)
 {
-    public void RunMigrations(ScaffoldContext ctx, string entity)
+    public void RunMigrations(ScaffoldContext ctx, string entity) =>
+        RunMigrationFlow(
+            ctx,
+            migrationName:   $"Add{entity}",
+            generateLabel:   string.Format(SR.Current.GeneratingMigration, entity),
+            generatedLabel:  string.Format(SR.Current.MigrationGenerated, entity),
+            manualLabel:     string.Format(SR.Current.RunMigrationManually, entity));
+
+    public void RunUpdateMigration(ScaffoldContext ctx, string entity) =>
+        RunMigrationFlow(
+            ctx,
+            migrationName:   $"Update{entity}",
+            generateLabel:   string.Format(SR.Current.GeneratingUpdateMigration, entity),
+            generatedLabel:  string.Format(SR.Current.UpdateMigrationGenerated, entity),
+            manualLabel:     string.Format(SR.Current.RunUpdateMigrationManually, entity));
+
+    private void RunMigrationFlow(
+        ScaffoldContext ctx,
+        string migrationName,
+        string generateLabel,
+        string generatedLabel,
+        string manualLabel)
     {
         RestorePackages(ctx);
 
         var (migrationOk, migrationError) = RunEfCommand(
-            $"migrations add Add{entity}",
-            string.Format(SR.Current.GeneratingMigration, entity),
-            ctx);
+            $"migrations add {migrationName}", generateLabel, ctx);
 
         if (!migrationOk)
         {
             console.MarkupLine(SR.Current.MigrationFailed);
             if (!string.IsNullOrWhiteSpace(migrationError))
                 console.MarkupLine($"[grey]{Markup.Escape(migrationError)}[/]");
-            console.MarkupLine(string.Format(SR.Current.RunMigrationManually, entity));
+            console.MarkupLine(manualLabel);
             return;
         }
 
-        console.MarkupLine(string.Format(SR.Current.MigrationGenerated, entity));
+        console.MarkupLine(generatedLabel);
 
         if (!console.Profile.Capabilities.Interactive ||
             !console.Confirm(SR.Current.RunDatabaseUpdateNow, defaultValue: true))
