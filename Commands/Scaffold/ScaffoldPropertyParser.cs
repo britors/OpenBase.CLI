@@ -5,7 +5,6 @@ namespace OpenBase.CLI.Commands.Scaffold;
 
 public static class ScaffoldPropertyParser
 {
-    // Matches generated property declarations: public {Type} {Name} { get; init; }
     private static readonly Regex PropertyRegex = new(
         @"public\s+(?<type>[^\s{]+)\s+(?<name>[A-Z]\w*)\s*\{\s*get;\s*init;\s*\}",
         RegexOptions.Compiled | RegexOptions.Multiline,
