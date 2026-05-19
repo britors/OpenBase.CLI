@@ -183,7 +183,9 @@ public class UpdateHistoryServiceTests : IDisposable
     [Fact]
     public async Task ClearHistoryAsync_NoFile_DoesNotThrow()
     {
-        await CreateService().ClearHistoryAsync(CancellationToken.None);
+        var exception = await Record.ExceptionAsync(() => CreateService().ClearHistoryAsync(CancellationToken.None));
+
+        Assert.Null(exception);
     }
 
     [Fact]
