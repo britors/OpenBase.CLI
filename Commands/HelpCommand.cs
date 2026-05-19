@@ -30,7 +30,7 @@ public class HelpCommand : Command<HelpSettings>
         table.AddRow("[blue]specialist[/]", SR.Current.HelpSpecialistDesc, "openbase [green]specialist --entity Produto[/]");
         table.AddRow("[blue]extension add[/]", SR.Current.HelpExtensionAddDesc, "openbase [green]extension add jwt[/]\nopenbase [green]extension add healthchecks[/]\nopenbase [green]extension add redis[/]");
         table.AddRow("[blue]extension list[/]", SR.Current.HelpExtensionListDesc, "openbase [green]extension list[/]");
-        table.AddRow("[blue]history[/]", SR.Current.HelpHistoryDesc, "openbase [green]history --type cli[/]");
+        table.AddRow("[blue]history[/]", SR.Current.HelpHistoryDesc, "openbase [green]history --type cli[/]\nopenbase [green]history --clear[/]");
         table.AddRow("[blue]update[/]", SR.Current.HelpUpdateDesc, "openbase [green]update[/]");
         table.AddRow("[blue]version show[/]", SR.Current.HelpVersionShowDesc, "openbase [green]version show[/]");
         table.AddRow("[blue]version restore[/]", SR.Current.HelpVersionRestoreDesc, "openbase [green]version restore 10.5.9 --type cli[/]");

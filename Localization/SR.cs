@@ -409,7 +409,7 @@ public abstract class BaseStrings(IReadOnlyDictionary<string, string> overrides)
     public string HelpInstallDesc             => T("Installs all OpenBase NuGet templates");
     public string HelpNewDesc                 => T("Creates a new structured project");
     public string HelpScaffoldDesc            => T("Generates all CRUD layers for an entity (Domain, Application, Infra, Presentation)");
-    public string HelpHistoryDesc             => T("Shows update history (--type cli | sqlserver | postgres | oracle)");
+    public string HelpHistoryDesc             => T("Shows update history (--type cli | sqlserver | postgres | oracle | --clear)");
     public string HelpUpdateDesc              => T("Syncs and updates templates and CLI");
     public string HelpVersionShowDesc         => T("Shows versions of the installed environment");
     public string HelpVersionRestoreDesc      => T("Restores a component to a specific version (--type cli | sqlserver | postgres | oracle)");
@@ -636,7 +636,7 @@ public sealed class PtBrStrings() : BaseStrings(new Dictionary<string, string>
     ["HelpInstallDesc"]              = "Instala todos os templates NuGet do OpenBase",
     ["HelpNewDesc"]                  = "Cria um novo projeto estruturado",
     ["HelpScaffoldDesc"]             = "Gera todas as camadas CRUD de uma entidade (Domain, Application, Infra, Presentation)",
-    ["HelpHistoryDesc"]              = "Exibe o histórico de atualizações (--type cli | sqlserver | postgres | oracle)",
+    ["HelpHistoryDesc"]              = "Exibe o histórico de atualizações (--type cli | sqlserver | postgres | oracle | --clear)",
     ["HelpUpdateDesc"]               = "Sincroniza e atualiza templates e a CLI",
     ["HelpVersionShowDesc"]          = "Mostra versões do ambiente instalado",
     ["HelpVersionRestoreDesc"]       = "Restaura um componente para uma versão específica (--type cli | sqlserver | postgres | oracle)",
@@ -866,7 +866,7 @@ public sealed class EsStrings() : BaseStrings(new Dictionary<string, string>
     ["HelpInstallDesc"]              = "Instala todos los templates NuGet de OpenBase",
     ["HelpNewDesc"]                  = "Crea un nuevo proyecto estructurado",
     ["HelpScaffoldDesc"]             = "Genera todas las capas CRUD de una entidad (Domain, Application, Infra, Presentation)",
-    ["HelpHistoryDesc"]              = "Muestra el historial de actualizaciones (--type cli | sqlserver | postgres | oracle)",
+    ["HelpHistoryDesc"]              = "Muestra el historial de actualizaciones (--type cli | sqlserver | postgres | oracle | --clear)",
     ["HelpUpdateDesc"]               = "Sincroniza y actualiza templates y la CLI",
     ["HelpVersionShowDesc"]          = "Muestra versiones del entorno instalado",
     ["HelpVersionRestoreDesc"]       = "Restaura un componente a una versión específica (--type cli | sqlserver | postgres | oracle)",

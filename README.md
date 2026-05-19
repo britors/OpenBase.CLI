@@ -484,7 +484,7 @@ builder.Services.AddRedisCache(builder.Configuration);
 | `specialist`             | Adds specialist Query/Command methods to an existing entity across all layers | `openbase specialist --entity Product` |
 | `extension add`          | Adds an installable extension to the project             | `openbase extension add jwt`                                   |
 | `update`                 | Updates the CLI and templates to the latest version      | `openbase update`                                              |
-| `history`                | Shows the update history per component                   | `openbase history --type cli`                                  |
+| `history`                | Shows or clears the update history per component         | `openbase history --type cli`                                  |
 | `version show`           | Shows the installed CLI and template versions            | `openbase version show`                                        |
 | `version restore`        | Restores a component to a specific version               | `openbase version restore 10.5.9 --type cli`                   |
 | `help`                   | Full guide to arguments and flags                        | `openbase help`                                                |
@@ -500,6 +500,9 @@ openbase history --type cli
 openbase history --type sqlserver
 openbase history --type postgres
 openbase history --type oracle
+
+# Clear all history
+openbase history --clear
 ```
 
 ### Restore a version
