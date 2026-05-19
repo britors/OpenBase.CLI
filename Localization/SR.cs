@@ -114,6 +114,7 @@ public interface IStrings
 
     string InvalidTypeHistory { get; }        // {0}=type
     string NoHistoryFound { get; }
+    string HistoryCleared { get; }
     string ColDate { get; }
     string ColComponent { get; }
     string ColPreviousVersion { get; }
@@ -375,6 +376,7 @@ public abstract class BaseStrings(IReadOnlyDictionary<string, string> overrides)
 
     public string InvalidTypeHistory          => T("[red]Error:[/] Invalid type [yellow]{0}[/]. Use: cli, sqlserver, postgres, oracle");
     public string NoHistoryFound              => T("[grey]No update history found.[/]");
+    public string HistoryCleared              => T("[green]✓[/] Update history cleared.");
     public string ColDate                     => T("[bold]Date[/]");
     public string ColComponent                => T("[bold]Component[/]");
     public string ColPreviousVersion          => T("[bold]Previous Version[/]");
@@ -622,6 +624,7 @@ public sealed class PtBrStrings() : BaseStrings(new Dictionary<string, string>
     ["RestoreSuccess"]               = "[green]✓[/] {0} restaurado para a versão {1}.",
     ["InvalidTypeHistory"]           = "[red]Erro:[/] Tipo inválido [yellow]{0}[/]. Use: cli, sqlserver, postgres, oracle",
     ["NoHistoryFound"]               = "[grey]Nenhum histórico de atualização encontrado.[/]",
+    ["HistoryCleared"]               = "[green]✓[/] Histórico de atualizações limpo.",
     ["ColDate"]                      = "[bold]Data[/]",
     ["ColComponent"]                 = "[bold]Componente[/]",
     ["ColPreviousVersion"]           = "[bold]Versão Anterior[/]",
@@ -850,6 +853,7 @@ public sealed class EsStrings() : BaseStrings(new Dictionary<string, string>
     ["RestoreSuccess"]               = "[green]✓[/] {0} restaurado a la versión {1}.",
     ["InvalidTypeHistory"]           = "[red]Error:[/] Tipo inválido [yellow]{0}[/]. Use: cli, sqlserver, postgres, oracle",
     ["NoHistoryFound"]               = "[grey]No se encontró historial de actualizaciones.[/]",
+    ["HistoryCleared"]               = "[green]✓[/] Historial de actualizaciones limpiado.",
     ["ColDate"]                      = "[bold]Fecha[/]",
     ["ColComponent"]                 = "[bold]Componente[/]",
     ["ColPreviousVersion"]           = "[bold]Versión Anterior[/]",

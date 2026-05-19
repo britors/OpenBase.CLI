@@ -12,6 +12,10 @@ public class HistorySettings : CommandSettings
     [CommandOption("--type")]
     [Description("Filtra por componente: cli, sqlserver, postgres")]
     public string? Type { get; set; }
+
+    [CommandOption("--clear")]
+    [Description("Limpa todo o histórico de atualizações")]
+    public bool Clear { get; set; }
 }
 
 public class HistoryCommand : AsyncCommand<HistorySettings>
@@ -38,6 +42,13 @@ public class HistoryCommand : AsyncCommand<HistorySettings>
         HistorySettings settings,
         CancellationToken cancellationToken)
     {
+        if (settings.Clear)
+        {
+            await _historyService.ClearHistoryAsync(cancellationToken);
+            _console.MarkupLine(SR.Current.HistoryCleared);
+            return 0;
+        }
+
         string? component = null;
 
         if (!string.IsNullOrWhiteSpace(settings.Type) &&

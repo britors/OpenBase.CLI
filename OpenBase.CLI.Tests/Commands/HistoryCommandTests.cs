@@ -96,4 +96,31 @@ public class HistoryCommandTests
 
         _historyService.Verify(s => s.GetHistoryAsync(It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    [Fact]
+    public async Task ExecuteAsync_Clear_CallsClearHistoryAndReturnsZero()
+    {
+        _historyService
+            .Setup(s => s.ClearHistoryAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var result = await ((ICommand<HistorySettings>)CreateCommand())
+            .ExecuteAsync(CommandTestHelper.CreateContext("history"), new HistorySettings { Clear = true }, CancellationToken.None);
+
+        Assert.Equal(0, result);
+        _historyService.Verify(s => s.ClearHistoryAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_Clear_DoesNotQueryHistory()
+    {
+        _historyService
+            .Setup(s => s.ClearHistoryAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        await ((ICommand<HistorySettings>)CreateCommand())
+            .ExecuteAsync(CommandTestHelper.CreateContext("history"), new HistorySettings { Clear = true }, CancellationToken.None);
+
+        _historyService.Verify(s => s.GetHistoryAsync(It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
 }
