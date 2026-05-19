@@ -168,4 +168,35 @@ public class UpdateHistoryServiceTests : IDisposable
 
         Assert.Empty(result);
     }
+
+    [Fact]
+    public async Task ClearHistoryAsync_DeletesFile()
+    {
+        var service = CreateService();
+        await service.AddEntryAsync(MakeEntry(), CancellationToken.None);
+
+        await service.ClearHistoryAsync(CancellationToken.None);
+
+        Assert.False(File.Exists(_historyFile));
+    }
+
+    [Fact]
+    public async Task ClearHistoryAsync_NoFile_DoesNotThrow()
+    {
+        var exception = await Record.ExceptionAsync(() => CreateService().ClearHistoryAsync(CancellationToken.None));
+
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public async Task ClearHistoryAsync_GetHistoryAfterClear_ReturnsEmpty()
+    {
+        var service = CreateService();
+        await service.AddEntryAsync(MakeEntry(), CancellationToken.None);
+
+        await service.ClearHistoryAsync(CancellationToken.None);
+        var result = await service.GetHistoryAsync(null, CancellationToken.None);
+
+        Assert.Empty(result);
+    }
 }

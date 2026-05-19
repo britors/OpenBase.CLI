@@ -114,6 +114,7 @@ public interface IStrings
 
     string InvalidTypeHistory { get; }        // {0}=type
     string NoHistoryFound { get; }
+    string HistoryCleared { get; }
     string ColDate { get; }
     string ColComponent { get; }
     string ColPreviousVersion { get; }
@@ -375,6 +376,7 @@ public abstract class BaseStrings(IReadOnlyDictionary<string, string> overrides)
 
     public string InvalidTypeHistory          => T("[red]Error:[/] Invalid type [yellow]{0}[/]. Use: cli, sqlserver, postgres, oracle");
     public string NoHistoryFound              => T("[grey]No update history found.[/]");
+    public string HistoryCleared              => T("[green]✓[/] Update history cleared.");
     public string ColDate                     => T("[bold]Date[/]");
     public string ColComponent                => T("[bold]Component[/]");
     public string ColPreviousVersion          => T("[bold]Previous Version[/]");
@@ -407,7 +409,7 @@ public abstract class BaseStrings(IReadOnlyDictionary<string, string> overrides)
     public string HelpInstallDesc             => T("Installs all OpenBase NuGet templates");
     public string HelpNewDesc                 => T("Creates a new structured project");
     public string HelpScaffoldDesc            => T("Generates all CRUD layers for an entity (Domain, Application, Infra, Presentation)");
-    public string HelpHistoryDesc             => T("Shows update history (--type cli | sqlserver | postgres | oracle)");
+    public string HelpHistoryDesc             => T("Shows update history (--type cli | sqlserver | postgres | oracle | --clear)");
     public string HelpUpdateDesc              => T("Syncs and updates templates and CLI");
     public string HelpVersionShowDesc         => T("Shows versions of the installed environment");
     public string HelpVersionRestoreDesc      => T("Restores a component to a specific version (--type cli | sqlserver | postgres | oracle)");
@@ -622,6 +624,7 @@ public sealed class PtBrStrings() : BaseStrings(new Dictionary<string, string>
     ["RestoreSuccess"]               = "[green]✓[/] {0} restaurado para a versão {1}.",
     ["InvalidTypeHistory"]           = "[red]Erro:[/] Tipo inválido [yellow]{0}[/]. Use: cli, sqlserver, postgres, oracle",
     ["NoHistoryFound"]               = "[grey]Nenhum histórico de atualização encontrado.[/]",
+    ["HistoryCleared"]               = "[green]✓[/] Histórico de atualizações limpo.",
     ["ColDate"]                      = "[bold]Data[/]",
     ["ColComponent"]                 = "[bold]Componente[/]",
     ["ColPreviousVersion"]           = "[bold]Versão Anterior[/]",
@@ -633,7 +636,7 @@ public sealed class PtBrStrings() : BaseStrings(new Dictionary<string, string>
     ["HelpInstallDesc"]              = "Instala todos os templates NuGet do OpenBase",
     ["HelpNewDesc"]                  = "Cria um novo projeto estruturado",
     ["HelpScaffoldDesc"]             = "Gera todas as camadas CRUD de uma entidade (Domain, Application, Infra, Presentation)",
-    ["HelpHistoryDesc"]              = "Exibe o histórico de atualizações (--type cli | sqlserver | postgres | oracle)",
+    ["HelpHistoryDesc"]              = "Exibe o histórico de atualizações (--type cli | sqlserver | postgres | oracle | --clear)",
     ["HelpUpdateDesc"]               = "Sincroniza e atualiza templates e a CLI",
     ["HelpVersionShowDesc"]          = "Mostra versões do ambiente instalado",
     ["HelpVersionRestoreDesc"]       = "Restaura um componente para uma versão específica (--type cli | sqlserver | postgres | oracle)",
@@ -850,6 +853,7 @@ public sealed class EsStrings() : BaseStrings(new Dictionary<string, string>
     ["RestoreSuccess"]               = "[green]✓[/] {0} restaurado a la versión {1}.",
     ["InvalidTypeHistory"]           = "[red]Error:[/] Tipo inválido [yellow]{0}[/]. Use: cli, sqlserver, postgres, oracle",
     ["NoHistoryFound"]               = "[grey]No se encontró historial de actualizaciones.[/]",
+    ["HistoryCleared"]               = "[green]✓[/] Historial de actualizaciones limpiado.",
     ["ColDate"]                      = "[bold]Fecha[/]",
     ["ColComponent"]                 = "[bold]Componente[/]",
     ["ColPreviousVersion"]           = "[bold]Versión Anterior[/]",
@@ -862,7 +866,7 @@ public sealed class EsStrings() : BaseStrings(new Dictionary<string, string>
     ["HelpInstallDesc"]              = "Instala todos los templates NuGet de OpenBase",
     ["HelpNewDesc"]                  = "Crea un nuevo proyecto estructurado",
     ["HelpScaffoldDesc"]             = "Genera todas las capas CRUD de una entidad (Domain, Application, Infra, Presentation)",
-    ["HelpHistoryDesc"]              = "Muestra el historial de actualizaciones (--type cli | sqlserver | postgres | oracle)",
+    ["HelpHistoryDesc"]              = "Muestra el historial de actualizaciones (--type cli | sqlserver | postgres | oracle | --clear)",
     ["HelpUpdateDesc"]               = "Sincroniza y actualiza templates y la CLI",
     ["HelpVersionShowDesc"]          = "Muestra versiones del entorno instalado",
     ["HelpVersionRestoreDesc"]       = "Restaura un componente a una versión específica (--type cli | sqlserver | postgres | oracle)",

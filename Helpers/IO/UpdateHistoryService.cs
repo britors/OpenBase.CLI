@@ -51,6 +51,14 @@ public sealed class UpdateHistoryService : IUpdateHistoryService
         }
     }
 
+    public Task ClearHistoryAsync(CancellationToken cancellationToken)
+    {
+        if (File.Exists(_historyFilePath))
+            File.Delete(_historyFilePath);
+
+        return Task.CompletedTask;
+    }
+
     private async Task WriteAllAsync(List<UpdateHistoryEntry> history, CancellationToken cancellationToken)
     {
         var directory = Path.GetDirectoryName(_historyFilePath)!;
