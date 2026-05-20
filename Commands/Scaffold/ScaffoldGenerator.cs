@@ -250,8 +250,9 @@ public sealed partial class ScaffoldGenerator(ScaffoldContext ctx)
         sb.Append($"\n{I8}Assert.True(result.IsValid);");
         sb.Append($"\n{I4}}}");
 
+        var idZeroArgs = ctx.Properties.Count == 0 ? "0" : $"0, {CreateTestArgs()}";
         AppendValidatorFact(sb, "Validate_IsInvalid_WhenIdIsZero",
-            $"Update{ctx.Entity}Command(0, {CreateTestArgs()})", "Id");
+            $"Update{ctx.Entity}Command({idZeroArgs})", "Id");
 
         foreach (var name in ctx.Properties.Where(p => p.IsStringType).Select(p => p.Name))
         {
