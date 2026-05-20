@@ -5,9 +5,11 @@ namespace OpenBase.CLI.Commands.Procedure;
 
 public sealed class ProcedureGenerator(ProcedureContext ctx)
 {
-    private const string I4  = "    ";
-    private const string I8  = "        ";
-    private const string I12 = "            ";
+    private const string I4      = "    ";
+    private const string I8      = "        ";
+    private const string I12     = "            ";
+    private const string CsShort  = "short";
+    private const string CsString = "string";
 
     public IEnumerable<(string Path, string Content)> GetFiles()
     {
@@ -44,21 +46,21 @@ public sealed class ProcedureGenerator(ProcedureContext ctx)
 
         foreach (var p in ctx.InputParams)
         {
-            if (p.CsType is "int" or "long" or "short")
+            if (p.CsType is "int" or "long" or CsShort)
                 rules.Add($"RuleFor(x => x.{p.Name}).NotEmpty();");
             else if (p.CsType == "Guid")
                 rules.Add($"RuleFor(x => x.{p.Name}).NotEmpty();");
-            else if (p.CsType == "string")
+            else if (p.CsType == CsString)
                 rules.Add($"RuleFor(x => x.{p.Name})\n{I12}.NotEmpty()\n{I12}.MaximumLength(255);");
         }
 
         return rules.Count == 0 ? string.Empty : string.Join($"\n\n{I8}", rules);
     }
 
-    private string TestValue(ProcedureParameter p) => p.CsType switch
+    private static string TestValue(ProcedureParameter p) => p.CsType switch
     {
-        "int" or "long" or "short" => "1",
-        "string"                   => "\"Test\"",
+        "int" or "long" or CsShort => "1",
+        CsString                   => "\"Test\"",
         "bool"                     => "true",
         "decimal"                  => "1.0m",
         "double"                   => "1.0",
@@ -71,10 +73,10 @@ public sealed class ProcedureGenerator(ProcedureContext ctx)
         _                          => "default"
     };
 
-    private string DefaultOutputTestValue(ProcedureParameter p) => p.CsType switch
+    private static string DefaultOutputTestValue(ProcedureParameter p) => p.CsType switch
     {
-        "int" or "long" or "short" => "0",
-        "string"                   => "string.Empty",
+        "int" or "long" or CsShort => "0",
+        CsString                   => "string.Empty",
         "bool"                     => "false",
         "decimal"                  => "0m",
         "double"                   => "0.0",
@@ -103,7 +105,7 @@ public sealed class ProcedureGenerator(ProcedureContext ctx)
     {
         var sb = new StringBuilder();
 
-        foreach (var p in ctx.InputParams.Where(p => p.CsType is "int" or "long" or "short" or "Guid"))
+        foreach (var p in ctx.InputParams.Where(p => p.CsType is "int" or "long" or CsShort or "Guid"))
         {
             sb.Append($"\n\n{I4}[Fact]");
             sb.Append($"\n{I4}public void Validate_IsInvalid_When{p.Name}IsZero()");
@@ -114,7 +116,7 @@ public sealed class ProcedureGenerator(ProcedureContext ctx)
             sb.Append($"\n{I4}}}");
         }
 
-        foreach (var p in ctx.InputParams.Where(p => p.CsType == "string"))
+        foreach (var p in ctx.InputParams.Where(p => p.CsType == CsString))
         {
             sb.Append($"\n\n{I4}[Fact]");
             sb.Append($"\n{I4}public void Validate_IsInvalid_When{p.Name}IsEmpty()");
