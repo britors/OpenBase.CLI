@@ -127,11 +127,60 @@ public class ProcedureGeneratorTests
     }
 
     [Fact]
-    public void GetFiles_RepositoryImplementationThrowsNotImplemented()
+    public void GetFiles_RepositoryImplementationInjectsDbSession()
     {
         var files = MakeGenerator().GetFiles().ToList();
         var implFile = files.Single(f => Path.GetFileName(f.Path) == "GetOrderByIdRepository.cs");
-        Assert.Contains("NotImplementedException", implFile.Content);
+        Assert.Contains("DbSession", implFile.Content);
+    }
+
+    [Fact]
+    public void GetFiles_RepositoryImplementationUsesExecuteAsyncWithRetry()
+    {
+        var files = MakeGenerator().GetFiles().ToList();
+        var implFile = files.Single(f => Path.GetFileName(f.Path) == "GetOrderByIdRepository.cs");
+        Assert.Contains("ExecuteAsyncWithRetry", implFile.Content);
+    }
+
+    [Fact]
+    public void GetFiles_RepositoryImplementationUsesCommandTypeStoredProcedure()
+    {
+        var files = MakeGenerator().GetFiles().ToList();
+        var implFile = files.Single(f => Path.GetFileName(f.Path) == "GetOrderByIdRepository.cs");
+        Assert.Contains("CommandType.StoredProcedure", implFile.Content);
+    }
+
+    [Fact]
+    public void GetFiles_RepositoryImplementationAddsDynamicParameters()
+    {
+        var files = MakeGenerator().GetFiles().ToList();
+        var implFile = files.Single(f => Path.GetFileName(f.Path) == "GetOrderByIdRepository.cs");
+        Assert.Contains("DynamicParameters", implFile.Content);
+        Assert.Contains("parameters.Add(\"@OrderId\"", implFile.Content);
+    }
+
+    [Fact]
+    public void GetFiles_RepositoryImplementationReadsOutputParam()
+    {
+        var files = MakeGenerator().GetFiles().ToList();
+        var implFile = files.Single(f => Path.GetFileName(f.Path) == "GetOrderByIdRepository.cs");
+        Assert.Contains("parameters.Get<decimal>(\"@TotalAmount\")", implFile.Content);
+    }
+
+    [Fact]
+    public void GetFiles_RepositoryImplementation_NoOutputParams_ReturnsBoolSuccess()
+    {
+        var files = MakeGenerator(parameters: [new ProcedureParameter("OrderId", "int", ParameterDirection.In)]).GetFiles().ToList();
+        var implFile = files.Single(f => Path.GetFileName(f.Path) == "GetOrderByIdRepository.cs");
+        Assert.Contains("Response(true)", implFile.Content);
+    }
+
+    [Fact]
+    public void GetFiles_RepositoryImplementation_NoParams_SkipsDynamicParameters()
+    {
+        var files = MakeGenerator(parameters: []).GetFiles().ToList();
+        var implFile = files.Single(f => Path.GetFileName(f.Path) == "GetOrderByIdRepository.cs");
+        Assert.DoesNotContain("DynamicParameters", implFile.Content);
     }
 
     [Fact]

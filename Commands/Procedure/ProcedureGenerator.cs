@@ -190,22 +190,96 @@ public sealed class ProcedureGenerator(ProcedureContext ctx)
         }
         """;
 
-    private string RepositoryImplementationTemplate() => $$"""
-        using {{ctx.NS}}.Application.DTOs.{{ctx.ProcedureName}}.Responses;
-        using {{ctx.NS}}.Application.Features.{{ctx.ProcedureName}}Feature;
-        using {{ctx.NS}}.Domain.Interfaces.Repositories;
+    private string RepositoryImplementationTemplate()
+    {
+        var sb = new StringBuilder();
 
-        namespace {{ctx.NS}}.Infra.Data.Repositories;
+        sb.AppendLine("using Dapper;");
+        sb.AppendLine("using System.Data;");
+        sb.AppendLine($"using {ctx.NS}.Application.DTOs.{ctx.ProcedureName}.Responses;");
+        sb.AppendLine($"using {ctx.NS}.Application.Features.{ctx.ProcedureName}Feature;");
+        sb.AppendLine($"using {ctx.NS}.Domain.Interfaces.Repositories;");
+        sb.AppendLine($"using {ctx.NS}.Infra.Data.Context;");
+        sb.AppendLine($"using {ctx.NS}.Infra.Dapper.Extension;");
+        sb.AppendLine();
+        sb.AppendLine($"namespace {ctx.NS}.Infra.Data.Repositories;");
+        sb.AppendLine();
+        sb.AppendLine($"public sealed class {ctx.ProcedureName}Repository(DbSession dbSession) : I{ctx.ProcedureName}Repository");
+        sb.AppendLine("{");
+        sb.AppendLine($"{I4}public async Task<{ctx.ProcedureName}Response> ExecuteAsync(Execute{ctx.ProcedureName}Command command, CancellationToken cancellationToken)");
+        sb.AppendLine($"{I4}{{");
 
-        public sealed class {{ctx.ProcedureName}}Repository : I{{ctx.ProcedureName}}Repository
+        var hasParams = ctx.Parameters.Count > 0;
+
+        if (hasParams)
         {
-            public Task<{{ctx.ProcedureName}}Response> ExecuteAsync(Execute{{ctx.ProcedureName}}Command command, CancellationToken cancellationToken)
+            sb.AppendLine($"{I8}var parameters = new DynamicParameters();");
+            foreach (var p in ctx.InputParams)
+                sb.AppendLine($"{I8}parameters.Add(\"@{p.Name}\", command.{p.Name});");
+            foreach (var p in ctx.OutputParams)
+                sb.AppendLine($"{I8}parameters.Add(\"@{p.Name}\", dbType: DbType.{CsTypeToDbType(p.CsType)}, direction: ParameterDirection.Output);");
+            sb.AppendLine();
+        }
+
+        sb.AppendLine($"{I8}await dbSession.Connection!.ExecuteAsyncWithRetry(");
+        sb.AppendLine($"{I12}cancellationToken,");
+        sb.AppendLine($"{I12}sql: \"{ctx.ProcedureName}\",");
+        sb.AppendLine($"{I12}transaction: dbSession.Transaction,");
+        if (hasParams)
+        {
+            sb.AppendLine($"{I12}commandType: CommandType.StoredProcedure,");
+            sb.AppendLine($"{I12}parameters: parameters);");
+        }
+        else
+        {
+            sb.AppendLine($"{I12}commandType: CommandType.StoredProcedure);");
+        }
+
+        sb.AppendLine();
+
+        if (ctx.OutputParams.Count == 0)
+        {
+            sb.AppendLine($"{I8}return new {ctx.ProcedureName}Response(true);");
+        }
+        else if (ctx.OutputParams.Count == 1)
+        {
+            var p = ctx.OutputParams[0];
+            sb.AppendLine($"{I8}return new {ctx.ProcedureName}Response({p.Name}: parameters.Get<{p.CsType}>(\"@{p.Name}\"));");
+        }
+        else
+        {
+            sb.AppendLine($"{I8}return new {ctx.ProcedureName}Response(");
+            for (var i = 0; i < ctx.OutputParams.Count; i++)
             {
-                // TODO: implement stored procedure/package call
-                throw new NotImplementedException();
+                var p   = ctx.OutputParams[i];
+                var end = i < ctx.OutputParams.Count - 1 ? "," : ");";
+                sb.AppendLine($"{I12}{p.Name}: parameters.Get<{p.CsType}>(\"@{p.Name}\"){end}");
             }
         }
-        """;
+
+        sb.AppendLine($"{I4}}}");
+        sb.Append("}");
+
+        return sb.ToString();
+    }
+
+    private static string CsTypeToDbType(string csType) => csType switch
+    {
+        "int"            => "Int32",
+        "long"           => "Int64",
+        CsShort          => "Int16",
+        "bool"           => "Boolean",
+        "decimal"        => "Decimal",
+        "double"         => "Double",
+        "float"          => "Single",
+        "DateTime"       => "DateTime",
+        "DateTimeOffset" => "DateTimeOffset",
+        "DateOnly"       => "Date",
+        "TimeOnly"       => "Time",
+        "Guid"           => "Guid",
+        "byte[]"         => "Binary",
+        _                => "String"
+    };
 
     private string HandlerTestTemplate() => $$"""
         using Moq;
