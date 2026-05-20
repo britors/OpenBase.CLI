@@ -331,7 +331,68 @@ CreateMap<PaginatedQueryResult<{method}QueryResult>, PaginatedResponse<{method}R
 
 ---
 
-### 8. Add an extension
+### 8. Generate CQRS structure for a stored procedure or package
+
+From the root of the project, generate the CQRS layers for an existing stored procedure or package:
+
+```bash
+# Provide the procedure name directly (reads parameters from the database)
+openbase procedure --name GetOrderById
+
+# Specify schema/owner explicitly
+openbase procedure --name GetOrderById --schema dbo
+
+# Oracle package
+openbase procedure --name GetOrderById --schema HR
+```
+
+**Interactive mode** — run without `--name` to list available procedures from the connected database and select one:
+
+```bash
+openbase procedure
+```
+
+The CLI connects to the database configured in `appsettings.json`, reads the IN/OUT parameters of the selected procedure, and shows a summary table before generating:
+
+```
+┌────────────────┬───────────┬──────────┐
+│ Parameter      │ Direction │ C# Type  │
+├────────────────┼───────────┼──────────┤
+│ OrderId        │ IN        │ int      │
+│ CustomerId     │ IN        │ int      │
+│ TotalAmount    │ OUT       │ decimal  │
+│ Status         │ OUT       │ string   │
+└────────────────┴───────────┴──────────┘
+
+Proceed with scaffold? [y/n]
+```
+
+#### Files generated (8 per procedure)
+
+| File | Layer | Notes |
+|---|---|---|
+| `Execute{Name}Command.cs` | Application Features | MediatR command — IN parameters |
+| `Execute{Name}CommandHandler.cs` | Application Features | Handler — delegates to repository |
+| `Execute{Name}CommandValidator.cs` | Application Features | FluentValidation rules for IN params |
+| `{Name}Response.cs` | Application DTOs | Record struct — OUT parameters |
+| `I{Name}Repository.cs` | Domain Interfaces | Repository contract |
+| `{Name}Repository.cs` | Infra.Data | Stub implementation — fill in the procedure call |
+| `Execute{Name}CommandHandlerTests.cs` | Tests | Handler unit tests with Moq |
+| `Execute{Name}CommandValidatorTests.cs` | Tests | Validator unit tests |
+
+#### Supported databases
+
+| Database   | Procedure listing | Parameter reading |
+|------------|:-----------------:|:-----------------:|
+| SQL Server | ✓                 | ✓                 |
+| Oracle     | ✓ (packages too)  | ✓                 |
+| PostgreSQL | ✓                 | ✓                 |
+
+> After generation, open `{Name}Repository.cs` and implement the stored procedure call using your preferred data access library (Dapper, ADO.NET, etc.).
+
+---
+
+### 9. Add an extension
 
 Extensions add cross-cutting capabilities to an existing OpenBase project. Run from the solution root:
 
@@ -482,9 +543,12 @@ builder.Services.AddRedisCache(builder.Configuration);
 | `new`                    | Creates a new project from the templates                 | `openbase new --type api --template sqlserver --name X`<br>`openbase new --type api --template pgsql --name X`<br>`openbase new --type api --template oracle --name X` |
 | `scaffold`               | Generates all layers for an entity; `--update` syncs with table changes | `openbase scaffold --entity Product`<br>`openbase scaffold --entity Product --update` |
 | `specialist`             | Adds specialist Query/Command methods to an existing entity across all layers | `openbase specialist --entity Product` |
+| `procedure`              | Generates CQRS structure for a stored procedure or package | `openbase procedure --name GetOrderById`<br>`openbase procedure --name GetOrderById --schema dbo` |
 | `extension add`          | Adds an installable extension to the project             | `openbase extension add jwt`                                   |
+| `extension list`         | Lists available extensions and their installation status | `openbase extension list`                                      |
 | `update`                 | Updates the CLI and templates to the latest version      | `openbase update`                                              |
-| `history`                | Shows or clears the update history per component         | `openbase history --type cli`                                  |
+| `history`                | Shows update history; filter by component with `--type`  | `openbase history`<br>`openbase history --type cli`            |
+| `history --clear`        | Clears all update history                                | `openbase history --clear`                                     |
 | `version show`           | Shows the installed CLI and template versions            | `openbase version show`                                        |
 | `version restore`        | Restores a component to a specific version               | `openbase version restore 10.5.9 --type cli`                   |
 | `help`                   | Full guide to arguments and flags                        | `openbase help`                                                |
