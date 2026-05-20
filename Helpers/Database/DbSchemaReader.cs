@@ -178,4 +178,155 @@ public sealed class DbSchemaReader : IDbSchemaReader
         p.Value = value;
         cmd.Parameters.Add(p);
     }
+
+
+    private const string SqlServerListProceduresQuery = """
+        SELECT SCHEMA_NAME(schema_id) AS schema_name, name AS proc_name
+        FROM sys.objects
+        WHERE type IN ('P', 'FN', 'IF', 'TF')
+          AND is_ms_shipped = 0
+        ORDER BY schema_name, proc_name
+        """;
+
+    private const string OracleListProceduresQuery = """
+        SELECT owner, object_name
+        FROM all_objects
+        WHERE object_type IN ('PROCEDURE', 'FUNCTION', 'PACKAGE')
+          AND owner NOT IN (
+              'SYS', 'SYSTEM', 'OUTLN', 'DBSNMP', 'ORACLE_OCM', 'MDSYS', 'ORDSYS',
+              'ORDDATA', 'XDB', 'WMSYS', 'CTXSYS', 'EXFSYS', 'DVSYS', 'LBACSYS',
+              'OJVMSYS', 'OLAPSYS', 'APPQOSSYS', 'AUDSYS', 'GSMADMIN_INTERNAL',
+              'XS$NULL', 'GGSYS', 'GSMCATUSER', 'GSMUSER', 'SYSRAC', 'DVF',
+              'SYSBACKUP', 'SYSDG', 'SYSKM', 'DBSFWUSER', 'REMOTE_SCHEDULER_AGENT'
+          )
+        ORDER BY owner, object_name
+        """;
+
+    private const string PostgresListProceduresQuery = """
+        SELECT routine_schema, routine_name
+        FROM information_schema.routines
+        WHERE routine_type IN ('PROCEDURE', 'FUNCTION')
+          AND routine_schema NOT IN ('pg_catalog', 'information_schema')
+        ORDER BY routine_schema, routine_name
+        """;
+
+    public IReadOnlyList<DbProcedureInfo> ListProcedures(string connectionString, DbFlavor dbFlavor)
+    {
+        using DbConnection conn = dbFlavor switch
+        {
+            DbFlavor.Postgres => new NpgsqlConnection(connectionString),
+            DbFlavor.Oracle   => new OracleConnection(connectionString),
+            _                 => new SqlConnection(connectionString),
+        };
+        conn.Open();
+
+        var procs = new List<DbProcedureInfo>();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = dbFlavor switch
+        {
+            DbFlavor.Oracle   => OracleListProceduresQuery,
+            DbFlavor.Postgres => PostgresListProceduresQuery,
+            _                 => SqlServerListProceduresQuery,
+        };
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+            procs.Add(new DbProcedureInfo(reader.GetString(0), reader.GetString(1)));
+
+        return procs;
+    }
+
+
+    private const string SqlServerProcParamsQuery = """
+        SELECT p.name, t.name AS data_type, p.is_output
+        FROM sys.parameters p
+        JOIN sys.objects o ON p.object_id = o.object_id
+        JOIN sys.types t ON p.user_type_id = t.user_type_id
+        WHERE SCHEMA_NAME(o.schema_id) = @schema
+          AND o.name = @procedureName
+          AND p.parameter_id > 0
+        ORDER BY p.parameter_id
+        """;
+
+    private const string OracleProcParamsQuery = """
+        SELECT argument_name, data_type, in_out
+        FROM all_arguments
+        WHERE owner = UPPER(:schema)
+          AND object_name = UPPER(:procedureName)
+          AND argument_name IS NOT NULL
+        ORDER BY position
+        """;
+
+    private const string PostgresProcParamsQuery = """
+        SELECT p.parameter_name, p.data_type, p.parameter_mode
+        FROM information_schema.parameters p
+        JOIN information_schema.routines r
+            ON p.specific_schema = r.specific_schema
+           AND p.specific_name   = r.specific_name
+        WHERE r.routine_schema = @schema
+          AND r.routine_name   = @procedureName
+        ORDER BY p.ordinal_position
+        """;
+
+    public IReadOnlyList<ProcedureParameter> ReadProcedureParameters(
+        string connectionString,
+        string schema,
+        string procedureName,
+        DbFlavor dbFlavor)
+    {
+        using DbConnection conn = dbFlavor switch
+        {
+            DbFlavor.Postgres => new NpgsqlConnection(connectionString),
+            DbFlavor.Oracle   => new OracleConnection(connectionString),
+            _                 => new SqlConnection(connectionString),
+        };
+        conn.Open();
+
+        var parameters = new List<ProcedureParameter>();
+        using var cmd = conn.CreateCommand();
+
+        cmd.CommandText = dbFlavor switch
+        {
+            DbFlavor.Oracle   => OracleProcParamsQuery,
+            DbFlavor.Postgres => PostgresProcParamsQuery,
+            _                 => SqlServerProcParamsQuery,
+        };
+
+        AddParam(cmd, dbFlavor == DbFlavor.Oracle ? ":schema"        : "@schema",        schema);
+        AddParam(cmd, dbFlavor == DbFlavor.Oracle ? ":procedureName" : "@procedureName", procedureName);
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            var rawName  = reader.GetString(0).TrimStart('@');
+            var dataType = reader.GetString(1);
+            var dirRaw   = reader.GetString(2);
+
+            var name   = SqlTypeMapper.ToPascalCase(rawName);
+            var csType = SqlTypeMapper.ToCSharpType(dataType, dbFlavor);
+            var dir    = ParseDirection(dirRaw, dbFlavor);
+
+            parameters.Add(new ProcedureParameter(name, csType, dir));
+        }
+
+        return parameters;
+    }
+
+    private static Models.ParameterDirection ParseDirection(string raw, DbFlavor dbFlavor) =>
+        dbFlavor switch
+        {
+            DbFlavor.SqlServer => raw == "1" || raw.Equals("true", StringComparison.OrdinalIgnoreCase)
+                ? Models.ParameterDirection.Out
+                : Models.ParameterDirection.In,
+            DbFlavor.Oracle => raw.Equals("IN/OUT", StringComparison.OrdinalIgnoreCase)
+                ? Models.ParameterDirection.InOut
+                : raw.Equals("OUT", StringComparison.OrdinalIgnoreCase)
+                    ? Models.ParameterDirection.Out
+                    : Models.ParameterDirection.In,
+            _ => raw.Equals("INOUT", StringComparison.OrdinalIgnoreCase)
+                ? Models.ParameterDirection.InOut
+                : raw.Equals("OUT", StringComparison.OrdinalIgnoreCase)
+                    ? Models.ParameterDirection.Out
+                    : Models.ParameterDirection.In,
+        };
 }

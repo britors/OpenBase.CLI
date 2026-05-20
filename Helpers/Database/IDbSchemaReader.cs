@@ -13,4 +13,12 @@ public interface IDbSchemaReader
         string schema,
         string tableName,
         DbFlavor dbFlavor);
+
+    IReadOnlyList<DbProcedureInfo> ListProcedures(string connectionString, DbFlavor dbFlavor);
+
+    IReadOnlyList<ProcedureParameter> ReadProcedureParameters(
+        string connectionString,
+        string schema,
+        string procedureName,
+        DbFlavor dbFlavor);
 }

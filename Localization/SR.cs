@@ -259,6 +259,19 @@ public interface IStrings
     string FilesUpdated { get; }                     // {0}=count
     string ScaffoldUpdateSuccess { get; }            // {0}=entity
     string ScaffoldUpdateMigrationHint { get; }      // {0}=entity
+
+    string CmdProcedureDescription { get; }
+    string HelpProcedureDesc { get; }
+    string ProcedureNameRequired { get; }
+    string ProcedureNameMustBePascalCase { get; }
+    string ProcedureSuccess { get; }                // {0}=name
+    string ProcedureReadingParams { get; }          // {0}=schema {1}=name
+    string ProcedureNoParamsFound { get; }
+    string ProcedureNoProcsFound { get; }
+    string ProcedureListingProcs { get; }
+    string ProcedureSelectPrompt { get; }
+    string ProcedureColParam { get; }
+    string ProcedureColDirection { get; }
 }
 
 
@@ -521,6 +534,19 @@ public abstract class BaseStrings(IReadOnlyDictionary<string, string> overrides)
     public string FilesUpdated                  => T("{0} file(s) updated:");
     public string ScaffoldUpdateSuccess         => T("\n[green]Scaffold for entity [bold]{0}[/] updated successfully![/]");
     public string ScaffoldUpdateMigrationHint   => T("[grey]Don't forget to create a migration: [blue]dotnet ef migrations add Update{0}[/][/]");
+
+    public string CmdProcedureDescription  => T("Generates CQRS structure for stored procedures and packages.");
+    public string HelpProcedureDesc        => T("Generates Command/Handler/Validator for a stored procedure or package");
+    public string ProcedureNameRequired    => T("Provide the procedure name with [blue]--name <NAME>[/] or run interactively.");
+    public string ProcedureNameMustBePascalCase => T("The procedure name must start with an uppercase letter (PascalCase) and contain only letters and numbers.");
+    public string ProcedureSuccess         => T("\n[green]Procedure [bold]{0}[/] generated successfully![/]");
+    public string ProcedureReadingParams   => T("Reading parameters of [blue]{0}.{1}[/]...");
+    public string ProcedureNoParamsFound   => T("[yellow]No parameters found. Generating with empty parameters.[/]");
+    public string ProcedureNoProcsFound    => T("[yellow]No procedures/packages found in the database.[/]");
+    public string ProcedureListingProcs    => T("Listing procedures...");
+    public string ProcedureSelectPrompt    => T("Select the procedure:");
+    public string ProcedureColParam        => T("Parameter");
+    public string ProcedureColDirection    => T("Direction");
 }
 
 
@@ -753,6 +779,18 @@ public sealed class PtBrStrings() : BaseStrings(new Dictionary<string, string>
     ["FilesUpdated"]                  = "{0} arquivo(s) atualizado(s):",
     ["ScaffoldUpdateSuccess"]         = "\n[green]Scaffold da entidade [bold]{0}[/] atualizado com sucesso![/]",
     ["ScaffoldUpdateMigrationHint"]   = "[grey]Não esqueça de criar a migration: [blue]dotnet ef migrations add Update{0}[/][/]",
+    ["CmdProcedureDescription"]  = "Gera estrutura CQRS para stored procedures e packages.",
+    ["HelpProcedureDesc"]        = "Gera Command/Handler/Validator CQRS para uma stored procedure ou package",
+    ["ProcedureNameRequired"]    = "Informe o nome da procedure com [blue]--name <NOME>[/] ou execute de forma interativa.",
+    ["ProcedureNameMustBePascalCase"] = "O nome da procedure deve começar com letra maiúscula (PascalCase) e conter apenas letras e números.",
+    ["ProcedureSuccess"]         = "\n[green]Procedure [bold]{0}[/] gerada com sucesso![/]",
+    ["ProcedureReadingParams"]   = "Lendo parâmetros de [blue]{0}.{1}[/]...",
+    ["ProcedureNoParamsFound"]   = "[yellow]Nenhum parâmetro encontrado. Gerando com parâmetros vazios.[/]",
+    ["ProcedureNoProcsFound"]    = "[yellow]Nenhuma procedure/package encontrada no banco de dados.[/]",
+    ["ProcedureListingProcs"]    = "Listando procedures...",
+    ["ProcedureSelectPrompt"]    = "Selecione a procedure:",
+    ["ProcedureColParam"]        = "Parâmetro",
+    ["ProcedureColDirection"]    = "Direção",
 }) { }
 
 
@@ -983,6 +1021,18 @@ public sealed class EsStrings() : BaseStrings(new Dictionary<string, string>
     ["FilesUpdated"]                  = "{0} archivo(s) actualizado(s):",
     ["ScaffoldUpdateSuccess"]         = "\n[green]Scaffold de la entidad [bold]{0}[/] actualizado con éxito![/]",
     ["ScaffoldUpdateMigrationHint"]   = "[grey]No olvide crear la migración: [blue]dotnet ef migrations add Update{0}[/][/]",
+    ["CmdProcedureDescription"]  = "Genera estructura CQRS para stored procedures y packages.",
+    ["HelpProcedureDesc"]        = "Genera Command/Handler/Validator CQRS para un stored procedure o package",
+    ["ProcedureNameRequired"]    = "Proporcione el nombre del procedure con [blue]--name <NOMBRE>[/] o ejecútelo de forma interactiva.",
+    ["ProcedureNameMustBePascalCase"] = "El nombre del procedure debe comenzar con mayúscula (PascalCase) y contener solo letras y números.",
+    ["ProcedureSuccess"]         = "\n[green]Procedure [bold]{0}[/] generado con éxito![/]",
+    ["ProcedureReadingParams"]   = "Leyendo parámetros de [blue]{0}.{1}[/]...",
+    ["ProcedureNoParamsFound"]   = "[yellow]No se encontraron parámetros. Generando con parámetros vacíos.[/]",
+    ["ProcedureNoProcsFound"]    = "[yellow]No se encontraron procedures/packages en la base de datos.[/]",
+    ["ProcedureListingProcs"]    = "Listando procedures...",
+    ["ProcedureSelectPrompt"]    = "Seleccione el procedure:",
+    ["ProcedureColParam"]        = "Parámetro",
+    ["ProcedureColDirection"]    = "Dirección",
 }) { }
 
 
