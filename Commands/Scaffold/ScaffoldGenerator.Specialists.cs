@@ -131,6 +131,7 @@ public sealed partial class ScaffoldGenerator
         return $$"""
             using Dapper;
             using {{ctx.NS}}.Domain.QueryResults;
+            using {{ctx.NS}}.Infra.Dapper.Extension;
 
             namespace {{ctx.NS}}.Infra.Data.Repositories;
 
@@ -141,8 +142,11 @@ public sealed partial class ScaffoldGenerator
                 public async Task<{{returnType}}> {{method}}Async(
                     {{MethodParamsLeading(p)}}CancellationToken cancellationToken = default)
                 {
-                    var result = await dbSession.Connection!.QueryAsync<{{method}}QueryResult>(
-                        {{method}}Sql, {{DapperAnon(p)}});
+                    var result = await dbSession.Connection!.QueryAsyncWithRetry<{{method}}QueryResult>(
+                        cancellationToken,
+                        sql: {{method}}Sql,
+                        transaction: dbSession.Transaction,
+                        parameters: {{DapperAnon(p)}});
                     return {{returnExpr}};
                 }
             }
@@ -303,6 +307,7 @@ public sealed partial class ScaffoldGenerator
 
     private string CommandRepositoryPartial(string method, IReadOnlyList<SpecialistParam> p, string sql) => $$"""
         using Dapper;
+        using {{ctx.NS}}.Infra.Dapper.Extension;
 
         namespace {{ctx.NS}}.Infra.Data.Repositories;
 
@@ -313,8 +318,11 @@ public sealed partial class ScaffoldGenerator
             public async Task<bool> {{method}}Async(
                 {{MethodParamsLeading(p)}}CancellationToken cancellationToken = default)
             {
-                var affected = await dbSession.Connection!.ExecuteAsync(
-                    {{method}}Sql, {{DapperAnon(p)}});
+                var affected = await dbSession.Connection!.ExecuteAsyncWithRetry(
+                    cancellationToken,
+                    sql: {{method}}Sql,
+                    transaction: dbSession.Transaction,
+                    parameters: {{DapperAnon(p)}});
                 return affected > 0;
             }
         }
