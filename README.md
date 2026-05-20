@@ -2,6 +2,9 @@
 
 ![OpenBase CLI](https://raw.githubusercontent.com/britors/OpenBase.CLI/main/banner.png)
 
+[![CI](https://github.com/britors/OpenBase.CLI/actions/workflows/ci.yml/badge.svg)](https://github.com/britors/OpenBase.CLI/actions/workflows/ci.yml)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=britors_OpenBase.CLI&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=britors_OpenBase.CLI)
+
 The official command-line interface for the **OpenBase** ecosystem.
 
 ---
@@ -604,7 +607,8 @@ The `--type` argument is required and accepts:
 
 - **Cross-platform**: Windows, macOS (Intel/Apple Silicon) and Linux
 - **Security**: Process execution protected against command injection (S4036 compliance)
-- Monitored by **SonarCloud**
+- **SonarCloud**: quality gate runs automatically on every PR and push to `main`
+- **Syntax validation**: all code generators are covered by Roslyn-based syntax tests — generated C# is validated on every CI run
 
 ---
 
