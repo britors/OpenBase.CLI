@@ -196,7 +196,7 @@ public class ProcedureCommand(
                 ParameterDirection.In    => "[green]IN[/]",
                 ParameterDirection.Out   => "[blue]OUT[/]",
                 ParameterDirection.InOut => "[yellow]IN/OUT[/]",
-                _                        => p.Direction.ToString()
+                _ => throw new ArgumentOutOfRangeException(nameof(p.Direction))
             };
             table.AddRow(p.Name, dir, p.CsType);
         }
