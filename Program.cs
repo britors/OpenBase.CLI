@@ -80,6 +80,11 @@ app.Configure(config =>
         .WithDescription(SR.Current.CmdSpecialistDescription)
         .WithExample("specialist", "--entity", "Produto");
 
+    config.AddCommand<ProcedureCommand>("procedure")
+        .WithDescription(SR.Current.CmdProcedureDescription)
+        .WithExample("procedure", "--name", "GetOrderById")
+        .WithExample("procedure", "--name", "GetOrderById", "--schema", "dbo");
+
     config.AddCommand<HistoryCommand>("history")
         .WithDescription(SR.Current.CmdHistoryDescription)
         .WithExample("history")
