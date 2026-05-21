@@ -11,7 +11,15 @@ public record ProjectSetupConfig(
     string DbName
 );
 
+public record ProjectSetupOverrides(
+    string? MediatrLicense = null,
+    string? AutomapperLicense = null,
+    string? DbServer = null,
+    string? DbName = null,
+    string? DbUser = null,
+    string? DbPassword = null);
+
 public interface IProjectConfigurator
 {
-    ProjectSetupConfig Collect(IDbTemplateStrategy strategy, string projectName);
+    ProjectSetupConfig Collect(IDbTemplateStrategy strategy, string projectName, ProjectSetupOverrides? overrides = null);
 }
