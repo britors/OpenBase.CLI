@@ -25,7 +25,7 @@ public class NewCommandTests
             .Returns(true);
 
         _configurator
-            .Setup(c => c.Collect(It.IsAny<IDbTemplateStrategy>(), It.IsAny<string>()))
+            .Setup(c => c.Collect(It.IsAny<IDbTemplateStrategy>(), It.IsAny<string>(), It.IsAny<ProjectSetupOverrides?>()))
             .Returns(DefaultConfig);
 
         _fileWriter
@@ -117,7 +117,7 @@ public class NewCommandTests
         await RunAsync(BuildSettings(template: "pgsql", name: ProjectName));
 
         _configurator.Verify(
-            c => c.Collect(It.Is<IDbTemplateStrategy>(s => s is PostgresTemplateStrategy), It.IsAny<string>()),
+            c => c.Collect(It.Is<IDbTemplateStrategy>(s => s is PostgresTemplateStrategy), It.IsAny<string>(), It.IsAny<ProjectSetupOverrides?>()),
             Times.Once);
     }
 
@@ -127,8 +127,8 @@ public class NewCommandTests
         var callOrder = new List<string>();
 
         _configurator
-            .Setup(c => c.Collect(It.IsAny<IDbTemplateStrategy>(), It.IsAny<string>()))
-            .Callback<IDbTemplateStrategy, string>((_, _) => callOrder.Add("collect"))
+            .Setup(c => c.Collect(It.IsAny<IDbTemplateStrategy>(), It.IsAny<string>(), It.IsAny<ProjectSetupOverrides?>()))
+            .Callback<IDbTemplateStrategy, string, ProjectSetupOverrides?>((_, _, _) => callOrder.Add("collect"))
             .Returns(DefaultConfig);
 
         _dotNetRunner
@@ -169,7 +169,7 @@ public class NewCommandTests
     {
         await RunAsync(BuildSettings(type: "web", template: "unknown"));
 
-        _configurator.Verify(c => c.Collect(It.IsAny<IDbTemplateStrategy>(), It.IsAny<string>()), Times.Never);
+        _configurator.Verify(c => c.Collect(It.IsAny<IDbTemplateStrategy>(), It.IsAny<string>(), It.IsAny<ProjectSetupOverrides?>()), Times.Never);
     }
 }
 

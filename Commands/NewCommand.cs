@@ -28,6 +28,30 @@ public class NewSettings : CommandSettings
     [Description("O nome do projeto a ser criado")]
     public string Name { get; set; } = string.Empty;
 
+    [CommandOption("--db-server <SERVIDOR>")]
+    [Description("Servidor do banco de dados (pula o prompt interativo)")]
+    public string? DbServer { get; set; }
+
+    [CommandOption("--db-name <NOME>")]
+    [Description("Nome do banco de dados (pula o prompt interativo)")]
+    public string? DbName { get; set; }
+
+    [CommandOption("--db-user <USUARIO>")]
+    [Description("Usuário do banco de dados (pula o prompt interativo)")]
+    public string? DbUser { get; set; }
+
+    [CommandOption("--db-password <SENHA>")]
+    [Description("Senha do banco de dados (pula o prompt interativo)")]
+    public string? DbPassword { get; set; }
+
+    [CommandOption("--mediatr-license <LICENCA>")]
+    [Description("Licença do MediatR (pula o prompt interativo)")]
+    public string? MediatrLicense { get; set; }
+
+    [CommandOption("--automapper-license <LICENCA>")]
+    [Description("Licença do AutoMapper (pula o prompt interativo)")]
+    public string? AutomapperLicense { get; set; }
+
     public override ValidationResult Validate()
     {
         if (string.IsNullOrWhiteSpace(Name))
@@ -108,7 +132,15 @@ public class NewCommand : AsyncCommand<NewSettings>
             return 1;
         }
 
-        var config = _configurator.Collect(strategy, settings.Name);
+        var overrides = new ProjectSetupOverrides(
+            settings.MediatrLicense,
+            settings.AutomapperLicense,
+            settings.DbServer,
+            settings.DbName,
+            settings.DbUser,
+            settings.DbPassword);
+
+        var config = _configurator.Collect(strategy, settings.Name, overrides);
 
         var (success, error) = await _console.Status()
             .Spinner(Spinner.Known.Dots)
