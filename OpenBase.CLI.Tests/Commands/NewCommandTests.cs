@@ -1,3 +1,4 @@
+using System.Text.Json;
 using OpenBase.CLI.Commands;
 using OpenBase.CLI.Helpers.Database;
 using OpenBase.CLI.Helpers.Execution;
@@ -395,5 +396,113 @@ public class NewCommandUpdateAppSettingsTests
 
         Assert.NotNull(written);
         Assert.Contains(expectedKey, written);
+    }
+}
+
+
+public class NewCommandWriteMetadataTests
+{
+    private const string ProjectName = "MinhaApi";
+
+    private readonly Mock<IFileWriter> _fileWriter = new();
+
+    private string? CaptureWrittenJson()
+    {
+        string? written = null;
+        _fileWriter
+            .Setup(f => f.WriteAllText(It.IsAny<string>(), It.IsAny<string>()))
+            .Callback<string, string>((_, c) => written = c);
+        return written;
+    }
+
+    [Fact]
+    public void WritesToDotOpenbaseJson()
+    {
+        var expectedPath = Path.Combine(ProjectName, ".openbase.json");
+        string? writtenPath = null;
+        _fileWriter
+            .Setup(f => f.WriteAllText(It.IsAny<string>(), It.IsAny<string>()))
+            .Callback<string, string>((p, _) => writtenPath = p);
+
+        NewCommand.WriteMetadata(ProjectName, "api:sqlserver", _fileWriter.Object);
+
+        Assert.Equal(expectedPath, writtenPath);
+    }
+
+    [Theory]
+    [InlineData("api:sqlserver")]
+    [InlineData("api:pgsql")]
+    [InlineData("api:oracle")]
+    public void WritesCorrectTemplate(string template)
+    {
+        string? written = null;
+        _fileWriter
+            .Setup(f => f.WriteAllText(It.IsAny<string>(), It.IsAny<string>()))
+            .Callback<string, string>((_, c) => written = c);
+
+        NewCommand.WriteMetadata(ProjectName, template, _fileWriter.Object);
+
+        var doc = JsonDocument.Parse(written!);
+        Assert.Equal(template, doc.RootElement.GetProperty("template").GetString());
+    }
+
+    [Fact]
+    public void WritesCreatedByOpenBaseCli()
+    {
+        string? written = null;
+        _fileWriter
+            .Setup(f => f.WriteAllText(It.IsAny<string>(), It.IsAny<string>()))
+            .Callback<string, string>((_, c) => written = c);
+
+        NewCommand.WriteMetadata(ProjectName, "api:sqlserver", _fileWriter.Object);
+
+        var doc = JsonDocument.Parse(written!);
+        Assert.Equal("OpenBase CLI", doc.RootElement.GetProperty("createdBy").GetString());
+    }
+
+    [Fact]
+    public void WritesVersion()
+    {
+        string? written = null;
+        _fileWriter
+            .Setup(f => f.WriteAllText(It.IsAny<string>(), It.IsAny<string>()))
+            .Callback<string, string>((_, c) => written = c);
+
+        NewCommand.WriteMetadata(ProjectName, "api:sqlserver", _fileWriter.Object);
+
+        var doc = JsonDocument.Parse(written!);
+        var version = doc.RootElement.GetProperty("version").GetString();
+        Assert.False(string.IsNullOrWhiteSpace(version));
+    }
+
+    [Fact]
+    public void WritesCreatedAt_IsRecent()
+    {
+        string? written = null;
+        _fileWriter
+            .Setup(f => f.WriteAllText(It.IsAny<string>(), It.IsAny<string>()))
+            .Callback<string, string>((_, c) => written = c);
+
+        var before = DateTimeOffset.UtcNow.AddSeconds(-1);
+        NewCommand.WriteMetadata(ProjectName, "api:sqlserver", _fileWriter.Object);
+        var after = DateTimeOffset.UtcNow.AddSeconds(1);
+
+        var doc = JsonDocument.Parse(written!);
+        var createdAt = doc.RootElement.GetProperty("createdAt").GetDateTimeOffset();
+        Assert.InRange(createdAt, before, after);
+    }
+
+    [Fact]
+    public void WritesValidJson()
+    {
+        string? written = null;
+        _fileWriter
+            .Setup(f => f.WriteAllText(It.IsAny<string>(), It.IsAny<string>()))
+            .Callback<string, string>((_, c) => written = c);
+
+        NewCommand.WriteMetadata(ProjectName, "api:sqlserver", _fileWriter.Object);
+
+        var ex = Record.Exception(() => JsonDocument.Parse(written!));
+        Assert.Null(ex);
     }
 }
