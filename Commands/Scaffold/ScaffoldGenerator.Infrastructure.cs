@@ -8,7 +8,7 @@ public sealed partial class ScaffoldGenerator
             Path.Combine(ctx.InfraContextPath, "Configurations", $"{ctx.Entity}Configuration.cs"),
             EfConfigurationTemplate());
         yield return (
-            Path.Combine(ctx.InfraDataPath, "Repositories", $"{ctx.Entity}Repository.cs"),
+            Path.Combine(ctx.InfraDataPath, "Repositories", ctx.Entity, $"{ctx.Entity}Repository.cs"),
             RepositoryTemplate());
     }
 

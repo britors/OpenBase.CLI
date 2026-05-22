@@ -5,7 +5,7 @@ public sealed partial class ScaffoldGenerator
     private IEnumerable<(string, string)> PresentationFiles()
     {
         yield return (
-            Path.Combine(ctx.PresentationPath, "Controllers", $"{ctx.Entity}Controller.cs"),
+            Path.Combine(ctx.PresentationPath, "Controllers", ctx.Entity, $"{ctx.Entity}Controller.cs"),
             ControllerTemplate());
     }
 
