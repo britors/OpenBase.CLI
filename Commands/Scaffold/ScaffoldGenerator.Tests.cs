@@ -4,9 +4,9 @@ public sealed partial class ScaffoldGenerator
 {
     private IEnumerable<(string, string)> TestFiles()
     {
-        var domainTests = Path.Combine(ctx.TestsPath, "Domain", Services);
+        var domainTests = Path.Combine(ctx.TestsPath, "Domain", Services, ctx.Entity);
         var featTests   = Path.Combine(ctx.TestsPath, "Application", "Features", $"{ctx.Entity}Features");
-        var appSvcTests = Path.Combine(ctx.TestsPath, "Application", Services);
+        var appSvcTests = Path.Combine(ctx.TestsPath, "Application", Services, ctx.Entity);
 
         yield return (Path.Combine(ctx.AppPath, "Properties", "AssemblyInfo.cs"), AssemblyInfoTemplate());
         yield return (Path.Combine(domainTests, $"{ctx.Entity}DomainServiceTests.cs"), DomainServiceTestsTemplate());

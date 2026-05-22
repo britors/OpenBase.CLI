@@ -44,9 +44,9 @@ public sealed partial class ScaffoldGenerator
         yield return (Path.Combine(update, $"Update{ctx.Entity}CommandHandler.cs"), UpdateCommandHandlerTemplate());
         yield return (Path.Combine(update, $"Update{ctx.Entity}CommandValidator.cs"), UpdateCommandValidatorTemplate());
 
-        yield return (Path.Combine(ctx.AppPath, "Interfaces", Services, $"I{ctx.Entity}ApplicationService.cs"), IApplicationServiceTemplate());
-        yield return (Path.Combine(ctx.AppPath, "Mappers", $"{ctx.Entity}MapperProfile.cs"), MapperProfileTemplate());
-        yield return (Path.Combine(ctx.AppPath, Services, $"{ctx.Entity}ApplicationService.cs"), ApplicationServiceTemplate());
+        yield return (Path.Combine(ctx.AppPath, "Interfaces", Services, ctx.Entity, $"I{ctx.Entity}ApplicationService.cs"), IApplicationServiceTemplate());
+        yield return (Path.Combine(ctx.AppPath, "Mappers", ctx.Entity, $"{ctx.Entity}MapperProfile.cs"), MapperProfileTemplate());
+        yield return (Path.Combine(ctx.AppPath, Services, ctx.Entity, $"{ctx.Entity}ApplicationService.cs"), ApplicationServiceTemplate());
     }
 
 

@@ -5,9 +5,9 @@ public sealed partial class ScaffoldGenerator
     private IEnumerable<(string, string)> DomainFiles()
     {
         yield return (Path.Combine(ctx.DomainPath, "Entities", $"{ctx.Entity}.cs"), EntityTemplate());
-        yield return (Path.Combine(ctx.DomainPath, "Interfaces", "Repositories", $"I{ctx.Entity}Repository.cs"), IRepositoryTemplate());
-        yield return (Path.Combine(ctx.DomainPath, "Interfaces", Services, $"I{ctx.Entity}DomainService.cs"), IDomainServiceTemplate());
-        yield return (Path.Combine(ctx.DomainPath, Services, $"{ctx.Entity}DomainService.cs"), DomainServiceTemplate());
+        yield return (Path.Combine(ctx.DomainPath, "Interfaces", "Repositories", ctx.Entity, $"I{ctx.Entity}Repository.cs"), IRepositoryTemplate());
+        yield return (Path.Combine(ctx.DomainPath, "Interfaces", Services, ctx.Entity, $"I{ctx.Entity}DomainService.cs"), IDomainServiceTemplate());
+        yield return (Path.Combine(ctx.DomainPath, Services, ctx.Entity, $"{ctx.Entity}DomainService.cs"), DomainServiceTemplate());
     }
 
     private string EntityTemplate() => $$"""

@@ -59,19 +59,19 @@ public sealed partial class ScaffoldGenerator
         var sql     = SpecialistParam.ToParameterizedSql(def.Sql, p);
 
         yield return (
-            Path.Combine(ctx.DomainPath, "QueryResults", $"{method}QueryResult.cs"),
+            Path.Combine(ctx.DomainPath, "QueryResults", ctx.Entity, $"{method}QueryResult.cs"),
             QueryResultRecordTemplate(method, cols));
         yield return (
-            Path.Combine(ctx.DomainPath, Interfaces, Repositories, $"I{ctx.Entity}Repository.{method}.cs"),
+            Path.Combine(ctx.DomainPath, Interfaces, Repositories, ctx.Entity, $"I{ctx.Entity}Repository.{method}.cs"),
             QueryRepositoryInterfacePartial(method, p, paged));
         yield return (
-            Path.Combine(ctx.InfraDataPath, Repositories, $"{ctx.Entity}Repository.{method}.cs"),
+            Path.Combine(ctx.InfraDataPath, Repositories, ctx.Entity, $"{ctx.Entity}Repository.{method}.cs"),
             QueryRepositoryPartial(method, p, sql, paged));
         yield return (
-            Path.Combine(ctx.DomainPath, Interfaces, Services, $"I{ctx.Entity}DomainService.{method}.cs"),
+            Path.Combine(ctx.DomainPath, Interfaces, Services, ctx.Entity, $"I{ctx.Entity}DomainService.{method}.cs"),
             QueryInterfacePartial(method, p, paged));
         yield return (
-            Path.Combine(ctx.DomainPath, Services, $"{ctx.Entity}DomainService.{method}.cs"),
+            Path.Combine(ctx.DomainPath, Services, ctx.Entity, $"{ctx.Entity}DomainService.{method}.cs"),
             QueryServicePartial(method, p, paged));
         yield return (Path.Combine(feat, $"{method}Query.cs"),          QuerySpecTemplate(method, p, paged));
         yield return (Path.Combine(feat, $"{method}QueryHandler.cs"),   QueryHandlerSpecTemplate(method, p, paged));
@@ -83,20 +83,20 @@ public sealed partial class ScaffoldGenerator
             Path.Combine(ctx.AppPath, "DTOs", ctx.Entity, Responses, $"{method}Response.cs"),
             QueryResponseDtoTemplate(method, cols));
         yield return (
-            Path.Combine(ctx.AppPath, "Mappers", $"{method}MapperProfile.cs"),
+            Path.Combine(ctx.AppPath, "Mappers", ctx.Entity, $"{method}MapperProfile.cs"),
             QueryMapperProfileTemplate(method, paged));
         yield return (
-            Path.Combine(ctx.AppPath, Interfaces, Services, $"I{ctx.Entity}ApplicationService.{method}.cs"),
+            Path.Combine(ctx.AppPath, Interfaces, Services, ctx.Entity, $"I{ctx.Entity}ApplicationService.{method}.cs"),
             QueryIAppServicePartial(method, paged));
         yield return (
-            Path.Combine(ctx.AppPath, Services, $"{ctx.Entity}ApplicationService.{method}.cs"),
+            Path.Combine(ctx.AppPath, Services, ctx.Entity, $"{ctx.Entity}ApplicationService.{method}.cs"),
             QueryAppServicePartial(method, p, paged));
         yield return (
-            Path.Combine(ctx.PresentationPath, "Controllers", $"{ctx.Entity}Controller.{method}.cs"),
+            Path.Combine(ctx.PresentationPath, "Controllers", ctx.Entity, $"{ctx.Entity}Controller.{method}.cs"),
             QueryControllerPartial(method));
 
         var featTests   = Path.Combine(ctx.TestsPath, Application, Features, $"{ctx.Entity}Features");
-        var appSvcTests = Path.Combine(ctx.TestsPath, Application, Services);
+        var appSvcTests = Path.Combine(ctx.TestsPath, Application, Services, ctx.Entity);
         yield return (Path.Combine(featTests, $"{method}QueryHandlerTests.cs"),          QueryHandlerTestsTemplate(method, p, cols, paged));
         yield return (Path.Combine(featTests, $"{method}QueryValidatorTests.cs"),         QueryValidatorTestsTemplate(method, p));
         yield return (Path.Combine(appSvcTests, $"{ctx.Entity}{method}AppServiceTests.cs"), QueryAppServiceTestsTemplate(method, p));
@@ -258,16 +258,16 @@ public sealed partial class ScaffoldGenerator
         var sql    = SpecialistParam.ToParameterizedSql(def.Sql, def.Parameters);
 
         yield return (
-            Path.Combine(ctx.DomainPath, Interfaces, Repositories, $"I{ctx.Entity}Repository.{method}.cs"),
+            Path.Combine(ctx.DomainPath, Interfaces, Repositories, ctx.Entity, $"I{ctx.Entity}Repository.{method}.cs"),
             CommandRepositoryInterfacePartial(method, def.Parameters));
         yield return (
-            Path.Combine(ctx.InfraDataPath, Repositories, $"{ctx.Entity}Repository.{method}.cs"),
+            Path.Combine(ctx.InfraDataPath, Repositories, ctx.Entity, $"{ctx.Entity}Repository.{method}.cs"),
             CommandRepositoryPartial(method, def.Parameters, sql));
         yield return (
-            Path.Combine(ctx.DomainPath, Interfaces, Services, $"I{ctx.Entity}DomainService.{method}.cs"),
+            Path.Combine(ctx.DomainPath, Interfaces, Services, ctx.Entity, $"I{ctx.Entity}DomainService.{method}.cs"),
             CommandInterfacePartial(method, def.Parameters));
         yield return (
-            Path.Combine(ctx.DomainPath, Services, $"{ctx.Entity}DomainService.{method}.cs"),
+            Path.Combine(ctx.DomainPath, Services, ctx.Entity, $"{ctx.Entity}DomainService.{method}.cs"),
             CommandServicePartial(method, def.Parameters));
         yield return (Path.Combine(feat, $"{method}Command.cs"),          CommandSpecTemplate(method, def.Parameters));
         yield return (Path.Combine(feat, $"{method}CommandHandler.cs"),   CommandHandlerSpecTemplate(method, def.Parameters));
@@ -279,17 +279,17 @@ public sealed partial class ScaffoldGenerator
             Path.Combine(ctx.AppPath, "DTOs", ctx.Entity, Responses, $"{method}Response.cs"),
             CommandResponseDtoTemplate(method));
         yield return (
-            Path.Combine(ctx.AppPath, Interfaces, Services, $"I{ctx.Entity}ApplicationService.{method}.cs"),
+            Path.Combine(ctx.AppPath, Interfaces, Services, ctx.Entity, $"I{ctx.Entity}ApplicationService.{method}.cs"),
             CommandIAppServicePartial(method));
         yield return (
-            Path.Combine(ctx.AppPath, Services, $"{ctx.Entity}ApplicationService.{method}.cs"),
+            Path.Combine(ctx.AppPath, Services, ctx.Entity, $"{ctx.Entity}ApplicationService.{method}.cs"),
             CommandAppServicePartial(method, def.Parameters));
         yield return (
-            Path.Combine(ctx.PresentationPath, "Controllers", $"{ctx.Entity}Controller.{method}.cs"),
+            Path.Combine(ctx.PresentationPath, "Controllers", ctx.Entity, $"{ctx.Entity}Controller.{method}.cs"),
             CommandControllerPartial(method));
 
         var featTests   = Path.Combine(ctx.TestsPath, Application, Features, $"{ctx.Entity}Features");
-        var appSvcTests = Path.Combine(ctx.TestsPath, Application, Services);
+        var appSvcTests = Path.Combine(ctx.TestsPath, Application, Services, ctx.Entity);
         yield return (Path.Combine(featTests, $"{method}CommandHandlerTests.cs"),           CommandHandlerTestsTemplate(method, def.Parameters));
         yield return (Path.Combine(featTests, $"{method}CommandValidatorTests.cs"),          CommandValidatorTestsTemplate(method, def.Parameters));
         yield return (Path.Combine(appSvcTests, $"{ctx.Entity}{method}AppServiceTests.cs"), CommandAppServiceTestsTemplate(method, def.Parameters));
