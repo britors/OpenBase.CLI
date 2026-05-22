@@ -298,6 +298,82 @@ public class ScaffoldCommandTests
     }
 
 
+    private static ScaffoldSettings BuildModelFirstSettings(
+        string entity = "Produto", string schema = "dbo", string table = "produtos") =>
+        new() { Entity = entity, Mode = "modelfirst", Schema = schema, Table = table };
+
+    [Fact]
+    public async Task Execute_ModelFirstMode_UsesModelFirstCollector()
+    {
+        SetupLocator("/solution", "OpenBaseNET");
+        _fileWriter.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
+        _modelFirstCollector
+            .Setup(c => c.Collect(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DbFlavor>(), It.IsAny<string?>(), It.IsAny<string?>()))
+            .Returns(([new EntityProperty("Name", "string", true)], "produtos"));
+
+        var result = await Run(BuildModelFirstSettings());
+
+        Assert.Equal(0, result);
+        _modelFirstCollector.Verify(c => c.Collect(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DbFlavor>(),
+            It.IsAny<string?>(), It.IsAny<string?>()), Times.Once);
+        _propertyCollector.Verify(c => c.Collect(It.IsAny<DbFlavor>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Execute_ModelFirstMode_PassesSchemaAndTableToCollector()
+    {
+        SetupLocator("/solution", "OpenBaseNET");
+        _fileWriter.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
+        _modelFirstCollector
+            .Setup(c => c.Collect(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DbFlavor>(), "dbo", "produtos"))
+            .Returns(([new EntityProperty("Name", "string", true)], "produtos"));
+
+        var result = await Run(BuildModelFirstSettings(schema: "dbo", table: "produtos"));
+
+        Assert.Equal(0, result);
+        _modelFirstCollector.Verify(c => c.Collect(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DbFlavor>(), "dbo", "produtos"), Times.Once);
+    }
+
+    [Fact]
+    public async Task Execute_ModelFirstMode_ReturnsOne_WhenCollectorReturnsNull()
+    {
+        SetupLocator("/solution", "OpenBaseNET");
+        _modelFirstCollector
+            .Setup(c => c.Collect(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DbFlavor>(), It.IsAny<string?>(), It.IsAny<string?>()))
+            .Returns((ValueTuple<IReadOnlyList<EntityProperty>, string>?)null);
+
+        var result = await Run(BuildModelFirstSettings());
+
+        Assert.Equal(1, result);
+    }
+
+    [Fact]
+    public async Task Execute_InvalidMode_ReturnsOne()
+    {
+        SetupLocator("/solution", "OpenBaseNET");
+
+        var result = await Run(new ScaffoldSettings { Entity = "Produto", Mode = "invalid" });
+
+        Assert.Equal(1, result);
+    }
+
+    [Fact]
+    public async Task Execute_CodefirstModeFlag_UsesPropertyCollector()
+    {
+        SetupLocator("/solution", "OpenBaseNET");
+        _fileWriter.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
+
+        var result = await Run(new ScaffoldSettings { Entity = "Produto", Mode = "codefirst" });
+
+        Assert.Equal(0, result);
+        _propertyCollector.Verify(c => c.Collect(It.IsAny<DbFlavor>()), Times.Once);
+        _modelFirstCollector.Verify(c => c.Collect(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DbFlavor>(),
+            It.IsAny<string?>(), It.IsAny<string?>()), Times.Never);
+    }
+
     private static string DbContextPath(string ns = "OpenBaseNET") =>
         Path.Combine("/solution", "src", $"{ns}.Infra.Data.Context", "OneBaseDataBaseContext.cs");
 

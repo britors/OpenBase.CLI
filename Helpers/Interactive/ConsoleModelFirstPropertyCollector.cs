@@ -11,11 +11,30 @@ public sealed class ConsoleModelFirstPropertyCollector(
     IConnectionStringReader connectionStringReader)
     : IModelFirstPropertyCollector
 {
-    public (IReadOnlyList<EntityProperty> Properties, string TableName)? Collect(string solutionDir, string rootNamespace, DbFlavor dbFlavor)
+    public (IReadOnlyList<EntityProperty> Properties, string TableName)? Collect(
+        string solutionDir, string rootNamespace, DbFlavor dbFlavor,
+        string? schemaOverride = null, string? tableOverride = null)
     {
-        var schema    = PromptSchema(dbFlavor);
-        var tableName = PromptTableName();
-        var connString = EnsureConnectionString(connectionStringReader.Read(solutionDir, rootNamespace));
+        var interactive = console.Profile.Capabilities.Interactive;
+
+        if (!interactive && string.IsNullOrWhiteSpace(tableOverride))
+        {
+            console.MarkupLine(SR.Current.ScaffoldModelFirstTableRequired);
+            return null;
+        }
+
+        var schema    = !string.IsNullOrWhiteSpace(schemaOverride) ? schemaOverride
+                      : interactive ? PromptSchema(dbFlavor) : DefaultSchema(dbFlavor);
+        var tableName = !string.IsNullOrWhiteSpace(tableOverride)  ? tableOverride : PromptTableName();
+
+        var rawConn = connectionStringReader.Read(solutionDir, rootNamespace);
+        if (string.IsNullOrWhiteSpace(rawConn) && !interactive)
+        {
+            console.MarkupLine(SR.Current.ConnectionStringRequired);
+            return null;
+        }
+
+        var connString = EnsureConnectionString(rawConn);
 
         var (columns, error) = FetchColumns(connString, schema, tableName, dbFlavor);
 
@@ -35,6 +54,13 @@ public sealed class ConsoleModelFirstPropertyCollector(
         ShowSummaryTable(columns);
         return (columns, tableName);
     }
+
+    private static string DefaultSchema(DbFlavor dbFlavor) => dbFlavor switch
+    {
+        DbFlavor.Postgres => "public",
+        DbFlavor.Oracle   => string.Empty,
+        _                 => "dbo"
+    };
 
     private string PromptSchema(DbFlavor dbFlavor)
     {

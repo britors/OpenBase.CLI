@@ -7,13 +7,14 @@ namespace OpenBase.CLI.Commands.Scaffold;
 
 internal sealed class EfMigrationRunner(IDotNetRunner dotNetRunner, IFileWriter fileWriter, IAnsiConsole console)
 {
-    public void RunMigrations(ScaffoldContext ctx, string entity) =>
+    public void RunMigrations(ScaffoldContext ctx, string entity, bool autoRunUpdate = false) =>
         RunMigrationFlow(
             ctx,
             migrationName:   $"Add{entity}",
             generateLabel:   string.Format(SR.Current.GeneratingMigration, entity),
             generatedLabel:  string.Format(SR.Current.MigrationGenerated, entity),
-            manualLabel:     string.Format(SR.Current.RunMigrationManually, entity));
+            manualLabel:     string.Format(SR.Current.RunMigrationManually, entity),
+            autoRunUpdate:   autoRunUpdate);
 
     public void RunBulkReconciliationMigration(ScaffoldContext ctx, string migrationName)
     {
@@ -61,20 +62,22 @@ internal sealed class EfMigrationRunner(IDotNetRunner dotNetRunner, IFileWriter 
         console.MarkupLine(SR.Current.DatabaseUpdatedSuccess);
     }
 
-    public void RunUpdateMigration(ScaffoldContext ctx, string entity) =>
+    public void RunUpdateMigration(ScaffoldContext ctx, string entity, bool autoRunUpdate = false) =>
         RunMigrationFlow(
             ctx,
             migrationName:   $"Update{entity}",
             generateLabel:   string.Format(SR.Current.GeneratingUpdateMigration, entity),
             generatedLabel:  string.Format(SR.Current.UpdateMigrationGenerated, entity),
-            manualLabel:     string.Format(SR.Current.RunUpdateMigrationManually, entity));
+            manualLabel:     string.Format(SR.Current.RunUpdateMigrationManually, entity),
+            autoRunUpdate:   autoRunUpdate);
 
     private void RunMigrationFlow(
         ScaffoldContext ctx,
         string migrationName,
         string generateLabel,
         string generatedLabel,
-        string manualLabel)
+        string manualLabel,
+        bool autoRunUpdate = false)
     {
         RestorePackages(ctx);
 
@@ -92,8 +95,8 @@ internal sealed class EfMigrationRunner(IDotNetRunner dotNetRunner, IFileWriter 
 
         console.MarkupLine(generatedLabel);
 
-        if (!console.Profile.Capabilities.Interactive ||
-            !console.Confirm(SR.Current.RunDatabaseUpdateNow, defaultValue: true))
+        if (!autoRunUpdate && (!console.Profile.Capabilities.Interactive ||
+            !console.Confirm(SR.Current.RunDatabaseUpdateNow, defaultValue: true)))
             return;
 
         var (updateOk, updateError) = RunEfCommand("database update", SR.Current.ExecutingDatabaseUpdate, ctx);
@@ -110,7 +113,7 @@ internal sealed class EfMigrationRunner(IDotNetRunner dotNetRunner, IFileWriter 
         console.MarkupLine(SR.Current.DatabaseUpdatedSuccess);
     }
 
-    public void RunReconciliationMigration(ScaffoldContext ctx, string entity)
+    public void RunReconciliationMigration(ScaffoldContext ctx, string entity, bool autoRunUpdate = false)
     {
         RestorePackages(ctx);
 

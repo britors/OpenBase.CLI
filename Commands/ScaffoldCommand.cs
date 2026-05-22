@@ -16,6 +16,22 @@ public class ScaffoldSettings : EntityCommandSettings
     [CommandOption("-u|--update")]
     [Description("Atualiza os arquivos gerados com base na estrutura atual da tabela no banco de dados")]
     public bool Update { get; set; }
+
+    [CommandOption("--mode <MODO>")]
+    [Description("Modo de geração: codefirst (padrão) ou modelfirst (lê estrutura do banco)")]
+    public string? Mode { get; set; }
+
+    [CommandOption("--schema <SCHEMA>")]
+    [Description("Schema/owner da tabela no banco (modo modelfirst, pula o prompt)")]
+    public string? Schema { get; set; }
+
+    [CommandOption("--table <TABELA>")]
+    [Description("Nome da tabela no banco (modo modelfirst, pula o prompt)")]
+    public string? Table { get; set; }
+
+    [CommandOption("--run-migrations")]
+    [Description("Executa database update automaticamente após gerar a migration, sem perguntar")]
+    public bool RunMigrations { get; set; }
 }
 
 public class ScaffoldCommand(
@@ -48,9 +64,10 @@ public class ScaffoldCommand(
         if (settings.Update)
             return ExecuteUpdate(settings, solutionDir, rootNamespace, dbFlavor);
 
-        var mode = AskScaffoldMode();
+        var mode = DetermineScaffoldMode(settings.Mode);
+        if (mode is null) return 1;
 
-        var collected = CollectProperties(solutionDir, rootNamespace, dbFlavor, mode);
+        var collected = CollectProperties(solutionDir, rootNamespace, dbFlavor, mode.Value, settings.Schema, settings.Table);
         if (collected is null) return 1;
 
         var (properties, modelFirstTableName) = collected.Value;
@@ -108,9 +125,9 @@ public class ScaffoldCommand(
         var migrationRunner = new EfMigrationRunner(dotNetRunner, fileWriter, console);
 
         if (mode == ScaffoldMode.ModelFirst)
-            migrationRunner.RunReconciliationMigration(ctx, settings.Entity);
+            migrationRunner.RunReconciliationMigration(ctx, settings.Entity, settings.RunMigrations);
         else
-            migrationRunner.RunMigrations(ctx, settings.Entity);
+            migrationRunner.RunMigrations(ctx, settings.Entity, settings.RunMigrations);
 
         return 0;
     }
@@ -126,26 +143,33 @@ public class ScaffoldCommand(
 
 
     private (IReadOnlyList<EntityProperty> Properties, string? TableName)? CollectProperties(
-        string solutionDir, string rootNamespace, DbFlavor dbFlavor, ScaffoldMode mode)
+        string solutionDir, string rootNamespace, DbFlavor dbFlavor, ScaffoldMode mode,
+        string? schemaOverride, string? tableOverride)
     {
         if (mode != ScaffoldMode.ModelFirst)
             return (propertyCollector.Collect(dbFlavor), null);
 
-        var result = modelFirstCollector.Collect(solutionDir, rootNamespace, dbFlavor);
+        var result = modelFirstCollector.Collect(solutionDir, rootNamespace, dbFlavor, schemaOverride, tableOverride);
         return result is null ? null : (result.Value.Properties, result.Value.TableName);
     }
 
-    private ScaffoldMode AskScaffoldMode()
+    private ScaffoldMode? DetermineScaffoldMode(string? modeFlag)
     {
-        if (!console.Profile.Capabilities.Interactive)
-            return ScaffoldMode.CodeFirst;
+        if (string.IsNullOrWhiteSpace(modeFlag))
+        {
+            if (!console.Profile.Capabilities.Interactive) return ScaffoldMode.CodeFirst;
+            var choice = console.Prompt(
+                new SelectionPrompt<string>()
+                    .Title(SR.Current.HowToGenerateScaffold)
+                    .AddChoices(SR.Current.CodeFirstChoice, SR.Current.ModelFirstChoice));
+            return choice == SR.Current.ModelFirstChoice ? ScaffoldMode.ModelFirst : ScaffoldMode.CodeFirst;
+        }
 
-        var choice = console.Prompt(
-            new SelectionPrompt<string>()
-                .Title(SR.Current.HowToGenerateScaffold)
-                .AddChoices(SR.Current.CodeFirstChoice, SR.Current.ModelFirstChoice));
+        if (modeFlag.Equals("modelfirst", StringComparison.OrdinalIgnoreCase)) return ScaffoldMode.ModelFirst;
+        if (modeFlag.Equals("codefirst",  StringComparison.OrdinalIgnoreCase)) return ScaffoldMode.CodeFirst;
 
-        return choice == SR.Current.ModelFirstChoice ? ScaffoldMode.ModelFirst : ScaffoldMode.CodeFirst;
+        console.MarkupLine(string.Format(SR.Current.ScaffoldModeInvalid, modeFlag));
+        return null;
     }
 
     private string DetectTestsPath(string solutionDir, string rootNamespace)
@@ -257,7 +281,7 @@ public class ScaffoldCommand(
         console.MarkupLine(string.Format(SR.Current.ScaffoldUpdateSuccess, settings.Entity));
 
         new EfMigrationRunner(dotNetRunner, fileWriter, console)
-            .RunUpdateMigration(ctx, settings.Entity);
+            .RunUpdateMigration(ctx, settings.Entity, settings.RunMigrations);
 
         return 0;
     }
