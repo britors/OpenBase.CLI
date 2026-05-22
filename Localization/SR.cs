@@ -250,6 +250,10 @@ public interface IStrings
     string SpecialistResultColumnsTitle { get; }
     string SpecialistResultColumnName { get; }        // {0}=count
     string SpecialistResultColumnTypePrompt { get; }  // {0}=name
+    string SpecialistSqlRequired { get; }
+    string SpecialistTypeInvalid { get; }             // {0}=value
+    string SpecialistParamFormatInvalid { get; }      // {0}=value
+    string SpecialistColumnFormatInvalid { get; }     // {0}=value
 
     string ScaffoldUpdateEntityNotFound { get; }     // {0}=entity
     string ScaffoldUpdateNoChanges { get; }
@@ -528,6 +532,10 @@ public abstract class BaseStrings(IReadOnlyDictionary<string, string> overrides)
     public string SpecialistResultColumnsTitle => T("Define the result columns:");
     public string SpecialistResultColumnName  => T("  Column {0} name (blank to finish):");
     public string SpecialistResultColumnTypePrompt => T("  {0} — C# type:");
+    public string SpecialistSqlRequired            => T("SQL is required for query and command types.");
+    public string SpecialistTypeInvalid            => T("Invalid type '{0}'. Valid values: query, command, httpcall.");
+    public string SpecialistParamFormatInvalid     => T("Invalid --param format '{0}'. Expected: name:Type (e.g. categoryId:Guid).");
+    public string SpecialistColumnFormatInvalid    => T("Invalid --column format '{0}'. Expected: Name:Type (e.g. Name:string).");
 
     public string ScaffoldUpdateEntityNotFound  => T("[red]Error:[/] Entity [blue]{0}[/] not found. Run [blue]openbase scaffold --entity {0}[/] first.");
     public string ScaffoldUpdateNoChanges       => T("[green]✓[/] No differences detected. Files are already up to date.");
@@ -777,6 +785,10 @@ public sealed class PtBrStrings() : BaseStrings(new Dictionary<string, string>
     ["SpecialistResultColumnsTitle"]     = "Defina as colunas do resultado:",
     ["SpecialistResultColumnName"]       = "  Nome da coluna {0} (Enter para finalizar):",
     ["SpecialistResultColumnTypePrompt"] = "  {0} — tipo C#:",
+    ["SpecialistSqlRequired"]            = "O SQL é obrigatório para tipos query e command.",
+    ["SpecialistTypeInvalid"]            = "Tipo inválido '{0}'. Valores válidos: query, command, httpcall.",
+    ["SpecialistParamFormatInvalid"]     = "Formato inválido em --param '{0}'. Esperado: nome:Tipo (ex: categoriaId:Guid).",
+    ["SpecialistColumnFormatInvalid"]    = "Formato inválido em --column '{0}'. Esperado: Nome:Tipo (ex: Nome:string).",
     ["ScaffoldUpdateEntityNotFound"]  = "[red]Erro:[/] Entidade [blue]{0}[/] não encontrada. Execute [blue]openbase scaffold --entity {0}[/] primeiro.",
     ["ScaffoldUpdateNoChanges"]       = "[green]✓[/] Nenhuma diferença detectada. Os arquivos já estão atualizados.",
     ["ScaffoldUpdateDiffTitle"]       = "\nDiferenças detectadas:",
@@ -1022,6 +1034,10 @@ public sealed class EsStrings() : BaseStrings(new Dictionary<string, string>
     ["SpecialistResultColumnsTitle"]     = "Defina las columnas del resultado:",
     ["SpecialistResultColumnName"]       = "  Nombre de columna {0} (Enter para finalizar):",
     ["SpecialistResultColumnTypePrompt"] = "  {0} — tipo C#:",
+    ["SpecialistSqlRequired"]            = "El SQL es obligatorio para los tipos query y command.",
+    ["SpecialistTypeInvalid"]            = "Tipo inválido '{0}'. Valores válidos: query, command, httpcall.",
+    ["SpecialistParamFormatInvalid"]     = "Formato inválido en --param '{0}'. Esperado: nombre:Tipo (ej. categoriaId:Guid).",
+    ["SpecialistColumnFormatInvalid"]    = "Formato inválido en --column '{0}'. Esperado: Nombre:Tipo (ej. Nombre:string).",
     ["ScaffoldUpdateEntityNotFound"]  = "[red]Error:[/] Entidad [blue]{0}[/] no encontrada. Ejecute [blue]openbase scaffold --entity {0}[/] primero.",
     ["ScaffoldUpdateNoChanges"]       = "[green]✓[/] No se detectaron diferencias. Los archivos ya están actualizados.",
     ["ScaffoldUpdateDiffTitle"]       = "\nDiferencias detectadas:",
