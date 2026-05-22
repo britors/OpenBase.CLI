@@ -42,6 +42,8 @@ public interface IStrings
     string ModelFirstReconciliationInfo { get; }   // {0}=entity
     string ModelFirstReconciliationSuccess { get; }
     string ModelFirstReconciliationWarn { get; }   // {0}=entity
+    string ScaffoldModeInvalid { get; }            // {0}=value
+    string ScaffoldModelFirstTableRequired { get; }
 
     string NameParamRequired { get; }
     string ProjectNameInvalid { get; }
@@ -318,6 +320,8 @@ public abstract class BaseStrings(IReadOnlyDictionary<string, string> overrides)
     public string ModelFirstReconciliationInfo    => T("Registering [blue]Add{0}[/] in EF migration history (table already exists)...");
     public string ModelFirstReconciliationSuccess => T("[green]✓[/] Existing table registered. Future Code First migrations will not try to recreate it.");
     public string ModelFirstReconciliationWarn    => T("[yellow]Warning:[/] Could not register the existing table. Before running [blue]database update[/] in the future, manually empty the Up() body in the migration for Add{0}.");
+    public string ScaffoldModeInvalid             => T("[red]Invalid mode '{0}'.[/] Use 'codefirst' or 'modelfirst'.");
+    public string ScaffoldModelFirstTableRequired => T("[red]Error:[/] --table is required when using --mode modelfirst in non-interactive mode.");
 
     public string NameParamRequired           => T("The --name <NAME> parameter is required.");
     public string ProjectNameInvalid          => T("The project name contains invalid characters. Use only letters, numbers, '-' and '_'.");
@@ -592,6 +596,8 @@ public sealed class PtBrStrings() : BaseStrings(new Dictionary<string, string>
     ["ModelFirstReconciliationInfo"] = "Registrando [blue]Add{0}[/] no histórico de migrations do EF (tabela já existe)...",
     ["ModelFirstReconciliationSuccess"] = "[green]✓[/] Tabela existente registrada. Migrations futuras do Code First não tentarão recriá-la.",
     ["ModelFirstReconciliationWarn"] = "[yellow]Aviso:[/] Não foi possível registrar a tabela existente. Antes de executar [blue]database update[/] no futuro, esvazie manualmente o corpo do Up() na migration Add{0}.",
+    ["ScaffoldModeInvalid"]              = "[red]Modo inválido '{0}'.[/] Use 'codefirst' ou 'modelfirst'.",
+    ["ScaffoldModelFirstTableRequired"]  = "[red]Erro:[/] --table é obrigatório ao usar --mode modelfirst em modo não-interativo.",
     ["NameParamRequired"]            = "O parâmetro --name <NOME> é obrigatório.",
     ["ProjectNameInvalid"]           = "O nome do projeto contém caracteres inválidos. Use apenas letras, números, '-' e '_'.",
     ["SdkIncompatible"]              = "[red]Erro:[/] O .NET SDK instalado é incompatível com esta versão do OpenBase.",
@@ -834,6 +840,8 @@ public sealed class EsStrings() : BaseStrings(new Dictionary<string, string>
     ["ModelFirstReconciliationInfo"] = "Registrando [blue]Add{0}[/] en el historial de migraciones de EF (la tabla ya existe)...",
     ["ModelFirstReconciliationSuccess"] = "[green]✓[/] Tabla existente registrada. Las migraciones futuras de Code First no intentarán recrearla.",
     ["ModelFirstReconciliationWarn"] = "[yellow]Aviso:[/] No se pudo registrar la tabla existente. Antes de ejecutar [blue]database update[/] en el futuro, vacíe manualmente el cuerpo de Up() en la migración Add{0}.",
+    ["ScaffoldModeInvalid"]              = "[red]Modo inválido '{0}'.[/] Use 'codefirst' o 'modelfirst'.",
+    ["ScaffoldModelFirstTableRequired"]  = "[red]Error:[/] --table es obligatorio al usar --mode modelfirst en modo no interactivo.",
     ["NameParamRequired"]            = "El parámetro --name <NOMBRE> es obligatorio.",
     ["ProjectNameInvalid"]           = "El nombre del proyecto contiene caracteres no válidos. Use solo letras, números, '-' y '_'.",
     ["SdkIncompatible"]              = "[red]Error:[/] El .NET SDK instalado es incompatible con esta versión de OpenBase.",
