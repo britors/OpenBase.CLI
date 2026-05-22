@@ -1,6 +1,8 @@
 using System.ComponentModel;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using OpenBase.CLI.Commands.Scaffold;
 using OpenBase.CLI.Helpers.Database;
 using OpenBase.CLI.Helpers.Execution;
@@ -158,6 +160,7 @@ public class NewCommand : AsyncCommand<NewSettings>
         }
 
         UpdateAppSettings(settings.Name, strategy, config, _fileWriter);
+        WriteMetadata(settings.Name, key, _fileWriter);
         _console.MarkupLine($"[grey]  cd {Markup.Escape(settings.Name)}[/]");
         _console.MarkupLine("[grey]  dotnet run --project src/...[/]");
         _console.MarkupLine(SR.Current.ShellIntegrationHint);
@@ -313,6 +316,14 @@ public class NewCommand : AsyncCommand<NewSettings>
         return ctx;
     }
 
+    public static void WriteMetadata(string projectName, string template, IFileWriter fileWriter)
+    {
+        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "unknown";
+        var metadata = new OpenBaseMetadata("OpenBase CLI", template, version, DateTimeOffset.UtcNow);
+        var json = JsonSerializer.Serialize(metadata, OpenBaseMetadataContext.Default.OpenBaseMetadata);
+        fileWriter.WriteAllText(Path.Combine(projectName, ".openbase.json"), json);
+    }
+
     public static void UpdateAppSettings(string projectName, IDbTemplateStrategy strategy, ProjectSetupConfig config, IFileWriter fileWriter)
     {
         var basePath = Path.Combine(projectName, ApiSourceDir, ApiProjectDir);
@@ -367,3 +378,13 @@ internal sealed record BulkImportContext(
     string ConnectionString,
     DbFlavor DbFlavor,
     string? SlnFile);
+
+public sealed record OpenBaseMetadata(
+    [property: JsonPropertyName("createdBy")]  string CreatedBy,
+    [property: JsonPropertyName("template")]   string Template,
+    [property: JsonPropertyName("version")]    string Version,
+    [property: JsonPropertyName("createdAt")]  DateTimeOffset CreatedAt);
+
+[JsonSerializable(typeof(OpenBaseMetadata))]
+[JsonSourceGenerationOptions(WriteIndented = true)]
+internal sealed partial class OpenBaseMetadataContext : JsonSerializerContext { }
