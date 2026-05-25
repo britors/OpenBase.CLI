@@ -3,6 +3,7 @@ using OpenBase.CLI.Commands;
 using OpenBase.CLI.Commands.Extension;
 using OpenBase.CLI.Commands.Extension.HealthChecks;
 using OpenBase.CLI.Commands.Extension.Jwt;
+using OpenBase.CLI.Commands.Extension.MongoDB;
 using OpenBase.CLI.Commands.Extension.Redis;
 using OpenBase.CLI.Helpers.Database;
 using OpenBase.CLI.Helpers.Interactive;
@@ -34,6 +35,7 @@ services.AddSingleton<IExtensionRegistry, ExtensionRegistry>();
 services.AddSingleton<IExtensionHandler, JwtExtensionHandler>();
 services.AddSingleton<IExtensionHandler, HealthChecksExtensionHandler>();
 services.AddSingleton<IExtensionHandler, RedisCacheExtensionHandler>();
+services.AddSingleton<IExtensionHandler, MongoDbExtensionHandler>();
 services.AddSingleton<IBrowserLauncher, BrowserLauncher>();
 
 const string TypeOpt = "--type";
