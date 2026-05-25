@@ -36,7 +36,7 @@ public sealed class MongoDbExtensionHandler(
                 SR.Current.InfraMongoDbProjectCreated,
                 SR.Current.InfraMongoDbProjectAlreadyExists,
                 SR.Current.InfraMongoDbProjectFailed),
-            fileWriter, dotNetRunner, console);
+            fileWriter, dotNetRunner, console, solutionFolder: "04-Infra");
 
         if (!projectReady)
             return new ExtensionApplyResult(false, SR.Current.ExtensionPackageInstallFailed);

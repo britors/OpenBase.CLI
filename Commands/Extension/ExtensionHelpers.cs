@@ -146,7 +146,8 @@ internal static class ExtensionHelpers
         InfraProjectMessages messages,
         IFileWriter fileWriter,
         IDotNetRunner dotNetRunner,
-        IAnsiConsole console)
+        IAnsiConsole console,
+        string? solutionFolder = null)
     {
         var projectCsproj      = Path.Combine(projectPath, $"{ns}.{projectSuffix}.csproj");
         var appCsproj          = Path.Combine(appPath, $"{ns}.Application.csproj");
@@ -164,7 +165,10 @@ internal static class ExtensionHelpers
 
             var slnFile = fileWriter.FindSolutionFile(solutionDir);
             if (slnFile is not null)
-                dotNetRunner.Run($"sln \"{slnFile}\" add \"{projectCsproj}\"");
+            {
+                var folderArg = solutionFolder is not null ? $" --solution-folder \"{solutionFolder}\"" : string.Empty;
+                dotNetRunner.Run($"sln \"{slnFile}\" add \"{projectCsproj}\"{folderArg}");
+            }
 
             console.MarkupLine(string.Format(messages.Created, projectName));
         }
