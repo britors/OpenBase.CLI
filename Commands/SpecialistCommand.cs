@@ -85,6 +85,12 @@ public class SpecialistCommand(
 
     private int ExecuteNonInteractive(SpecialistSettings settings, ScaffoldGenerator generator, ScaffoldFileHelper helper, string solutionDir)
     {
+        if (SpecialistWizard.Reserved.Contains(settings.Method!))
+        {
+            console.MarkupLine($"[red]{string.Format(SR.Current.SpecialistMethodReserved, settings.Method)}[/]");
+            return 1;
+        }
+
         var type = ResolveType(settings.Type);
         if (type is null) return 1;
 

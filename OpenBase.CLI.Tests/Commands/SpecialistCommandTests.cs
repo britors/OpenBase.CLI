@@ -134,6 +134,30 @@ public class SpecialistCommandTests
         _fileWriter.Verify(f => f.WriteAllText(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
+    [Theory]
+    [InlineData("GetById")]
+    [InlineData("Add")]
+    [InlineData("RemoveById")]
+    [InlineData("Create")]
+    [InlineData("Update")]
+    [InlineData("Delete")]
+    [InlineData("FindByArgumentsPaged")]
+    public async Task Execute_ReservedMethodName_ReturnsOne(string reservedMethod)
+    {
+        SetupLocator("/solution", "OpenBaseNET");
+
+        var result = await Run(new SpecialistSettings
+        {
+            Entity = "Produto",
+            Method = reservedMethod,
+            Type   = "query",
+            Sql    = "SELECT 1"
+        });
+
+        Assert.Equal(1, result);
+        _fileWriter.Verify(f => f.WriteAllText(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
     [Fact]
     public async Task Execute_InvalidType_ReturnsOne()
     {

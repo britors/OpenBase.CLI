@@ -5,8 +5,11 @@ namespace OpenBase.CLI.Commands.Scaffold;
 
 internal sealed class SpecialistWizard(IAnsiConsole console)
 {
-    private static readonly HashSet<string> Reserved = new(
-        ["Create", "Update", "Delete", "FindById", "Get"],
+    internal static readonly HashSet<string> Reserved = new(
+        [
+            "Create", "Update", "Delete", "FindById", "Get",
+            "GetById", "Add", "RemoveById", "FindByArgumentsPaged"
+        ],
         StringComparer.OrdinalIgnoreCase);
 
     public SpecialistDefinition? AskDefinition()
