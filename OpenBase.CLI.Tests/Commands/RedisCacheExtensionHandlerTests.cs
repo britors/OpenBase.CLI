@@ -522,7 +522,7 @@ public class RedisCacheExtensionHandlerTests
         var impl = files.First(f => f.Path.EndsWith("RedisCacheService.cs"));
         Assert.Contains("ICacheService", impl.Content);
         Assert.Contains("IDistributedCache", impl.Content);
-        Assert.Contains("IResiliencePipelineProvider", impl.Content);
+        Assert.Contains("ResiliencePipelineProvider", impl.Content);
     }
 
     [Fact]
