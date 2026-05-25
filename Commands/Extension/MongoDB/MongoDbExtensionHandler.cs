@@ -29,7 +29,7 @@ public sealed class MongoDbExtensionHandler(
         var (ns, solutionDir, appPath, _, presentationPath) = paths.Value;
         var infraMongoPath = Path.Combine(solutionDir, "src", $"{ns}.Infra.MongoDb");
 
-        ExtensionHelpers.CreateDedicatedProject(
+        var projectReady = ExtensionHelpers.CreateDedicatedProject(
             ns, "Infra.MongoDb", solutionDir, infraMongoPath, appPath, presentationPath,
             Packages,
             new InfraProjectMessages(
@@ -37,6 +37,9 @@ public sealed class MongoDbExtensionHandler(
                 SR.Current.InfraMongoDbProjectAlreadyExists,
                 SR.Current.InfraMongoDbProjectFailed),
             fileWriter, dotNetRunner, console);
+
+        if (!projectReady)
+            return new ExtensionApplyResult(false, SR.Current.ExtensionPackageInstallFailed);
 
         ExtensionHelpers.WriteFiles(GetFiles(ns, appPath, infraMongoPath, presentationPath), solutionDir, fileWriter, console);
 

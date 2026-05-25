@@ -181,6 +181,7 @@ public interface IStrings
     string ExtensionRequiresOpenBaseProject { get; }
     string ExtensionAddingPackage { get; }           // {0}=package {1}=csproj
     string ExtensionPackageAddWarning { get; }       // {0}=package {1}=error
+    string ExtensionPackageInstallFailed { get; }    // {0}=package {1}=csproj filename
     string ExtensionAddingReference { get; }         // {0}=reference {1}=csproj
     string ExtensionReferenceAddWarning { get; }     // {0}=reference {1}=error
     string ExtensionFileSkipped { get; }             // {0}=filename
@@ -479,8 +480,9 @@ public abstract class BaseStrings(IReadOnlyDictionary<string, string> overrides)
     public string ExtensionApplyFailed        => T("[red]Error:[/] Failed to apply extension [yellow]{0}[/]: {1}");
     public string ExtensionAddSuccess         => T("[green]✓[/] Extension [blue]{0}[/] added successfully.");
     public string ExtensionRequiresOpenBaseProject => T("This extension requires an OpenBase Clean Architecture project. Run from the solution root.");
-    public string ExtensionAddingPackage      => T("  Adding [blue]{0}[/] to {1}...");
-    public string ExtensionPackageAddWarning  => T("  [yellow]Warning:[/] Could not add [yellow]{0}[/]: {1}");
+    public string ExtensionAddingPackage         => T("  Adding [blue]{0}[/] to {1}...");
+    public string ExtensionPackageAddWarning     => T("  [yellow]Warning:[/] Could not add [yellow]{0}[/]: {1}");
+    public string ExtensionPackageInstallFailed  => T("A required package could not be installed. Check the warning above and run [blue]dotnet add package[/] manually in the Infra project.");
     public string ExtensionAddingReference    => T("  Adding reference [blue]{0}[/] to {1}...");
     public string ExtensionReferenceAddWarning => T("  [yellow]Warning:[/] Could not add reference [yellow]{0}[/]: {1}");
     public string ExtensionFileSkipped        => T("  [yellow]skipped[/] {0} (already exists)");
@@ -738,7 +740,8 @@ public sealed class PtBrStrings() : BaseStrings(new Dictionary<string, string>
     ["ExtensionAddSuccess"]          = "[green]✓[/] Extensão [blue]{0}[/] adicionada com sucesso.",
     ["ExtensionRequiresOpenBaseProject"] = "Esta extensão requer um projeto OpenBase com Arquitetura Limpa. Execute na raiz da solution.",
     ["ExtensionAddingPackage"]       = "  Adicionando [blue]{0}[/] ao {1}...",
-    ["ExtensionPackageAddWarning"]   = "  [yellow]Aviso:[/] Não foi possível adicionar [yellow]{0}[/]: {1}",
+    ["ExtensionPackageAddWarning"]    = "  [yellow]Aviso:[/] Não foi possível adicionar [yellow]{0}[/]: {1}",
+    ["ExtensionPackageInstallFailed"] = "Um pacote obrigatório não pôde ser instalado. Verifique o aviso acima e execute [blue]dotnet add package[/] manualmente no projeto Infra.",
     ["ExtensionAddingReference"]     = "  Adicionando referência [blue]{0}[/] ao {1}...",
     ["ExtensionReferenceAddWarning"] = "  [yellow]Aviso:[/] Não foi possível adicionar a referência [yellow]{0}[/]: {1}",
     ["ExtensionFileSkipped"]         = "  [yellow]ignorado[/] {0} (já existe)",
@@ -999,7 +1002,8 @@ public sealed class EsStrings() : BaseStrings(new Dictionary<string, string>
     ["ExtensionAddSuccess"]          = "[green]✓[/] Extensión [blue]{0}[/] agregada con éxito.",
     ["ExtensionRequiresOpenBaseProject"] = "Esta extensión requiere un proyecto OpenBase con Arquitectura Limpia. Ejecute desde la raíz de la solution.",
     ["ExtensionAddingPackage"]       = "  Agregando [blue]{0}[/] a {1}...",
-    ["ExtensionPackageAddWarning"]   = "  [yellow]Aviso:[/] No se pudo agregar [yellow]{0}[/]: {1}",
+    ["ExtensionPackageAddWarning"]    = "  [yellow]Aviso:[/] No se pudo agregar [yellow]{0}[/]: {1}",
+    ["ExtensionPackageInstallFailed"] = "Un paquete requerido no pudo instalarse. Verifique el aviso anterior y ejecute [blue]dotnet add package[/] manualmente en el proyecto Infra.",
     ["ExtensionAddingReference"]     = "  Agregando referencia [blue]{0}[/] a {1}...",
     ["ExtensionReferenceAddWarning"] = "  [yellow]Aviso:[/] No se pudo agregar la referencia [yellow]{0}[/]: {1}",
     ["ExtensionFileSkipped"]         = "  [yellow]ignorado[/] {0} (ya existe)",

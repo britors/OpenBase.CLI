@@ -70,21 +70,22 @@ internal static class ExtensionHelpers
                 Path.GetFileName(referencePath), err));
     }
 
-    internal static void AddPackage(
+    internal static bool AddPackage(
         string csprojPath,
         string packageId,
         IFileWriter fileWriter,
         IDotNetRunner dotNetRunner,
         IAnsiConsole console)
     {
-        if (!fileWriter.FileExists(csprojPath)) return;
+        if (!fileWriter.FileExists(csprojPath)) return true;
         var content = fileWriter.ReadAllText(csprojPath);
-        if (content.Contains(packageId)) return;
+        if (content.Contains(packageId)) return true;
 
         console.MarkupLine(string.Format(SR.Current.ExtensionAddingPackage, packageId, Path.GetFileName(csprojPath)));
         var (ok, err) = dotNetRunner.Run($"add \"{csprojPath}\" package {packageId}");
         if (!ok)
             console.MarkupLine(string.Format(SR.Current.ExtensionPackageAddWarning, packageId, err));
+        return ok;
     }
 
     internal static void InjectProgramCs(
@@ -134,7 +135,7 @@ internal static class ExtensionHelpers
         return idx >= 0 ? content.Insert(idx, toInsert) : content;
     }
 
-    internal static void CreateDedicatedProject(
+    internal static bool CreateDedicatedProject(
         string ns,
         string projectSuffix,
         string solutionDir,
@@ -158,7 +159,7 @@ internal static class ExtensionHelpers
             if (!ok)
             {
                 console.MarkupLine(string.Format(messages.Failed, projectName, err));
-                return;
+                return false;
             }
 
             var slnFile = fileWriter.FindSolutionFile(solutionDir);
@@ -175,7 +176,10 @@ internal static class ExtensionHelpers
         AddProjectReference(projectCsproj, appCsproj, fileWriter, dotNetRunner, console);
         AddProjectReference(presentationCsproj, projectCsproj, fileWriter, dotNetRunner, console);
         foreach (var pkg in packages)
-            AddPackage(projectCsproj, pkg, fileWriter, dotNetRunner, console);
+            if (!AddPackage(projectCsproj, pkg, fileWriter, dotNetRunner, console))
+                return false;
+
+        return true;
     }
 
     internal static void InjectAppSettingsSection(
