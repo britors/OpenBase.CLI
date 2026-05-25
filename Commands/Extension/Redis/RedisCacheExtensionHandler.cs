@@ -1,4 +1,3 @@
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using OpenBase.CLI.Helpers.Execution;
 using OpenBase.CLI.Helpers.IO;
@@ -12,8 +11,11 @@ public sealed class RedisCacheExtensionHandler(
     IDotNetRunner dotNetRunner,
     IFileWriter fileWriter) : IExtensionHandler
 {
-    private const string CachingPackageId  = "Microsoft.Extensions.Caching.StackExchangeRedis";
-    private const string ResiliencePackageId = "Microsoft.Extensions.Resilience";
+    private static readonly IReadOnlyList<string> Packages =
+    [
+        "Microsoft.Extensions.Caching.StackExchangeRedis",
+        "Microsoft.Extensions.Resilience"
+    ];
 
     public string Name => "redis";
     public IReadOnlyList<string> SupportedProviders => [];
@@ -27,86 +29,33 @@ public sealed class RedisCacheExtensionHandler(
         var (ns, solutionDir, appPath, _, presentationPath) = paths.Value;
         var infraCachePath = Path.Combine(solutionDir, "src", $"{ns}.Infra.Cache");
 
-        CreateInfraCacheProject(ns, solutionDir, infraCachePath, appPath, presentationPath);
+        ExtensionHelpers.CreateDedicatedProject(
+            ns, "Infra.Cache", solutionDir, infraCachePath, appPath, presentationPath,
+            Packages,
+            new InfraProjectMessages(
+                SR.Current.InfraCacheProjectCreated,
+                SR.Current.InfraCacheProjectAlreadyExists,
+                SR.Current.InfraCacheProjectFailed),
+            fileWriter, dotNetRunner, console);
+
         ExtensionHelpers.WriteFiles(GetFiles(ns, appPath, infraCachePath, presentationPath), solutionDir, fileWriter, console);
-        InjectAppSettings(presentationPath);
+
+        ExtensionHelpers.InjectAppSettingsSection(
+            presentationPath, "Redis",
+            () => new JsonObject
+            {
+                ["ConnectionString"] = "localhost:6379",
+                ["InstanceName"]     = "openbase_",
+                ["Retry"] = new JsonObject { ["MaxAttempts"] = 3, ["DelaySeconds"] = 1 },
+                ["CircuitBreaker"] = new JsonObject { ["FailureThreshold"] = 5, ["BreakDurationSeconds"] = 30 }
+            },
+            SR.Current.RedisAppSettingsInjected,
+            SR.Current.RedisAppSettingsWarning,
+            fileWriter, console);
+
         InjectProgramCs(ns, presentationPath);
 
         return new ExtensionApplyResult(true);
-    }
-
-    private void CreateInfraCacheProject(
-        string ns, string solutionDir, string infraCachePath, string appPath, string presentationPath)
-    {
-        var infraCacheCsproj    = Path.Combine(infraCachePath, $"{ns}.Infra.Cache.csproj");
-        var appCsproj           = Path.Combine(appPath, $"{ns}.Application.csproj");
-        var presentationCsproj  = Path.Combine(presentationPath, $"{ns}.Presentation.Api.csproj");
-
-        if (!fileWriter.FileExists(infraCacheCsproj))
-        {
-            var (ok, err) = dotNetRunner.Run($"new classlib -n \"{ns}.Infra.Cache\" -o \"{infraCachePath}\"");
-            if (!ok)
-            {
-                console.MarkupLine(string.Format(SR.Current.InfraCacheProjectFailed, $"{ns}.Infra.Cache", err));
-                return;
-            }
-
-            var slnFile = fileWriter.FindSolutionFile(solutionDir);
-            if (slnFile is not null)
-                dotNetRunner.Run($"sln \"{slnFile}\" add \"{infraCacheCsproj}\"");
-
-            console.MarkupLine(string.Format(SR.Current.InfraCacheProjectCreated, $"{ns}.Infra.Cache"));
-        }
-        else
-        {
-            console.MarkupLine(string.Format(SR.Current.InfraCacheProjectAlreadyExists, $"{ns}.Infra.Cache"));
-        }
-
-        ExtensionHelpers.AddProjectReference(infraCacheCsproj, appCsproj, fileWriter, dotNetRunner, console);
-        ExtensionHelpers.AddProjectReference(presentationCsproj, infraCacheCsproj, fileWriter, dotNetRunner, console);
-        ExtensionHelpers.AddPackage(infraCacheCsproj, CachingPackageId, fileWriter, dotNetRunner, console);
-        ExtensionHelpers.AddPackage(infraCacheCsproj, ResiliencePackageId, fileWriter, dotNetRunner, console);
-    }
-
-    private void InjectAppSettings(string presentationPath)
-    {
-        string[] candidates = ["appsettings.json", "appsettings.Development.json"];
-
-        foreach (var fileName in candidates)
-        {
-            var path = Path.Combine(presentationPath, fileName);
-            if (!fileWriter.FileExists(path)) continue;
-
-            try
-            {
-                var json = fileWriter.ReadAllText(path);
-                var root = JsonNode.Parse(json)?.AsObject();
-                if (root is null || root.ContainsKey("Redis")) continue;
-
-                root["Redis"] = new JsonObject
-                {
-                    ["ConnectionString"] = "localhost:6379",
-                    ["InstanceName"]     = "openbase_",
-                    ["Retry"] = new JsonObject
-                    {
-                        ["MaxAttempts"]  = 3,
-                        ["DelaySeconds"] = 1
-                    },
-                    ["CircuitBreaker"] = new JsonObject
-                    {
-                        ["FailureThreshold"]      = 5,
-                        ["BreakDurationSeconds"]  = 30
-                    }
-                };
-
-                fileWriter.WriteAllText(path, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
-                console.MarkupLine(string.Format(SR.Current.RedisAppSettingsInjected, fileName));
-            }
-            catch (Exception ex)
-            {
-                console.MarkupLine(string.Format(SR.Current.RedisAppSettingsWarning, fileName, ex.Message));
-            }
-        }
     }
 
     private void InjectProgramCs(string ns, string presentationPath) =>

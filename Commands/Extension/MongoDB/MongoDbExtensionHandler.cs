@@ -1,4 +1,3 @@
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using OpenBase.CLI.Helpers.Execution;
 using OpenBase.CLI.Helpers.IO;
@@ -12,8 +11,11 @@ public sealed class MongoDbExtensionHandler(
     IDotNetRunner dotNetRunner,
     IFileWriter fileWriter) : IExtensionHandler
 {
-    private const string MongoDriverPackageId    = "MongoDB.Driver";
-    private const string ResiliencePackageId     = "Microsoft.Extensions.Resilience";
+    private static readonly IReadOnlyList<string> Packages =
+    [
+        "MongoDB.Driver",
+        "Microsoft.Extensions.Resilience"
+    ];
 
     public string Name => "mongodb";
     public IReadOnlyList<string> SupportedProviders => [];
@@ -27,86 +29,33 @@ public sealed class MongoDbExtensionHandler(
         var (ns, solutionDir, appPath, _, presentationPath) = paths.Value;
         var infraMongoPath = Path.Combine(solutionDir, "src", $"{ns}.Infra.MongoDb");
 
-        CreateInfraMongoDbProject(ns, solutionDir, infraMongoPath, appPath, presentationPath);
+        ExtensionHelpers.CreateDedicatedProject(
+            ns, "Infra.MongoDb", solutionDir, infraMongoPath, appPath, presentationPath,
+            Packages,
+            new InfraProjectMessages(
+                SR.Current.InfraMongoDbProjectCreated,
+                SR.Current.InfraMongoDbProjectAlreadyExists,
+                SR.Current.InfraMongoDbProjectFailed),
+            fileWriter, dotNetRunner, console);
+
         ExtensionHelpers.WriteFiles(GetFiles(ns, appPath, infraMongoPath, presentationPath), solutionDir, fileWriter, console);
-        InjectAppSettings(presentationPath);
+
+        ExtensionHelpers.InjectAppSettingsSection(
+            presentationPath, "MongoDb",
+            () => new JsonObject
+            {
+                ["ConnectionString"] = "mongodb://localhost:27017",
+                ["DatabaseName"]     = "openbase",
+                ["Retry"] = new JsonObject { ["MaxAttempts"] = 3, ["DelaySeconds"] = 1 },
+                ["CircuitBreaker"] = new JsonObject { ["FailureThreshold"] = 5, ["BreakDurationSeconds"] = 30 }
+            },
+            SR.Current.MongoDbAppSettingsInjected,
+            SR.Current.MongoDbAppSettingsWarning,
+            fileWriter, console);
+
         InjectProgramCs(ns, presentationPath);
 
         return new ExtensionApplyResult(true);
-    }
-
-    private void CreateInfraMongoDbProject(
-        string ns, string solutionDir, string infraMongoPath, string appPath, string presentationPath)
-    {
-        var infraMongoCsproj    = Path.Combine(infraMongoPath, $"{ns}.Infra.MongoDb.csproj");
-        var appCsproj           = Path.Combine(appPath, $"{ns}.Application.csproj");
-        var presentationCsproj  = Path.Combine(presentationPath, $"{ns}.Presentation.Api.csproj");
-
-        if (!fileWriter.FileExists(infraMongoCsproj))
-        {
-            var (ok, err) = dotNetRunner.Run($"new classlib -n \"{ns}.Infra.MongoDb\" -o \"{infraMongoPath}\"");
-            if (!ok)
-            {
-                console.MarkupLine(string.Format(SR.Current.InfraMongoDbProjectFailed, $"{ns}.Infra.MongoDb", err));
-                return;
-            }
-
-            var slnFile = fileWriter.FindSolutionFile(solutionDir);
-            if (slnFile is not null)
-                dotNetRunner.Run($"sln \"{slnFile}\" add \"{infraMongoCsproj}\"");
-
-            console.MarkupLine(string.Format(SR.Current.InfraMongoDbProjectCreated, $"{ns}.Infra.MongoDb"));
-        }
-        else
-        {
-            console.MarkupLine(string.Format(SR.Current.InfraMongoDbProjectAlreadyExists, $"{ns}.Infra.MongoDb"));
-        }
-
-        ExtensionHelpers.AddProjectReference(infraMongoCsproj, appCsproj, fileWriter, dotNetRunner, console);
-        ExtensionHelpers.AddProjectReference(presentationCsproj, infraMongoCsproj, fileWriter, dotNetRunner, console);
-        ExtensionHelpers.AddPackage(infraMongoCsproj, MongoDriverPackageId, fileWriter, dotNetRunner, console);
-        ExtensionHelpers.AddPackage(infraMongoCsproj, ResiliencePackageId, fileWriter, dotNetRunner, console);
-    }
-
-    private void InjectAppSettings(string presentationPath)
-    {
-        string[] candidates = ["appsettings.json", "appsettings.Development.json"];
-
-        foreach (var fileName in candidates)
-        {
-            var path = Path.Combine(presentationPath, fileName);
-            if (!fileWriter.FileExists(path)) continue;
-
-            try
-            {
-                var json = fileWriter.ReadAllText(path);
-                var root = JsonNode.Parse(json)?.AsObject();
-                if (root is null || root.ContainsKey("MongoDb")) continue;
-
-                root["MongoDb"] = new JsonObject
-                {
-                    ["ConnectionString"] = "mongodb://localhost:27017",
-                    ["DatabaseName"]     = "openbase",
-                    ["Retry"] = new JsonObject
-                    {
-                        ["MaxAttempts"]  = 3,
-                        ["DelaySeconds"] = 1
-                    },
-                    ["CircuitBreaker"] = new JsonObject
-                    {
-                        ["FailureThreshold"]     = 5,
-                        ["BreakDurationSeconds"] = 30
-                    }
-                };
-
-                fileWriter.WriteAllText(path, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
-                console.MarkupLine(string.Format(SR.Current.MongoDbAppSettingsInjected, fileName));
-            }
-            catch (Exception ex)
-            {
-                console.MarkupLine(string.Format(SR.Current.MongoDbAppSettingsWarning, fileName, ex.Message));
-            }
-        }
     }
 
     private void InjectProgramCs(string ns, string presentationPath) =>
