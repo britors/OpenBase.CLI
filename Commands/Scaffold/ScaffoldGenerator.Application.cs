@@ -68,7 +68,12 @@ public sealed partial class ScaffoldGenerator
     private string GetRequestTemplate()
     {
         var filterPart = FilterableProperties.Any() ? FilterParamsWithDefaults() + ", " : "";
-        return DtoTemplate(Requests, $"Get{ctx.Entity}Request", $"{filterPart}int Page = 1, int PageSize = 5");
+        var body = $"{filterPart}int Page = 1, int PageSize = 5";
+        return $$"""
+            namespace {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.{{Requests}};
+
+            public sealed record Get{{ctx.Entity}}Request({{body}});
+            """;
     }
 
 
