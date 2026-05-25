@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using OpenBase.CLI.Helpers.Execution;
 using OpenBase.CLI.Helpers.IO;
 using OpenBase.CLI.Localization;
@@ -10,6 +12,11 @@ internal record ProgramCsMessages(
     string AlreadyConfigured,
     string Injected,
     string Warning);
+
+internal record InfraProjectMessages(
+    string Created,
+    string AlreadyExists,
+    string Failed);
 
 internal static class ExtensionHelpers
 {
@@ -125,6 +132,83 @@ internal static class ExtensionHelpers
     {
         var idx = content.IndexOf(anchor, StringComparison.Ordinal);
         return idx >= 0 ? content.Insert(idx, toInsert) : content;
+    }
+
+    internal static void CreateDedicatedProject(
+        string ns,
+        string projectSuffix,
+        string solutionDir,
+        string projectPath,
+        string appPath,
+        string presentationPath,
+        IReadOnlyList<string> packages,
+        InfraProjectMessages messages,
+        IFileWriter fileWriter,
+        IDotNetRunner dotNetRunner,
+        IAnsiConsole console)
+    {
+        var projectCsproj      = Path.Combine(projectPath, $"{ns}.{projectSuffix}.csproj");
+        var appCsproj          = Path.Combine(appPath, $"{ns}.Application.csproj");
+        var presentationCsproj = Path.Combine(presentationPath, $"{ns}.Presentation.Api.csproj");
+        var projectName        = $"{ns}.{projectSuffix}";
+
+        if (!fileWriter.FileExists(projectCsproj))
+        {
+            var (ok, err) = dotNetRunner.Run($"new classlib -n \"{projectName}\" -o \"{projectPath}\"");
+            if (!ok)
+            {
+                console.MarkupLine(string.Format(messages.Failed, projectName, err));
+                return;
+            }
+
+            var slnFile = fileWriter.FindSolutionFile(solutionDir);
+            if (slnFile is not null)
+                dotNetRunner.Run($"sln \"{slnFile}\" add \"{projectCsproj}\"");
+
+            console.MarkupLine(string.Format(messages.Created, projectName));
+        }
+        else
+        {
+            console.MarkupLine(string.Format(messages.AlreadyExists, projectName));
+        }
+
+        AddProjectReference(projectCsproj, appCsproj, fileWriter, dotNetRunner, console);
+        AddProjectReference(presentationCsproj, projectCsproj, fileWriter, dotNetRunner, console);
+        foreach (var pkg in packages)
+            AddPackage(projectCsproj, pkg, fileWriter, dotNetRunner, console);
+    }
+
+    internal static void InjectAppSettingsSection(
+        string presentationPath,
+        string sectionKey,
+        Func<JsonObject> buildSection,
+        string injectedMessage,
+        string warningMessage,
+        IFileWriter fileWriter,
+        IAnsiConsole console)
+    {
+        string[] candidates = ["appsettings.json", "appsettings.Development.json"];
+
+        foreach (var fileName in candidates)
+        {
+            var path = Path.Combine(presentationPath, fileName);
+            if (!fileWriter.FileExists(path)) continue;
+
+            try
+            {
+                var json = fileWriter.ReadAllText(path);
+                var root = JsonNode.Parse(json)?.AsObject();
+                if (root is null || root.ContainsKey(sectionKey)) continue;
+
+                root[sectionKey] = buildSection();
+                fileWriter.WriteAllText(path, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+                console.MarkupLine(string.Format(injectedMessage, fileName));
+            }
+            catch (Exception ex)
+            {
+                console.MarkupLine(string.Format(warningMessage, fileName, ex.Message));
+            }
+        }
     }
 
     internal static string InsertAfterLine(string content, string anchor, string toInsert)
