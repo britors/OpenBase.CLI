@@ -177,7 +177,6 @@ public sealed partial class ScaffoldGenerator
         using Moq;
         using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Responses;
         using {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Find{{ctx.Entity}}ByIdFeature;
-        using {{ctx.NS}}.Domain.Entities;
         using {{ctx.NS}}.Domain.Interfaces.Services;
 
         namespace {{ctx.NS}}.Tests.Unit.Application.Features.{{ctx.Entity}}Features;
@@ -197,11 +196,9 @@ public sealed partial class ScaffoldGenerator
             public async Task Handle_ReturnsResponse_WhenEntityIsFound()
             {
                 var query = new Find{{ctx.Entity}}ByIdQuery(1);
-                var entity = new {{ctx.Entity}} { Id = 1, {{EntityTestInitializer()}} };
                 var response = new {{ctx.Entity}}Response({{IdAndPropertiesTestArgs()}});
 
-                _{{ctx.ECamel}}DomainServiceMock.Setup(s => s.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
-                _mapperMock.Setup(m => m.Map<{{ctx.Entity}}Response>(entity)).Returns(response);
+                _mapperMock.Setup(m => m.Map<{{ctx.Entity}}Response>(It.IsAny<object>())).Returns(response);
 
                 var result = await _handler.Handle(query, CancellationToken.None);
 

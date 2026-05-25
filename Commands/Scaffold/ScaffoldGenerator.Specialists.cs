@@ -175,7 +175,7 @@ public sealed partial class ScaffoldGenerator
 
             public partial interface I{{ctx.Entity}}DomainService
             {
-                Task<{{returnType}}> {{method}}Async(
+                new Task<{{returnType}}> {{method}}Async(
                     {{MethodParamsLeading(p)}}CancellationToken cancellationToken = default);
             }
             """;
@@ -193,7 +193,7 @@ public sealed partial class ScaffoldGenerator
 
             public sealed partial class {{ctx.Entity}}DomainService
             {
-                public async Task<{{returnType}}> {{method}}Async(
+                public new async Task<{{returnType}}> {{method}}Async(
                     {{MethodParamsLeading(p)}}CancellationToken cancellationToken = default)
                     => await {{ctx.ECamel}}Repository.{{method}}Async(
                         {{CallArgsLeading(p)}}cancellationToken);
