@@ -220,6 +220,10 @@ public interface IStrings
     string RedisAppSettingsInjected { get; }
     string RedisAppSettingsWarning { get; }          // {0}=error
 
+    string InfraCacheProjectCreated { get; }         // {0}=project name
+    string InfraCacheProjectAlreadyExists { get; }   // {0}=project name
+    string InfraCacheProjectFailed { get; }          // {0}=project name {1}=error
+
     string MongoDbProgramCsInjected { get; }
     string MongoDbProgramCsAlreadyConfigured { get; }
     string MongoDbProgramCsNotFound { get; }
@@ -513,6 +517,10 @@ public abstract class BaseStrings(IReadOnlyDictionary<string, string> overrides)
     public string RedisAppSettingsInjected        => T("  [green]+[/] Redis section added to {0}");
     public string RedisAppSettingsWarning         => T("  [yellow]Warning:[/] Could not modify {0}: {1}");
 
+    public string InfraCacheProjectCreated        => T("  [green]+[/] Project [blue]{0}[/] created");
+    public string InfraCacheProjectAlreadyExists  => T("  [yellow]skipped[/] Project [blue]{0}[/] already exists");
+    public string InfraCacheProjectFailed         => T("  [red]Error:[/] Could not create project [yellow]{0}[/]: {1}");
+
     public string MongoDbProgramCsInjected          => T("  [green]+[/] Program.cs updated with MongoDB configuration");
     public string MongoDbProgramCsAlreadyConfigured => T("  [yellow]skipped[/] Program.cs already has MongoDB configuration");
     public string MongoDbProgramCsNotFound          => T("  [yellow]Warning:[/] Program.cs not found — add manually: builder.Services.AddMongoDb(builder.Configuration);");
@@ -778,6 +786,9 @@ public sealed class PtBrStrings() : BaseStrings(new Dictionary<string, string>
     ["RedisProgramCsWarning"]           = "  [yellow]Aviso:[/] Não foi possível modificar Program.cs: {0}",
     ["RedisAppSettingsInjected"]        = "  [green]+[/] Seção Redis adicionada ao {0}",
     ["RedisAppSettingsWarning"]         = "  [yellow]Aviso:[/] Não foi possível modificar {0}: {1}",
+    ["InfraCacheProjectCreated"]       = "  [green]+[/] Projeto [blue]{0}[/] criado",
+    ["InfraCacheProjectAlreadyExists"] = "  [yellow]ignorado[/] Projeto [blue]{0}[/] já existe",
+    ["InfraCacheProjectFailed"]        = "  [red]Erro:[/] Não foi possível criar o projeto [yellow]{0}[/]: {1}",
     ["MongoDbProgramCsInjected"]          = "  [green]+[/] Program.cs atualizado com configuração do MongoDB",
     ["MongoDbProgramCsAlreadyConfigured"] = "  [yellow]ignorado[/] Program.cs já possui configuração do MongoDB",
     ["MongoDbProgramCsNotFound"]          = "  [yellow]Aviso:[/] Program.cs não encontrado — adicione manualmente: builder.Services.AddMongoDb(builder.Configuration);",
@@ -1036,6 +1047,9 @@ public sealed class EsStrings() : BaseStrings(new Dictionary<string, string>
     ["RedisProgramCsWarning"]           = "  [yellow]Aviso:[/] No se pudo modificar Program.cs: {0}",
     ["RedisAppSettingsInjected"]        = "  [green]+[/] Sección Redis agregada a {0}",
     ["RedisAppSettingsWarning"]         = "  [yellow]Aviso:[/] No se pudo modificar {0}: {1}",
+    ["InfraCacheProjectCreated"]       = "  [green]+[/] Proyecto [blue]{0}[/] creado",
+    ["InfraCacheProjectAlreadyExists"] = "  [yellow]ignorado[/] Proyecto [blue]{0}[/] ya existe",
+    ["InfraCacheProjectFailed"]        = "  [red]Error:[/] No se pudo crear el proyecto [yellow]{0}[/]: {1}",
     ["MongoDbProgramCsInjected"]          = "  [green]+[/] Program.cs actualizado con configuración de MongoDB",
     ["MongoDbProgramCsAlreadyConfigured"] = "  [yellow]ignorado[/] Program.cs ya tiene configuración de MongoDB",
     ["MongoDbProgramCsNotFound"]          = "  [yellow]Aviso:[/] Program.cs no encontrado — agregue manualmente: builder.Services.AddMongoDb(builder.Configuration);",
