@@ -50,7 +50,7 @@ public sealed class RedisCacheExtensionHandler(
                 ["ConnectionString"] = "localhost:6379",
                 ["InstanceName"]     = "openbase_",
                 ["Retry"] = new JsonObject { ["MaxAttempts"] = 3, ["DelaySeconds"] = 1 },
-                ["CircuitBreaker"] = new JsonObject { ["FailureThreshold"] = 5, ["BreakDurationSeconds"] = 30 }
+                ["CircuitBreaker"] = new JsonObject { ["MinimumThroughput"] = 5, ["FailureRatio"] = 0.5, ["SamplingDurationSeconds"] = 60, ["BreakDurationSeconds"] = 30 }
             },
             SR.Current.RedisAppSettingsInjected,
             SR.Current.RedisAppSettingsWarning,
@@ -200,9 +200,11 @@ public sealed class RedisCacheExtensionHandler(
 
                 services.AddResiliencePipeline("redis", builder =>
                 {
-                    var maxAttempts  = configuration.GetValue("Redis:Retry:MaxAttempts", 3);
-                    var delaySeconds = configuration.GetValue("Redis:Retry:DelaySeconds", 1);
-                    var failureThreshold  = configuration.GetValue("Redis:CircuitBreaker:FailureThreshold", 5);
+                    var maxAttempts       = configuration.GetValue("Redis:Retry:MaxAttempts", 3);
+                    var delaySeconds      = configuration.GetValue("Redis:Retry:DelaySeconds", 1);
+                    var minThroughput     = configuration.GetValue("Redis:CircuitBreaker:MinimumThroughput", 5);
+                    var failureRatio      = configuration.GetValue("Redis:CircuitBreaker:FailureRatio", 0.5);
+                    var samplingDuration  = configuration.GetValue("Redis:CircuitBreaker:SamplingDurationSeconds", 60);
                     var breakDuration     = configuration.GetValue("Redis:CircuitBreaker:BreakDurationSeconds", 30);
 
                     builder.AddRetry(new RetryStrategyOptions
@@ -214,8 +216,10 @@ public sealed class RedisCacheExtensionHandler(
 
                     builder.AddCircuitBreaker(new CircuitBreakerStrategyOptions
                     {
-                        HandledEventsAllowedBeforeBreaking = failureThreshold,
-                        BreakDuration                      = TimeSpan.FromSeconds(breakDuration)
+                        MinimumThroughput = minThroughput,
+                        FailureRatio      = failureRatio,
+                        SamplingDuration  = TimeSpan.FromSeconds(samplingDuration),
+                        BreakDuration     = TimeSpan.FromSeconds(breakDuration)
                     });
                 });
 

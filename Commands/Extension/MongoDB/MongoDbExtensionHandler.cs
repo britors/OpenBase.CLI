@@ -50,7 +50,7 @@ public sealed class MongoDbExtensionHandler(
                 ["ConnectionString"] = "mongodb://localhost:27017",
                 ["DatabaseName"]     = "openbase",
                 ["Retry"] = new JsonObject { ["MaxAttempts"] = 3, ["DelaySeconds"] = 1 },
-                ["CircuitBreaker"] = new JsonObject { ["FailureThreshold"] = 5, ["BreakDurationSeconds"] = 30 }
+                ["CircuitBreaker"] = new JsonObject { ["MinimumThroughput"] = 5, ["FailureRatio"] = 0.5, ["SamplingDurationSeconds"] = 60, ["BreakDurationSeconds"] = 30 }
             },
             SR.Current.MongoDbAppSettingsInjected,
             SR.Current.MongoDbAppSettingsWarning,
@@ -167,10 +167,12 @@ public sealed class MongoDbExtensionHandler(
 
                 services.AddResiliencePipeline("mongodb", builder =>
                 {
-                    var maxAttempts  = configuration.GetValue("MongoDb:Retry:MaxAttempts", 3);
-                    var delaySeconds = configuration.GetValue("MongoDb:Retry:DelaySeconds", 1);
-                    var failureThreshold  = configuration.GetValue("MongoDb:CircuitBreaker:FailureThreshold", 5);
-                    var breakDuration     = configuration.GetValue("MongoDb:CircuitBreaker:BreakDurationSeconds", 30);
+                    var maxAttempts      = configuration.GetValue("MongoDb:Retry:MaxAttempts", 3);
+                    var delaySeconds     = configuration.GetValue("MongoDb:Retry:DelaySeconds", 1);
+                    var minThroughput    = configuration.GetValue("MongoDb:CircuitBreaker:MinimumThroughput", 5);
+                    var failureRatio     = configuration.GetValue("MongoDb:CircuitBreaker:FailureRatio", 0.5);
+                    var samplingDuration = configuration.GetValue("MongoDb:CircuitBreaker:SamplingDurationSeconds", 60);
+                    var breakDuration    = configuration.GetValue("MongoDb:CircuitBreaker:BreakDurationSeconds", 30);
 
                     builder.AddRetry(new RetryStrategyOptions
                     {
@@ -181,8 +183,10 @@ public sealed class MongoDbExtensionHandler(
 
                     builder.AddCircuitBreaker(new CircuitBreakerStrategyOptions
                     {
-                        HandledEventsAllowedBeforeBreaking = failureThreshold,
-                        BreakDuration                      = TimeSpan.FromSeconds(breakDuration)
+                        MinimumThroughput = minThroughput,
+                        FailureRatio      = failureRatio,
+                        SamplingDuration  = TimeSpan.FromSeconds(samplingDuration),
+                        BreakDuration     = TimeSpan.FromSeconds(breakDuration)
                     });
                 });
 
