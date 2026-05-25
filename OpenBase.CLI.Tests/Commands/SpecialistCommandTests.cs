@@ -222,4 +222,88 @@ public class SpecialistCommandTests
 
         Assert.Equal(0, result);
     }
+
+    // ─── Multi-line SQL ────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Execute_Query_MultiLineSql_GeneratesRawStringLiteral()
+    {
+        SetupLocator("/solution", "OpenBaseNET");
+        _fileWriter.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
+
+        string? repositoryContent = null;
+        _fileWriter
+            .Setup(f => f.WriteAllText(
+                It.Is<string>(p => p.EndsWith("ProdutoRepository.GetByCategoria.cs")),
+                It.IsAny<string>()))
+            .Callback<string, string>((_, c) => repositoryContent = c);
+
+        await Run(new SpecialistSettings
+        {
+            Entity  = "Produto",
+            Method  = "GetByCategoria",
+            Type    = "query",
+            Sql     = "SELECT Name\nFROM Products\nWHERE CategoriaId = {{categoriaId}}",
+            Params  = ["categoriaId:Guid"],
+            Columns = ["Nome:string"]
+        });
+
+        Assert.NotNull(repositoryContent);
+        Assert.Contains("\"\"\"", repositoryContent);
+        Assert.DoesNotContain("\"SELECT Name\\nFROM", repositoryContent);
+    }
+
+    [Fact]
+    public async Task Execute_Command_MultiLineSql_GeneratesRawStringLiteral()
+    {
+        SetupLocator("/solution", "OpenBaseNET");
+        _fileWriter.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
+
+        string? repositoryContent = null;
+        _fileWriter
+            .Setup(f => f.WriteAllText(
+                It.Is<string>(p => p.EndsWith("ProdutoRepository.Deactivate.cs")),
+                It.IsAny<string>()))
+            .Callback<string, string>((_, c) => repositoryContent = c);
+
+        await Run(new SpecialistSettings
+        {
+            Entity = "Produto",
+            Method = "Deactivate",
+            Type   = "command",
+            Sql    = "UPDATE Products\nSET Active = 0\nWHERE Id = {{id}}",
+            Params = ["id:Guid"]
+        });
+
+        Assert.NotNull(repositoryContent);
+        Assert.Contains("\"\"\"", repositoryContent);
+    }
+
+    [Fact]
+    public async Task Execute_Query_SingleLineSql_GeneratesRegularStringLiteral()
+    {
+        SetupLocator("/solution", "OpenBaseNET");
+        _fileWriter.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
+
+        string? repositoryContent = null;
+        _fileWriter
+            .Setup(f => f.WriteAllText(
+                It.Is<string>(p => p.EndsWith("ProdutoRepository.GetByCategoria.cs")),
+                It.IsAny<string>()))
+            .Callback<string, string>((_, c) => repositoryContent = c);
+
+        await Run(new SpecialistSettings
+        {
+            Entity  = "Produto",
+            Method  = "GetByCategoria",
+            Type    = "query",
+            Sql     = "SELECT Name FROM Products WHERE CategoriaId = {{categoriaId}}",
+            Params  = ["categoriaId:Guid"],
+            Columns = ["Nome:string"]
+        });
+
+        Assert.NotNull(repositoryContent);
+        Assert.Contains("\"SELECT Name FROM Products", repositoryContent);
+        Assert.DoesNotContain("\"\"\"", repositoryContent);
+    }
 }

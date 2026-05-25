@@ -260,6 +260,8 @@ public interface IStrings
     string SpecialistMethodReserved { get; }          // {0}=name
     string SpecialistFilesCreated { get; }            // {0}=count
     string SpecialistSqlPrompt { get; }
+    string SpecialistSqlLinePrompt { get; }
+    string SpecialistSqlFinishHint { get; }
     string SpecialistParamsDetected { get; }          // {0}=param list
     string SpecialistParamTypePrompt { get; }         // {0}=param name
     string SpecialistPaginatedPrompt { get; }
@@ -558,6 +560,8 @@ public abstract class BaseStrings(IReadOnlyDictionary<string, string> overrides)
     public string SpecialistMethodReserved    => T("'{0}' is reserved by the basic scaffold.");
     public string SpecialistFilesCreated      => T("{0} specialist file(s) created:");
     public string SpecialistSqlPrompt          => T("Enter the SQL/operation with parameters as {{ paramName }}:");
+    public string SpecialistSqlLinePrompt      => T("  > ");
+    public string SpecialistSqlFinishHint      => T("(empty line to finish)");
     public string SpecialistParamsDetected    => T("Parameters detected: {0}");
     public string SpecialistParamTypePrompt   => T("  {0} — C# type:");
     public string SpecialistPaginatedPrompt   => T("Does the query return paginated results?");
@@ -824,6 +828,8 @@ public sealed class PtBrStrings() : BaseStrings(new Dictionary<string, string>
     ["SpecialistMethodReserved"]    = "'{0}' é reservado pelo scaffold básico.",
     ["SpecialistFilesCreated"]      = "{0} arquivo(s) especialista(s) criado(s):",
     ["SpecialistSqlPrompt"]              = "Informe o SQL/operação com parâmetros no formato {{ nomeParam }}:",
+    ["SpecialistSqlLinePrompt"]          = "  > ",
+    ["SpecialistSqlFinishHint"]          = "(linha vazia para finalizar)",
     ["SpecialistParamsDetected"]         = "Parâmetros detectados: {0}",
     ["SpecialistParamTypePrompt"]        = "  {0} — tipo C#:",
     ["SpecialistPaginatedPrompt"]        = "A query retorna resultado paginado?",
@@ -1086,6 +1092,8 @@ public sealed class EsStrings() : BaseStrings(new Dictionary<string, string>
     ["SpecialistMethodReserved"]    = "'{0}' está reservado por el scaffold básico.",
     ["SpecialistFilesCreated"]      = "{0} archivo(s) especialista(s) creado(s):",
     ["SpecialistSqlPrompt"]              = "Ingrese el SQL/operación con parámetros en formato {{ nombreParam }}:",
+    ["SpecialistSqlLinePrompt"]          = "  > ",
+    ["SpecialistSqlFinishHint"]          = "(línea vacía para finalizar)",
     ["SpecialistParamsDetected"]         = "Parámetros detectados: {0}",
     ["SpecialistParamTypePrompt"]        = "  {0} — tipo C#:",
     ["SpecialistPaginatedPrompt"]        = "¿La query retorna resultado paginado?",

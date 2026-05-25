@@ -19,7 +19,7 @@ internal sealed class SpecialistWizard(IAnsiConsole console)
         if (type == SpecialistType.HttpCall)
             return new SpecialistDefinition(methodName, type, string.Empty, []);
 
-        var sql        = console.Ask<string>(SR.Current.SpecialistSqlPrompt);
+        var sql        = AskMultiLineSql();
         var paramNames = SpecialistParam.ExtractNames(sql);
 
         if (paramNames.Count > 0)
@@ -106,6 +106,19 @@ internal sealed class SpecialistWizard(IAnsiConsole console)
         if (choice == SR.Current.SpecialistCommandChoice) return SpecialistType.Command;
         if (choice == SR.Current.SpecialistHttpCallChoice) return SpecialistType.HttpCall;
         return SpecialistType.Query;
+    }
+
+    private string AskMultiLineSql()
+    {
+        console.MarkupLine($"{SR.Current.SpecialistSqlPrompt} [grey]{SR.Current.SpecialistSqlFinishHint}[/]");
+        var lines = new List<string>();
+        while (true)
+        {
+            var line = console.Prompt(new TextPrompt<string>(SR.Current.SpecialistSqlLinePrompt).AllowEmpty());
+            if (string.IsNullOrEmpty(line)) break;
+            lines.Add(line);
+        }
+        return string.Join("\n", lines);
     }
 
     private string AskCsType(string promptTemplate, string name) =>

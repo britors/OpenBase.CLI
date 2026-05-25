@@ -42,6 +42,16 @@ public sealed partial class ScaffoldGenerator
     private static string RequestCallArgs(IReadOnlyList<SpecialistParam> p) =>
         (p.Count == 0 ? string.Empty : string.Join(", ", p.Select(x => $"request.{x.PascalName}")) + ", ");
 
+    private static string SqlConstDecl(string method, string sql)
+    {
+        if (!sql.Contains('\n') && !sql.Contains('\r'))
+            return $"private const string {method}Sql = \"{sql.Replace("\"", "\\\"")}\";";
+
+        var lines   = sql.ReplaceLineEndings("\n").Trim().Split('\n');
+        var content = string.Join("\n        ", lines.Select(l => l.TrimEnd()));
+        return $"private const string {method}Sql = \"\"\"\n        {content}\n        \"\"\";";
+    }
+
     private static string DapperAnon(IReadOnlyList<SpecialistParam> p) =>
         p.Count == 0
             ? "new { }"
@@ -137,7 +147,7 @@ public sealed partial class ScaffoldGenerator
 
             public sealed partial class {{ctx.Entity}}Repository
             {
-                private const string {{method}}Sql = "{{sql.Replace("\"", "\\\"")}}";
+                {{SqlConstDecl(method, sql)}}
 
                 public async Task<{{returnType}}> {{method}}Async(
                     {{MethodParamsLeading(p)}}CancellationToken cancellationToken = default)
@@ -313,7 +323,7 @@ public sealed partial class ScaffoldGenerator
 
         public sealed partial class {{ctx.Entity}}Repository
         {
-            private const string {{method}}Sql = "{{sql.Replace("\"", "\\\"")}}";
+            {{SqlConstDecl(method, sql)}}
 
             public async Task<bool> {{method}}Async(
                 {{MethodParamsLeading(p)}}CancellationToken cancellationToken = default)
