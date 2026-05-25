@@ -100,15 +100,12 @@ public sealed class MongoDbExtensionHandler(
     }
 
     private static string IMongoDbContextTemplate(string ns) => $$"""
-        using MongoDB.Driver;
-
         namespace {{ns}}.Application.Interfaces.Context;
 
         public interface IMongoDbContext
         {
-            IMongoCollection<T> GetCollection<T>(string name);
             Task<TResult> ExecuteAsync<TResult>(
-                Func<IMongoDatabase, CancellationToken, ValueTask<TResult>> operation,
+                Func<CancellationToken, ValueTask<TResult>> operation,
                 CancellationToken cancellationToken = default);
         }
         """;
@@ -135,13 +132,12 @@ public sealed class MongoDbExtensionHandler(
                 _database.GetCollection<T>(name);
 
             public async Task<TResult> ExecuteAsync<TResult>(
-                Func<IMongoDatabase, CancellationToken, ValueTask<TResult>> operation,
+                Func<CancellationToken, ValueTask<TResult>> operation,
                 CancellationToken cancellationToken = default)
             {
                 try
                 {
-                    return await _pipeline.ExecuteAsync(
-                        ct => operation(_database, ct), cancellationToken);
+                    return await _pipeline.ExecuteAsync(operation, cancellationToken);
                 }
                 catch { return default!; }
             }

@@ -502,7 +502,7 @@ public class MongoDbExtensionHandlerTests
     }
 
     [Fact]
-    public void GetFiles_IMongoDbContextContainsGetCollection()
+    public void GetFiles_IMongoDbContextContainsExecuteAsync()
     {
         var files = MongoDbExtensionHandler.GetFiles(
             "MyApp",
@@ -511,8 +511,24 @@ public class MongoDbExtensionHandlerTests
             "/solution/src/MyApp.Presentation.Api").ToList();
 
         var iface = files.First(f => f.Path.EndsWith("IMongoDbContext.cs"));
-        Assert.Contains("GetCollection", iface.Content);
         Assert.Contains("ExecuteAsync", iface.Content);
+        Assert.DoesNotContain("MongoDB.Driver", iface.Content);
+        Assert.DoesNotContain("IMongoCollection", iface.Content);
+        Assert.DoesNotContain("IMongoDatabase", iface.Content);
+    }
+
+    [Fact]
+    public void GetFiles_MongoDbContextConcreteHasGetCollection()
+    {
+        var files = MongoDbExtensionHandler.GetFiles(
+            "MyApp",
+            "/solution/src/MyApp.Application",
+            "/solution/src/MyApp.Infra.MongoDb",
+            "/solution/src/MyApp.Presentation.Api").ToList();
+
+        var impl = files.First(f => f.Path.EndsWith("MongoDbContext.cs") && !f.Path.EndsWith("IMongoDbContext.cs"));
+        Assert.Contains("GetCollection", impl.Content);
+        Assert.Contains("IMongoCollection", impl.Content);
     }
 
     [Fact]
