@@ -112,16 +112,16 @@ public sealed class MongoDbExtensionHandler(
 
     private static string MongoDbContextTemplate(string ns) => $$"""
         using Microsoft.Extensions.Configuration;
-        using Microsoft.Extensions.Resilience;
         using MongoDB.Driver;
         using Polly;
+        using Polly.Registry;
         using {{ns}}.Application.Interfaces.Context;
 
         namespace {{ns}}.Infra.MongoDb.Context;
 
         public sealed class MongoDbContext(
             IMongoClient mongoClient,
-            IResiliencePipelineProvider<string> pipelineProvider,
+            ResiliencePipelineProvider<string> pipelineProvider,
             IConfiguration configuration) : IMongoDbContext
         {
             private readonly ResiliencePipeline _pipeline = pipelineProvider.GetPipeline("mongodb");

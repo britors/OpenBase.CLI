@@ -114,15 +114,15 @@ public sealed class RedisCacheExtensionHandler(
     private static string RedisCacheServiceTemplate(string ns) => $$"""
         using System.Text.Json;
         using Microsoft.Extensions.Caching.Distributed;
-        using Microsoft.Extensions.Resilience;
         using Polly;
+        using Polly.Registry;
         using {{ns}}.Application.Interfaces.Services;
 
         namespace {{ns}}.Infra.Cache.Services;
 
         public sealed class RedisCacheService(
             IDistributedCache cache,
-            IResiliencePipelineProvider<string> pipelineProvider) : ICacheService
+            ResiliencePipelineProvider<string> pipelineProvider) : ICacheService
         {
             private readonly ResiliencePipeline _pipeline = pipelineProvider.GetPipeline("redis");
 

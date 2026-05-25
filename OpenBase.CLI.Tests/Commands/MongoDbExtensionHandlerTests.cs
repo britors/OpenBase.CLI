@@ -543,7 +543,7 @@ public class MongoDbExtensionHandlerTests
         var impl = files.First(f => f.Path.EndsWith("MongoDbContext.cs") && !f.Path.EndsWith("IMongoDbContext.cs"));
         Assert.Contains("MyApp.Infra.MongoDb.Context", impl.Content);
         Assert.Contains("IMongoDbContext", impl.Content);
-        Assert.Contains("IResiliencePipelineProvider", impl.Content);
+        Assert.Contains("ResiliencePipelineProvider", impl.Content);
     }
 
     [Fact]
