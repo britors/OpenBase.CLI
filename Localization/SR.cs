@@ -220,6 +220,10 @@ public interface IStrings
     string RedisAppSettingsInjected { get; }
     string RedisAppSettingsWarning { get; }          // {0}=error
 
+    string InfraCacheProjectCreated { get; }         // {0}=project name
+    string InfraCacheProjectAlreadyExists { get; }   // {0}=project name
+    string InfraCacheProjectFailed { get; }          // {0}=project name {1}=error
+
     string TestingDbConnection { get; }
     string DbConnectionSuccess { get; }
     string DbConnectionFailed { get; }
@@ -502,6 +506,10 @@ public abstract class BaseStrings(IReadOnlyDictionary<string, string> overrides)
     public string RedisAppSettingsInjected        => T("  [green]+[/] Redis section added to {0}");
     public string RedisAppSettingsWarning         => T("  [yellow]Warning:[/] Could not modify {0}: {1}");
 
+    public string InfraCacheProjectCreated        => T("  [green]+[/] Project [blue]{0}[/] created");
+    public string InfraCacheProjectAlreadyExists  => T("  [yellow]skipped[/] Project [blue]{0}[/] already exists");
+    public string InfraCacheProjectFailed         => T("  [red]Error:[/] Could not create project [yellow]{0}[/]: {1}");
+
     public string TestingDbConnection    => T("Testing database connection...");
     public string DbConnectionSuccess    => T("[green]✓[/] Database connection established successfully.");
     public string DbConnectionFailed     => T("[yellow]Warning:[/] Could not connect to the database. Check the connection string in appsettings.json.");
@@ -756,6 +764,9 @@ public sealed class PtBrStrings() : BaseStrings(new Dictionary<string, string>
     ["RedisProgramCsWarning"]           = "  [yellow]Aviso:[/] Não foi possível modificar Program.cs: {0}",
     ["RedisAppSettingsInjected"]        = "  [green]+[/] Seção Redis adicionada ao {0}",
     ["RedisAppSettingsWarning"]         = "  [yellow]Aviso:[/] Não foi possível modificar {0}: {1}",
+    ["InfraCacheProjectCreated"]       = "  [green]+[/] Projeto [blue]{0}[/] criado",
+    ["InfraCacheProjectAlreadyExists"] = "  [yellow]ignorado[/] Projeto [blue]{0}[/] já existe",
+    ["InfraCacheProjectFailed"]        = "  [red]Erro:[/] Não foi possível criar o projeto [yellow]{0}[/]: {1}",
     ["TestingDbConnection"]    = "Testando conexão com o banco de dados...",
     ["DbConnectionSuccess"]    = "[green]✓[/] Conexão com o banco de dados estabelecida com sucesso.",
     ["DbConnectionFailed"]     = "[yellow]Aviso:[/] Não foi possível conectar ao banco de dados. Verifique a connection string no appsettings.json.",
@@ -1005,6 +1016,9 @@ public sealed class EsStrings() : BaseStrings(new Dictionary<string, string>
     ["RedisProgramCsWarning"]           = "  [yellow]Aviso:[/] No se pudo modificar Program.cs: {0}",
     ["RedisAppSettingsInjected"]        = "  [green]+[/] Sección Redis agregada a {0}",
     ["RedisAppSettingsWarning"]         = "  [yellow]Aviso:[/] No se pudo modificar {0}: {1}",
+    ["InfraCacheProjectCreated"]       = "  [green]+[/] Proyecto [blue]{0}[/] creado",
+    ["InfraCacheProjectAlreadyExists"] = "  [yellow]ignorado[/] Proyecto [blue]{0}[/] ya existe",
+    ["InfraCacheProjectFailed"]        = "  [red]Error:[/] No se pudo crear el proyecto [yellow]{0}[/]: {1}",
     ["TestingDbConnection"]    = "Probando conexión con la base de datos...",
     ["DbConnectionSuccess"]    = "[green]✓[/] Conexión con la base de datos establecida con éxito.",
     ["DbConnectionFailed"]     = "[yellow]Aviso:[/] No se pudo conectar a la base de datos. Verifique la connection string en appsettings.json.",

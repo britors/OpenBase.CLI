@@ -107,8 +107,57 @@ public class RedisCacheExtensionHandlerTests
             It.IsAny<string>()), Times.Never);
     }
 
+    // --- Infra.Cache project creation ---
+
     [Fact]
-    public void Apply_AddsProjectReference_WhenInfraDataMissingApplicationRef()
+    public void Apply_CreatesInfraCacheProject_WhenNotExists()
+    {
+        CreateHandler().Apply(BuildContext());
+
+        _dotNetRunner.Verify(r => r.Run(
+            It.Is<string>(s => s.Contains("new classlib") && s.Contains("Infra.Cache"))),
+            Times.Once);
+    }
+
+    [Fact]
+    public void Apply_SkipsProjectCreation_WhenAlreadyExists()
+    {
+        _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith("Infra.Cache.csproj")))).Returns(true);
+
+        CreateHandler().Apply(BuildContext());
+
+        _dotNetRunner.Verify(r => r.Run(
+            It.Is<string>(s => s.Contains("new classlib"))),
+            Times.Never);
+    }
+
+    [Fact]
+    public void Apply_AddsInfraCacheToSolution_WhenSlnFound()
+    {
+        _fileWriter.Setup(f => f.FindSolutionFile(It.IsAny<string>())).Returns("/solution/MyApp.sln");
+
+        CreateHandler().Apply(BuildContext());
+
+        _dotNetRunner.Verify(r => r.Run(
+            It.Is<string>(s => s.Contains("sln") && s.Contains("add") && s.Contains("Infra.Cache.csproj"))),
+            Times.Once);
+    }
+
+    [Fact]
+    public void Apply_SkipsSlnAdd_WhenSlnNotFound()
+    {
+        _fileWriter.Setup(f => f.FindSolutionFile(It.IsAny<string>())).Returns((string?)null);
+
+        var ex = Record.Exception(() => CreateHandler().Apply(BuildContext()));
+
+        Assert.Null(ex);
+        _dotNetRunner.Verify(r => r.Run(
+            It.Is<string>(s => s.Contains("sln") && s.Contains("add"))),
+            Times.Never);
+    }
+
+    [Fact]
+    public void Apply_AddsInfraCacheReferenceToApplication()
     {
         _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith(".csproj")))).Returns(true);
         _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith(".csproj")))).Returns("<Project />");
@@ -117,29 +166,13 @@ public class RedisCacheExtensionHandlerTests
 
         _dotNetRunner.Verify(r => r.Run(
             It.Is<string>(s => s.Contains("reference") &&
-                               s.Contains("Infra.Data.csproj") &&
+                               s.Contains("Infra.Cache.csproj") &&
                                s.Contains("Application.csproj"))),
             Times.Once);
     }
 
     [Fact]
-    public void Apply_SkipsProjectReference_WhenAlreadyPresent()
-    {
-        _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith(".csproj")))).Returns(true);
-        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith("Infra.Data.csproj"))))
-                   .Returns("<ProjectReference Include=\"..\\MyApp.Application\\MyApp.Application.csproj\" />");
-        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => !p.EndsWith("Infra.Data.csproj") && p.EndsWith(".csproj"))))
-                   .Returns("<Project />");
-
-        CreateHandler().Apply(BuildContext());
-
-        _dotNetRunner.Verify(r => r.Run(
-            It.Is<string>(s => s.Contains("reference") && s.Contains("Application.csproj"))),
-            Times.Never);
-    }
-
-    [Fact]
-    public void Apply_AddsCachingPackageToPresentationApi()
+    public void Apply_AddsPresentationReferenceToInfraCache()
     {
         _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith(".csproj")))).Returns(true);
         _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith(".csproj")))).Returns("<Project />");
@@ -147,24 +180,41 @@ public class RedisCacheExtensionHandlerTests
         CreateHandler().Apply(BuildContext());
 
         _dotNetRunner.Verify(r => r.Run(
-            It.Is<string>(s => s.Contains("Presentation.Api.csproj") &&
+            It.Is<string>(s => s.Contains("reference") &&
+                               s.Contains("Presentation.Api.csproj") &&
+                               s.Contains("Infra.Cache.csproj"))),
+            Times.Once);
+    }
+
+    [Fact]
+    public void Apply_InstallsCachingPackageInInfraCache()
+    {
+        _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith("Infra.Cache.csproj")))).Returns(true);
+        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith("Infra.Cache.csproj")))).Returns("<Project />");
+
+        CreateHandler().Apply(BuildContext());
+
+        _dotNetRunner.Verify(r => r.Run(
+            It.Is<string>(s => s.Contains("Infra.Cache.csproj") &&
                                s.Contains("Microsoft.Extensions.Caching.StackExchangeRedis"))),
             Times.Once);
     }
 
     [Fact]
-    public void Apply_PackageAlreadyPresent_SkipsInstall()
+    public void Apply_InstallsResiliencePackageInInfraCache()
     {
-        _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith(".csproj")))).Returns(true);
-        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith(".csproj"))))
-                   .Returns("<PackageReference Include=\"Microsoft.Extensions.Caching.StackExchangeRedis\" />");
+        _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith("Infra.Cache.csproj")))).Returns(true);
+        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith("Infra.Cache.csproj")))).Returns("<Project />");
 
         CreateHandler().Apply(BuildContext());
 
         _dotNetRunner.Verify(r => r.Run(
-            It.Is<string>(s => s.Contains("Microsoft.Extensions.Caching.StackExchangeRedis"))),
-            Times.Never);
+            It.Is<string>(s => s.Contains("Infra.Cache.csproj") &&
+                               s.Contains("Microsoft.Extensions.Resilience"))),
+            Times.Once);
     }
+
+    // --- Program.cs injection ---
 
     [Fact]
     public void Apply_InjectsProgramCs_WhenFileExists()
@@ -231,7 +281,7 @@ public class RedisCacheExtensionHandlerTests
         CreateHandler().Apply(BuildContext());
 
         Assert.NotNull(written);
-        var addIdx = written!.IndexOf("AddRedisCache", StringComparison.Ordinal);
+        var addIdx   = written!.IndexOf("AddRedisCache", StringComparison.Ordinal);
         var buildIdx = written.IndexOf("var app = builder.Build();", StringComparison.Ordinal);
         Assert.True(addIdx < buildIdx, "AddRedisCache should appear before builder.Build()");
     }
@@ -265,6 +315,8 @@ public class RedisCacheExtensionHandlerTests
         Assert.Null(ex);
     }
 
+    // --- appsettings.json ---
+
     [Fact]
     public void Apply_InjectsRedis_IntoAppSettingsJson_WhenFileExists()
     {
@@ -277,6 +329,25 @@ public class RedisCacheExtensionHandlerTests
         _fileWriter.Verify(f => f.WriteAllText(
             It.Is<string>(p => p.EndsWith("appsettings.json")),
             It.Is<string>(c => c.Contains("Redis") && c.Contains("ConnectionString") && c.Contains("InstanceName"))),
+            Times.Once);
+    }
+
+    [Fact]
+    public void Apply_InjectsRetryAndCircuitBreaker_IntoAppSettings()
+    {
+        const string appSettings = """{"Logging":{"LogLevel":{"Default":"Information"}}}""";
+        _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith("appsettings.json")))).Returns(true);
+        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith("appsettings.json")))).Returns(appSettings);
+
+        CreateHandler().Apply(BuildContext());
+
+        _fileWriter.Verify(f => f.WriteAllText(
+            It.Is<string>(p => p.EndsWith("appsettings.json")),
+            It.Is<string>(c =>
+                c.Contains("Retry") &&
+                c.Contains("MaxAttempts") &&
+                c.Contains("CircuitBreaker") &&
+                c.Contains("BreakDurationSeconds"))),
             Times.Once);
     }
 
@@ -330,13 +401,15 @@ public class RedisCacheExtensionHandlerTests
             It.IsAny<string>()), Times.Never);
     }
 
+    // --- GetFiles ---
+
     [Fact]
     public void GetFiles_ReturnsThreeFiles()
     {
         var files = RedisCacheExtensionHandler.GetFiles(
             "MyApp",
             "/solution/src/MyApp.Application",
-            "/solution/src/MyApp.Infra.Data",
+            "/solution/src/MyApp.Infra.Cache",
             "/solution/src/MyApp.Presentation.Api").ToList();
 
         Assert.Equal(3, files.Count);
@@ -348,7 +421,7 @@ public class RedisCacheExtensionHandlerTests
         var files = RedisCacheExtensionHandler.GetFiles(
             "MyApp",
             "/solution/src/MyApp.Application",
-            "/solution/src/MyApp.Infra.Data",
+            "/solution/src/MyApp.Infra.Cache",
             "/solution/src/MyApp.Presentation.Api").ToList();
 
         Assert.Contains(files, f =>
@@ -356,16 +429,16 @@ public class RedisCacheExtensionHandlerTests
     }
 
     [Fact]
-    public void GetFiles_RedisCacheServiceInInfraDataLayer()
+    public void GetFiles_RedisCacheServiceInInfraCacheLayer()
     {
         var files = RedisCacheExtensionHandler.GetFiles(
             "MyApp",
             "/solution/src/MyApp.Application",
-            "/solution/src/MyApp.Infra.Data",
+            "/solution/src/MyApp.Infra.Cache",
             "/solution/src/MyApp.Presentation.Api").ToList();
 
         Assert.Contains(files, f =>
-            f.Path.Contains("MyApp.Infra.Data") && f.Path.EndsWith("RedisCacheService.cs"));
+            f.Path.Contains("MyApp.Infra.Cache") && f.Path.EndsWith("RedisCacheService.cs"));
     }
 
     [Fact]
@@ -374,7 +447,7 @@ public class RedisCacheExtensionHandlerTests
         var files = RedisCacheExtensionHandler.GetFiles(
             "MyApp",
             "/solution/src/MyApp.Application",
-            "/solution/src/MyApp.Infra.Data",
+            "/solution/src/MyApp.Infra.Cache",
             "/solution/src/MyApp.Presentation.Api").ToList();
 
         Assert.Contains(files, f =>
@@ -387,7 +460,7 @@ public class RedisCacheExtensionHandlerTests
         var files = RedisCacheExtensionHandler.GetFiles(
             "AcmeCorp",
             "/solution/src/AcmeCorp.Application",
-            "/solution/src/AcmeCorp.Infra.Data",
+            "/solution/src/AcmeCorp.Infra.Cache",
             "/solution/src/AcmeCorp.Presentation.Api").ToList();
 
         var iface = files.First(f => f.Path.EndsWith("ICacheService.cs"));
@@ -400,7 +473,7 @@ public class RedisCacheExtensionHandlerTests
         var files = RedisCacheExtensionHandler.GetFiles(
             "MyApp",
             "/solution/src/MyApp.Application",
-            "/solution/src/MyApp.Infra.Data",
+            "/solution/src/MyApp.Infra.Cache",
             "/solution/src/MyApp.Presentation.Api").ToList();
 
         var iface = files.First(f => f.Path.EndsWith("ICacheService.cs"));
@@ -416,12 +489,26 @@ public class RedisCacheExtensionHandlerTests
         var files = RedisCacheExtensionHandler.GetFiles(
             "MyApp",
             "/solution/src/MyApp.Application",
-            "/solution/src/MyApp.Infra.Data",
+            "/solution/src/MyApp.Infra.Cache",
             "/solution/src/MyApp.Presentation.Api").ToList();
 
         var impl = files.First(f => f.Path.EndsWith("RedisCacheService.cs"));
         Assert.Contains("ICacheService", impl.Content);
         Assert.Contains("IDistributedCache", impl.Content);
+        Assert.Contains("IResiliencePipelineProvider", impl.Content);
+    }
+
+    [Fact]
+    public void GetFiles_RedisCacheServiceUsesInfraCacheNamespace()
+    {
+        var files = RedisCacheExtensionHandler.GetFiles(
+            "MyApp",
+            "/solution/src/MyApp.Application",
+            "/solution/src/MyApp.Infra.Cache",
+            "/solution/src/MyApp.Presentation.Api").ToList();
+
+        var impl = files.First(f => f.Path.EndsWith("RedisCacheService.cs"));
+        Assert.Contains("MyApp.Infra.Cache.Services", impl.Content);
     }
 
     [Fact]
@@ -430,11 +517,26 @@ public class RedisCacheExtensionHandlerTests
         var files = RedisCacheExtensionHandler.GetFiles(
             "MyApp",
             "/solution/src/MyApp.Application",
-            "/solution/src/MyApp.Infra.Data",
+            "/solution/src/MyApp.Infra.Cache",
             "/solution/src/MyApp.Presentation.Api").ToList();
 
         var ext = files.First(f => f.Path.EndsWith("RedisExtensions.cs"));
         Assert.Contains("AddStackExchangeRedisCache", ext.Content);
+    }
+
+    [Fact]
+    public void GetFiles_RedisExtensionsContainsResiliencePipeline()
+    {
+        var files = RedisCacheExtensionHandler.GetFiles(
+            "MyApp",
+            "/solution/src/MyApp.Application",
+            "/solution/src/MyApp.Infra.Cache",
+            "/solution/src/MyApp.Presentation.Api").ToList();
+
+        var ext = files.First(f => f.Path.EndsWith("RedisExtensions.cs"));
+        Assert.Contains("AddResiliencePipeline", ext.Content);
+        Assert.Contains("AddRetry", ext.Content);
+        Assert.Contains("AddCircuitBreaker", ext.Content);
     }
 
     [Fact]
@@ -443,11 +545,12 @@ public class RedisCacheExtensionHandlerTests
         var files = RedisCacheExtensionHandler.GetFiles(
             "MyApp",
             "/solution/src/MyApp.Application",
-            "/solution/src/MyApp.Infra.Data",
+            "/solution/src/MyApp.Infra.Cache",
             "/solution/src/MyApp.Presentation.Api").ToList();
 
         var ext = files.First(f => f.Path.EndsWith("RedisExtensions.cs"));
         Assert.Contains("ICacheService", ext.Content);
         Assert.Contains("RedisCacheService", ext.Content);
+        Assert.Contains("MyApp.Infra.Cache.Services", ext.Content);
     }
 }

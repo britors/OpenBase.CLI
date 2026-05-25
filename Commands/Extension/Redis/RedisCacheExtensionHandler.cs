@@ -12,7 +12,8 @@ public sealed class RedisCacheExtensionHandler(
     IDotNetRunner dotNetRunner,
     IFileWriter fileWriter) : IExtensionHandler
 {
-    private const string CachingPackageId = "Microsoft.Extensions.Caching.StackExchangeRedis";
+    private const string CachingPackageId  = "Microsoft.Extensions.Caching.StackExchangeRedis";
+    private const string ResiliencePackageId = "Microsoft.Extensions.Resilience";
 
     public string Name => "redis";
     public IReadOnlyList<string> SupportedProviders => [];
@@ -23,32 +24,48 @@ public sealed class RedisCacheExtensionHandler(
         if (paths is null)
             return new ExtensionApplyResult(false, SR.Current.ExtensionRequiresOpenBaseProject);
 
-        var (ns, solutionDir, appPath, infraDataPath, presentationPath) = paths.Value;
+        var (ns, solutionDir, appPath, _, presentationPath) = paths.Value;
+        var infraCachePath = Path.Combine(solutionDir, "src", $"{ns}.Infra.Cache");
 
-        ExtensionHelpers.AddPackage(
-            Path.Combine(presentationPath, $"{ns}.Presentation.Api.csproj"),
-            CachingPackageId, fileWriter, dotNetRunner, console);
-        EnsureInfraDataReferencesApplication(ns, appPath, infraDataPath);
-        ExtensionHelpers.WriteFiles(GetFiles(ns, appPath, infraDataPath, presentationPath), solutionDir, fileWriter, console);
+        CreateInfraCacheProject(ns, solutionDir, infraCachePath, appPath, presentationPath);
+        ExtensionHelpers.WriteFiles(GetFiles(ns, appPath, infraCachePath, presentationPath), solutionDir, fileWriter, console);
         InjectAppSettings(presentationPath);
         InjectProgramCs(ns, presentationPath);
 
         return new ExtensionApplyResult(true);
     }
 
-    private void EnsureInfraDataReferencesApplication(string ns, string appPath, string infraDataPath)
+    private void CreateInfraCacheProject(
+        string ns, string solutionDir, string infraCachePath, string appPath, string presentationPath)
     {
-        var infraCsproj = Path.Combine(infraDataPath, $"{ns}.Infra.Data.csproj");
-        var appCsproj = Path.Combine(appPath, $"{ns}.Application.csproj");
+        var infraCacheCsproj    = Path.Combine(infraCachePath, $"{ns}.Infra.Cache.csproj");
+        var appCsproj           = Path.Combine(appPath, $"{ns}.Application.csproj");
+        var presentationCsproj  = Path.Combine(presentationPath, $"{ns}.Presentation.Api.csproj");
 
-        if (!fileWriter.FileExists(infraCsproj) || !fileWriter.FileExists(appCsproj)) return;
+        if (!fileWriter.FileExists(infraCacheCsproj))
+        {
+            var (ok, err) = dotNetRunner.Run($"new classlib -n \"{ns}.Infra.Cache\" -o \"{infraCachePath}\"");
+            if (!ok)
+            {
+                console.MarkupLine(string.Format(SR.Current.InfraCacheProjectFailed, $"{ns}.Infra.Cache", err));
+                return;
+            }
 
-        var content = fileWriter.ReadAllText(infraCsproj);
-        if (content.Contains($"{ns}.Application.csproj", StringComparison.OrdinalIgnoreCase)) return;
+            var slnFile = fileWriter.FindSolutionFile(solutionDir);
+            if (slnFile is not null)
+                dotNetRunner.Run($"sln \"{slnFile}\" add \"{infraCacheCsproj}\"");
 
-        var (ok, err) = dotNetRunner.Run($"add \"{infraCsproj}\" reference \"{appCsproj}\"");
-        if (!ok)
-            console.MarkupLine(string.Format(SR.Current.ExtensionPackageAddWarning, $"{ns}.Application", err));
+            console.MarkupLine(string.Format(SR.Current.InfraCacheProjectCreated, $"{ns}.Infra.Cache"));
+        }
+        else
+        {
+            console.MarkupLine(string.Format(SR.Current.InfraCacheProjectAlreadyExists, $"{ns}.Infra.Cache"));
+        }
+
+        ExtensionHelpers.AddProjectReference(infraCacheCsproj, appCsproj, fileWriter, dotNetRunner, console);
+        ExtensionHelpers.AddProjectReference(presentationCsproj, infraCacheCsproj, fileWriter, dotNetRunner, console);
+        ExtensionHelpers.AddPackage(infraCacheCsproj, CachingPackageId, fileWriter, dotNetRunner, console);
+        ExtensionHelpers.AddPackage(infraCacheCsproj, ResiliencePackageId, fileWriter, dotNetRunner, console);
     }
 
     private void InjectAppSettings(string presentationPath)
@@ -69,7 +86,17 @@ public sealed class RedisCacheExtensionHandler(
                 root["Redis"] = new JsonObject
                 {
                     ["ConnectionString"] = "localhost:6379",
-                    ["InstanceName"] = "openbase_"
+                    ["InstanceName"]     = "openbase_",
+                    ["Retry"] = new JsonObject
+                    {
+                        ["MaxAttempts"]  = 3,
+                        ["DelaySeconds"] = 1
+                    },
+                    ["CircuitBreaker"] = new JsonObject
+                    {
+                        ["FailureThreshold"]      = 5,
+                        ["BreakDurationSeconds"]  = 30
+                    }
                 };
 
                 fileWriter.WriteAllText(path, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
@@ -105,14 +132,14 @@ public sealed class RedisCacheExtensionHandler(
     }
 
     public static IEnumerable<(string Path, string Content)> GetFiles(
-        string ns, string appPath, string infraDataPath, string presentationPath)
+        string ns, string appPath, string infraCachePath, string presentationPath)
     {
         yield return (
             Path.Combine(appPath, "Interfaces", "Services", "ICacheService.cs"),
             ICacheServiceTemplate(ns));
 
         yield return (
-            Path.Combine(infraDataPath, "Services", "RedisCacheService.cs"),
+            Path.Combine(infraCachePath, "Services", "RedisCacheService.cs"),
             RedisCacheServiceTemplate(ns));
 
         yield return (
@@ -135,40 +162,75 @@ public sealed class RedisCacheExtensionHandler(
     private static string RedisCacheServiceTemplate(string ns) => $$"""
         using System.Text.Json;
         using Microsoft.Extensions.Caching.Distributed;
+        using Microsoft.Extensions.Resilience;
+        using Polly;
         using {{ns}}.Application.Interfaces.Services;
 
-        namespace {{ns}}.Infra.Data.Services;
+        namespace {{ns}}.Infra.Cache.Services;
 
-        public sealed class RedisCacheService(IDistributedCache cache) : ICacheService
+        public sealed class RedisCacheService(
+            IDistributedCache cache,
+            IResiliencePipelineProvider<string> pipelineProvider) : ICacheService
         {
+            private readonly ResiliencePipeline _pipeline = pipelineProvider.GetPipeline("redis");
+
             public async Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default)
             {
-                var data = await cache.GetStringAsync(key, cancellationToken);
-                return data is null ? default : JsonSerializer.Deserialize<T>(data);
+                try
+                {
+                    return await _pipeline.ExecuteAsync(async ct =>
+                    {
+                        var data = await cache.GetStringAsync(key, ct);
+                        return data is null ? default : JsonSerializer.Deserialize<T>(data);
+                    }, cancellationToken);
+                }
+                catch { return default; }
             }
 
             public async Task SetAsync<T>(string key, T value, TimeSpan? expiry = null, CancellationToken cancellationToken = default)
             {
-                var options = new DistributedCacheEntryOptions();
-                if (expiry.HasValue)
-                    options.AbsoluteExpirationRelativeToNow = expiry;
-                await cache.SetStringAsync(key, JsonSerializer.Serialize(value), options, cancellationToken);
+                try
+                {
+                    await _pipeline.ExecuteAsync(async ct =>
+                    {
+                        var options = new DistributedCacheEntryOptions();
+                        if (expiry.HasValue)
+                            options.AbsoluteExpirationRelativeToNow = expiry;
+                        await cache.SetStringAsync(key, JsonSerializer.Serialize(value), options, ct);
+                    }, cancellationToken);
+                }
+                catch { }
             }
 
             public async Task RemoveAsync(string key, CancellationToken cancellationToken = default)
-                => await cache.RemoveAsync(key, cancellationToken);
+            {
+                try
+                {
+                    await _pipeline.ExecuteAsync(ct => cache.RemoveAsync(key, ct), cancellationToken);
+                }
+                catch { }
+            }
 
             public async Task<bool> ExistsAsync(string key, CancellationToken cancellationToken = default)
-                => await cache.GetStringAsync(key, cancellationToken) is not null;
+            {
+                try
+                {
+                    return await _pipeline.ExecuteAsync(async ct =>
+                        await cache.GetStringAsync(key, ct) is not null, cancellationToken);
+                }
+                catch { return false; }
+            }
         }
         """;
 
     private static string RedisExtensionsTemplate(string ns) => $$"""
-        using Microsoft.Extensions.Caching.StackExchangeRedis;
         using Microsoft.Extensions.Configuration;
         using Microsoft.Extensions.DependencyInjection;
+        using Polly;
+        using Polly.CircuitBreaker;
+        using Polly.Retry;
         using {{ns}}.Application.Interfaces.Services;
-        using {{ns}}.Infra.Data.Services;
+        using {{ns}}.Infra.Cache.Services;
 
         namespace {{ns}}.Presentation.Api.Extensions;
 
@@ -182,6 +244,27 @@ public sealed class RedisCacheExtensionHandler(
                     options.Configuration = configuration["Redis:ConnectionString"]
                         ?? throw new InvalidOperationException("Redis:ConnectionString not configured.");
                     options.InstanceName = configuration["Redis:InstanceName"];
+                });
+
+                services.AddResiliencePipeline("redis", builder =>
+                {
+                    var maxAttempts  = configuration.GetValue("Redis:Retry:MaxAttempts", 3);
+                    var delaySeconds = configuration.GetValue("Redis:Retry:DelaySeconds", 1);
+                    var failureThreshold  = configuration.GetValue("Redis:CircuitBreaker:FailureThreshold", 5);
+                    var breakDuration     = configuration.GetValue("Redis:CircuitBreaker:BreakDurationSeconds", 30);
+
+                    builder.AddRetry(new RetryStrategyOptions
+                    {
+                        MaxRetryAttempts = maxAttempts,
+                        BackoffType      = DelayBackoffType.Exponential,
+                        Delay            = TimeSpan.FromSeconds(delaySeconds)
+                    });
+
+                    builder.AddCircuitBreaker(new CircuitBreakerStrategyOptions
+                    {
+                        HandledEventsAllowedBeforeBreaking = failureThreshold,
+                        BreakDuration                      = TimeSpan.FromSeconds(breakDuration)
+                    });
                 });
 
                 services.AddSingleton<ICacheService, RedisCacheService>();
