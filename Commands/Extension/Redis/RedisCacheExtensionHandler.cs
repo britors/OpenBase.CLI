@@ -29,7 +29,7 @@ public sealed class RedisCacheExtensionHandler(
         var (ns, solutionDir, appPath, _, presentationPath) = paths.Value;
         var infraCachePath = Path.Combine(solutionDir, "src", $"{ns}.Infra.Cache");
 
-        ExtensionHelpers.CreateDedicatedProject(
+        var projectReady = ExtensionHelpers.CreateDedicatedProject(
             ns, "Infra.Cache", solutionDir, infraCachePath, appPath, presentationPath,
             Packages,
             new InfraProjectMessages(
@@ -37,6 +37,9 @@ public sealed class RedisCacheExtensionHandler(
                 SR.Current.InfraCacheProjectAlreadyExists,
                 SR.Current.InfraCacheProjectFailed),
             fileWriter, dotNetRunner, console);
+
+        if (!projectReady)
+            return new ExtensionApplyResult(false, SR.Current.ExtensionPackageInstallFailed);
 
         ExtensionHelpers.WriteFiles(GetFiles(ns, appPath, infraCachePath, presentationPath), solutionDir, fileWriter, console);
 

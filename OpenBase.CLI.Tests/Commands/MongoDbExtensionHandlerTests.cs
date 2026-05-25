@@ -136,6 +136,33 @@ public class MongoDbExtensionHandlerTests
     }
 
     [Fact]
+    public void Apply_PackageInstallFails_ReturnsError()
+    {
+        _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith("Infra.MongoDb.csproj")))).Returns(true);
+        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith("Infra.MongoDb.csproj")))).Returns("<Project />");
+        _dotNetRunner.Setup(r => r.Run(It.Is<string>(s => s.Contains("package")))).Returns((false, "network error"));
+
+        var result = CreateHandler().Apply(BuildContext());
+
+        Assert.False(result.Success);
+        Assert.NotNull(result.ErrorMessage);
+    }
+
+    [Fact]
+    public void Apply_PackageInstallFails_DoesNotGenerateFiles()
+    {
+        _fileWriter.Setup(f => f.FileExists(It.Is<string>(p => p.EndsWith("Infra.MongoDb.csproj")))).Returns(true);
+        _fileWriter.Setup(f => f.ReadAllText(It.Is<string>(p => p.EndsWith("Infra.MongoDb.csproj")))).Returns("<Project />");
+        _dotNetRunner.Setup(r => r.Run(It.Is<string>(s => s.Contains("package")))).Returns((false, "network error"));
+
+        CreateHandler().Apply(BuildContext());
+
+        _fileWriter.Verify(f => f.WriteAllText(
+            It.Is<string>(p => p.EndsWith("MongoDbContext.cs") && !p.EndsWith("IMongoDbContext.cs")),
+            It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
     public void Apply_AddsInfraMongoDbToSolution_WhenSlnFound()
     {
         _fileWriter.Setup(f => f.FindSolutionFile(It.IsAny<string>())).Returns("/solution/MyApp.sln");
