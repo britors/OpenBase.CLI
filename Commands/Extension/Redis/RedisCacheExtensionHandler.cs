@@ -158,7 +158,7 @@ public sealed class RedisCacheExtensionHandler(
             {
                 try
                 {
-                    await _pipeline.ExecuteAsync(ct => cache.RemoveAsync(key, ct), cancellationToken);
+                    await _pipeline.ExecuteAsync(async ct => await cache.RemoveAsync(key, ct), cancellationToken);
                 }
                 catch { }
             }
