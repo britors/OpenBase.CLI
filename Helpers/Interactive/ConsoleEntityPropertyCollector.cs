@@ -29,7 +29,8 @@ public sealed class ConsoleEntityPropertyCollector(IAnsiConsole console) : IEnti
             var type = console.Prompt(
                 new SelectionPrompt<string>()
                     .Title(SR.Current.PropertyTypePrompt)
-                    .AddChoices(validTypes));
+                    .AddChoices(validTypes)
+                    .UseConverter(Markup.Escape));
 
             var isRequired = console.Confirm(SR.Current.PropertyNotNull, defaultValue: true);
 
