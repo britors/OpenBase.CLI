@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using OpenBase.CLI.Commands;
 using OpenBase.CLI.Commands.Extension;
+using OpenBase.CLI.Commands.Extension.DomainEvents;
 using OpenBase.CLI.Commands.Extension.HealthChecks;
 using OpenBase.CLI.Commands.Extension.Jwt;
 using OpenBase.CLI.Commands.Extension.MongoDB;
@@ -36,6 +37,7 @@ services.AddSingleton<IExtensionHandler, JwtExtensionHandler>();
 services.AddSingleton<IExtensionHandler, HealthChecksExtensionHandler>();
 services.AddSingleton<IExtensionHandler, RedisCacheExtensionHandler>();
 services.AddSingleton<IExtensionHandler, MongoDbExtensionHandler>();
+services.AddSingleton<IExtensionHandler, DomainEventsExtensionHandler>();
 services.AddSingleton<IBrowserLauncher, BrowserLauncher>();
 
 const string TypeOpt = "--type";
