@@ -21,12 +21,12 @@ public sealed class DomainEventsExtensionHandler(
 
         ExtensionHelpers.WriteFiles(GetFiles(ns, appPath, infraDataPath), solutionDir, fileWriter, console);
         
-        InjectDbContextOverride(ns, infraDataPath);
+        InjectDbContextOverride(infraDataPath);
 
         return new ExtensionApplyResult(true);
     }
 
-    private void InjectDbContextOverride(string ns, string infraDataPath)
+    private void InjectDbContextOverride(string infraDataPath)
     {
         // Use forward slashes consistent with tests
         var dbContextPath = Path.Combine(infraDataPath, "OneBaseDataBaseContext.cs").Replace("\\", "/");
