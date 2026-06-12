@@ -419,6 +419,7 @@ The command:
 | `jwt`          | `openbase extension add jwt`          | JWT Bearer authentication              |
 | `healthchecks` | `openbase extension add healthchecks` | Health Checks with UI dashboard        |
 | `redis`        | `openbase extension add redis`        | Distributed cache with Redis           |
+| `domainevents` | `openbase extension add domainevents` | Domain Events dispatcher via MediatR   |
 
 #### `jwt` — JWT Authentication
 
@@ -533,6 +534,38 @@ builder.Services.AddRedisCache(builder.Configuration);
 > **After installation**, update the `Redis:ConnectionString` in `appsettings.json` to point to your Redis instance.
 
 > **HealthChecks integration**: if both extensions are installed, `openbase extension add healthchecks` automatically adds the Redis health check (`AspNetCore.HealthChecks.Redis`).
+
+#### `domainevents` — Domain Events
+
+```bash
+openbase extension add domainevents
+```
+
+Generates:
+
+| File                                               | Layer          | Description                                      |
+|----------------------------------------------------|----------------|--------------------------------------------------|
+| `Domain/Common/IDomainEvent.cs`                    | Domain         | Interface for domain events                      |
+| `Domain/Common/AggregateRoot.cs`                   | Domain         | Base class for entities with event support       |
+| `Application/Common/IDomainEventHandler.cs`        | Application    | Interface for domain event handlers              |
+
+Also automatically:
+
+- Overrides `SaveChangesAsync` in `OneBaseDataBaseContext` to dispatch events via MediatR:
+
+```csharp
+public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+{
+    var entities = ChangeTracker.Entries<AggregateRoot>()
+        .Where(e => e.Entity.DomainEvents.Any())
+        .Select(e => e.Entity)
+        .ToList();
+    
+    // ... dispatches events via mediator.Publish()
+    
+    return await base.SaveChangesAsync(cancellationToken);
+}
+```
 
 ---
 
