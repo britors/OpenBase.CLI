@@ -14,5 +14,8 @@ public sealed class OracleTemplateStrategy : IDbTemplateStrategy
     public DbFlavor DbFlavor    => DbFlavor.Oracle;
 
     public string BuildConnectionString(string dbName, string server, string user, string password)
-        => $"Data Source={server};User Id={user};Password={password};";
+    {
+        var dataSource = server.Contains('/') ? server : $"{server}/{dbName}";
+        return $"Data Source={dataSource};User Id={user};Password={password};";
+    }
 }
