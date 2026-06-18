@@ -13,6 +13,15 @@ public sealed partial class ScaffoldGenerator
     {
         var authUsing = ctx.UseJwt ? "using Microsoft.AspNetCore.Authorization;\n" : "";
         var authAttr  = ctx.UseJwt ? "[Authorize]\n" : "";
+        var routeType = KeyType.ToLowerInvariant() switch
+        {
+            "int"    => "int",
+            "long"   => "long",
+            "guid"   => "guid",
+            _        => ""
+        };
+        var routeConstraint = string.IsNullOrEmpty(routeType) ? "" : $":{routeType}";
+
         return $$"""
         using Microsoft.AspNetCore.Mvc;
         {{authUsing}}using {{ctx.NS}}.Application.DTOs.{{ctx.Entity}}.Requests;
@@ -35,33 +44,33 @@ public sealed partial class ScaffoldGenerator
                 CancellationToken cancellationToken = default)
             {
                 var result = await {{ctx.ECamel}}ApplicationService.CreateAsync(request, cancellationToken);
-                return CreatedAtAction(nameof(GetByIdAsync), new { id = result.Id }, result);
+                return CreatedAtAction(nameof(GetByIdAsync), new { {{KeyName.ToLowerInvariant()}} = result.{{KeyName}} }, result);
             }
 
             /// <summary>Remove um(a) {{ctx.Entity}}.</summary>
-            [HttpDelete("{id:int}")]
+            [HttpDelete("{{{KeyName.ToLowerInvariant()}}{{routeConstraint}}}")]
             [ProducesResponseType(StatusCodes.Status204NoContent)]
             [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
             public async Task<IActionResult> DeleteAsync(
-                [FromRoute] int id,
+                [FromRoute] {{KeyType}} {{KeyName.ToLowerInvariant()}},
                 CancellationToken cancellationToken = default)
             {
-                var request = new Delete{{ctx.Entity}}Request(id);
+                var request = new Delete{{ctx.Entity}}Request({{KeyName.ToLowerInvariant()}});
                 var result = await {{ctx.ECamel}}ApplicationService.DeleteAsync(request, cancellationToken);
                 return result.Success ? NoContent() : NotFound();
             }
 
             /// <summary>Atualiza um(a) {{ctx.Entity}}.</summary>
-            [HttpPut("{id:int}")]
+            [HttpPut("{{{KeyName.ToLowerInvariant()}}{{routeConstraint}}}")]
             [ProducesResponseType(StatusCodes.Status200OK)]
             [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
             [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status422UnprocessableEntity)]
             public async Task<IActionResult> UpdateAsync(
-                [FromRoute] int id,
+                [FromRoute] {{KeyType}} {{KeyName.ToLowerInvariant()}},
                 [FromBody] Update{{ctx.Entity}}Request request,
                 CancellationToken cancellationToken = default)
             {
-                var requestWithId = request with { Id = id };
+                var requestWithId = request with { {{KeyName}} = {{KeyName.ToLowerInvariant()}} };
                 var result = await {{ctx.ECamel}}ApplicationService.UpdateAsync(requestWithId, cancellationToken);
                 return Ok(result);
             }
@@ -77,16 +86,16 @@ public sealed partial class ScaffoldGenerator
                 return Ok(result);
             }
 
-            /// <summary>Busca um(a) {{ctx.Entity}} pelo id.</summary>
-            [HttpGet("{id:int}")]
+            /// <summary>Busca um(a) {{ctx.Entity}} pelo {{KeyName.ToLowerInvariant()}}.</summary>
+            [HttpGet("{{{KeyName.ToLowerInvariant()}}{{routeConstraint}}}")]
             [ProducesResponseType(StatusCodes.Status200OK)]
             [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
             public async Task<IActionResult> GetByIdAsync(
-                [FromRoute] int id,
+                [FromRoute] {{KeyType}} {{KeyName.ToLowerInvariant()}},
                 CancellationToken cancellationToken = default)
             {
                 var result = await {{ctx.ECamel}}ApplicationService.GetByIdAsync(
-                    new Find{{ctx.Entity}}ByIdRequest(id), cancellationToken);
+                    new Find{{ctx.Entity}}ByIdRequest({{KeyName.ToLowerInvariant()}}), cancellationToken);
                 return Ok(result);
             }
         }

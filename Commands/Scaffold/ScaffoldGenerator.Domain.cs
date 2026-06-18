@@ -17,7 +17,7 @@ public sealed partial class ScaffoldGenerator
 
         public sealed class {{ctx.Entity}} : IEntityOrQueryResult
         {
-            public int Id { get; init; }
+            public {{KeyType}} {{KeyName}} { get; init; }
             {{EntityPropertyDeclarations()}}
         }
         """;
@@ -38,7 +38,7 @@ public sealed partial class ScaffoldGenerator
 
         namespace {{ctx.NS}}.Domain.Interfaces.Services;
 
-        public partial interface I{{ctx.Entity}}DomainService : IDomainService<{{ctx.Entity}}, int>
+        public partial interface I{{ctx.Entity}}DomainService : IDomainService<{{ctx.Entity}}, {{KeyType}}>
         {
             Task<PaginatedQueryResult<{{ctx.Entity}}>> FindByArgumentsPagedAsync(
                 {{FindByArgumentsSignatureParams()}});
@@ -55,7 +55,7 @@ public sealed partial class ScaffoldGenerator
         namespace {{ctx.NS}}.Domain.Services;
 
         public sealed partial class {{ctx.Entity}}DomainService(I{{ctx.Entity}}Repository {{ctx.ECamel}}Repository)
-            : DomainService<{{ctx.Entity}}, int>({{ctx.ECamel}}Repository), I{{ctx.Entity}}DomainService
+            : DomainService<{{ctx.Entity}}, {{KeyType}}>({{ctx.ECamel}}Repository), I{{ctx.Entity}}DomainService
         {
             public async Task<PaginatedQueryResult<{{ctx.Entity}}>> FindByArgumentsPagedAsync(
                 {{FindByArgumentsSignatureParams()}})

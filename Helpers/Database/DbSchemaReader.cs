@@ -143,13 +143,15 @@ public sealed class DbSchemaReader : IDbSchemaReader
                 ? reader.GetString(2).Equals("Y", StringComparison.OrdinalIgnoreCase)
                 : reader.GetString(2).Equals("YES", StringComparison.OrdinalIgnoreCase);
 
-            if (pkColumns.Contains(colName))
-                continue;
-
+            var isPk     = pkColumns.Contains(colName);
             var csType   = SqlTypeMapper.ToCSharpType(dataType, dbFlavor);
             var propName = SqlTypeMapper.ToPascalCase(colName);
 
-            properties.Add(new EntityProperty(propName, csType, !nullable));
+            properties.Add(new EntityProperty(propName, csType, !nullable || isPk)
+            {
+                DbColumnName = colName,
+                IsPrimaryKey = isPk
+            });
         }
 
         return properties;

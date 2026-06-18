@@ -309,7 +309,7 @@ public class ScaffoldCommandTests
         _fileWriter.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
         _modelFirstCollector
             .Setup(c => c.Collect(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DbFlavor>(), It.IsAny<string?>(), It.IsAny<string?>()))
-            .Returns(([new EntityProperty("Name", "string", true)], "produtos"));
+            .Returns(([new EntityProperty("Name", "string", true)], "produtos", "dbo"));
 
         var result = await Run(BuildModelFirstSettings());
 
@@ -327,7 +327,7 @@ public class ScaffoldCommandTests
         _fileWriter.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
         _modelFirstCollector
             .Setup(c => c.Collect(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DbFlavor>(), "dbo", "produtos"))
-            .Returns(([new EntityProperty("Name", "string", true)], "produtos"));
+            .Returns(([new EntityProperty("Name", "string", true)], "produtos", "dbo"));
 
         var result = await Run(BuildModelFirstSettings(schema: "dbo", table: "produtos"));
 
@@ -342,7 +342,7 @@ public class ScaffoldCommandTests
         SetupLocator("/solution", "OpenBaseNET");
         _modelFirstCollector
             .Setup(c => c.Collect(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DbFlavor>(), It.IsAny<string?>(), It.IsAny<string?>()))
-            .Returns((ValueTuple<IReadOnlyList<EntityProperty>, string>?)null);
+            .Returns(((IReadOnlyList<EntityProperty>, string, string)?)null);
 
         var result = await Run(BuildModelFirstSettings());
 

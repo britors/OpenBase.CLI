@@ -58,8 +58,8 @@ public sealed partial class ScaffoldGenerator
 
     private string CreateRequestTemplate()    => DtoTemplate(Requests,  $"Create{ctx.Entity}Request",    CreateParams());
     private string UpdateRequestTemplate()    => DtoTemplate(Requests,  $"Update{ctx.Entity}Request",    IdAndPropertiesParams());
-    private string DeleteRequestTemplate()    => DtoTemplate(Requests,  $"Delete{ctx.Entity}Request",    IntId);
-    private string FindByIdRequestTemplate()  => DtoTemplate(Requests,  $"Find{ctx.Entity}ByIdRequest",  IntId);
+    private string DeleteRequestTemplate()    => DtoTemplate(Requests,  $"Delete{ctx.Entity}Request",    KeyTypeAndName);
+    private string FindByIdRequestTemplate()  => DtoTemplate(Requests,  $"Find{ctx.Entity}ByIdRequest",  KeyTypeAndName);
     private string ResponseTemplate()         => DtoTemplate(Responses, $"{ctx.Entity}Response",         IdAndPropertiesParams());
     private string CreateResponseTemplate()   => DtoTemplate(Responses, $"Create{ctx.Entity}Response",   IdAndPropertiesParams());
     private string UpdateResponseTemplate()   => DtoTemplate(Responses, $"Update{ctx.Entity}Response",   IdAndPropertiesParams());
@@ -90,7 +90,7 @@ public sealed partial class ScaffoldGenerator
         $"Create{ctx.Entity}Feature", $"Create{ctx.Entity}Command", CreateParams(), $"Create{ctx.Entity}Response");
 
     private string DeleteCommandTemplate() => CommandTemplate(
-        $"Delete{ctx.Entity}Feature", $"Delete{ctx.Entity}Command", IntId, $"Delete{ctx.Entity}Response");
+        $"Delete{ctx.Entity}Feature", $"Delete{ctx.Entity}Command", KeyTypeAndName, $"Delete{ctx.Entity}Response");
 
     private string UpdateCommandTemplate() => CommandTemplate(
         $"Update{ctx.Entity}Feature", $"Update{ctx.Entity}Command", IdAndPropertiesParams(), $"Update{ctx.Entity}Response");
@@ -110,7 +110,7 @@ public sealed partial class ScaffoldGenerator
                 IMapper mapper)
             : IRequestHandler<{{verb}}{{ctx.Entity}}Command, {{verb}}{{ctx.Entity}}Response>
         {
-            public async Task<{{verb}}{{ctx.Entity}}Response>
+            public async Task<{{verb}}{{verb}}{{ctx.Entity}}Response>
                 Handle({{verb}}{{ctx.Entity}}Command request, CancellationToken cancellationToken)
             {
                 var {{ctx.ECamel}} = mapper.Map<{{ctx.Entity}}>(request);
@@ -136,7 +136,7 @@ public sealed partial class ScaffoldGenerator
             public async Task<Delete{{ctx.Entity}}Response>
                 Handle(Delete{{ctx.Entity}}Command request, CancellationToken cancellationToken)
             {
-                var success = await {{ctx.ECamel}}DomainService.RemoveByIdAsync(request.Id, cancellationToken);
+                var success = await {{ctx.ECamel}}DomainService.RemoveByIdAsync(request.{{KeyName}}, cancellationToken);
                 return new Delete{{ctx.Entity}}Response(success);
             }
         }
@@ -158,7 +158,7 @@ public sealed partial class ScaffoldGenerator
             public async Task<{{ctx.Entity}}Response>
                 Handle(Find{{ctx.Entity}}ByIdQuery request, CancellationToken cancellationToken)
             {
-                var result = await {{ctx.ECamel}}DomainService.GetByIdAsync(request.Id, cancellationToken);
+                var result = await {{ctx.ECamel}}DomainService.GetByIdAsync(request.{{KeyName}}, cancellationToken);
                 return mapper.Map<{{ctx.Entity}}Response>(result);
             }
         }
@@ -198,7 +198,7 @@ public sealed partial class ScaffoldGenerator
 
         namespace {{ctx.NS}}.Application.Features.{{ctx.Entity}}Features.Find{{ctx.Entity}}ByIdFeature;
 
-        public sealed record Find{{ctx.Entity}}ByIdQuery(int Id) : IRequest<{{ctx.Entity}}Response>;
+        public sealed record Find{{ctx.Entity}}ByIdQuery({{KeyTypeAndName}}) : IRequest<{{ctx.Entity}}Response>;
         """;
 
     private string GetQueryTemplate()
@@ -236,11 +236,11 @@ public sealed partial class ScaffoldGenerator
 
     private string DeleteCommandValidatorTemplate() => ValidatorTemplate(
         $"Delete{ctx.Entity}Feature", $"Delete{ctx.Entity}Command",
-        $"RuleFor(x => x.Id)\n{I12}.NotEmpty()\n{I12}.NotNull();");
+        $"RuleFor(x => x.{KeyName})\n{I12}.NotEmpty()\n{I12}.NotNull();");
 
     private string FindByIdQueryValidatorTemplate() => ValidatorTemplate(
         $"Find{ctx.Entity}ByIdFeature", $"Find{ctx.Entity}ByIdQuery",
-        "RuleFor(x => x.Id).NotEmpty();");
+        $"RuleFor(x => x.{KeyName}).NotEmpty();");
 
     private string GetQueryValidatorTemplate() => ValidatorTemplate(
         $"Get{ctx.EPlural}Feature", $"Get{ctx.Entity}Query",

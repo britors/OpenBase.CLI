@@ -12,6 +12,7 @@ public sealed record ScaffoldContext(string Entity, string RootNamespace, string
     public IReadOnlyList<EntityProperty> Properties { get; init; } = DefaultProperties;
     public DbFlavor DbFlavor { get; init; } = DbFlavor.SqlServer;
     public string? TableName { get; init; }
+    public string? Schema { get; init; }
     public bool UseJwt { get; init; } = false;
 
     public EntityProperty? FilterProperty =>

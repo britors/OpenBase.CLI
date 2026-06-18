@@ -11,7 +11,7 @@ public sealed class ConsoleModelFirstPropertyCollector(
     IConnectionStringReader connectionStringReader)
     : IModelFirstPropertyCollector
 {
-    public (IReadOnlyList<EntityProperty> Properties, string TableName)? Collect(
+    public (IReadOnlyList<EntityProperty> Properties, string TableName, string Schema)? Collect(
         string solutionDir, string rootNamespace, DbFlavor dbFlavor,
         string? schemaOverride = null, string? tableOverride = null)
     {
@@ -52,7 +52,7 @@ public sealed class ConsoleModelFirstPropertyCollector(
         }
 
         ShowSummaryTable(columns);
-        return (columns, tableName);
+        return (columns, tableName, schema);
     }
 
     private static string DefaultSchema(DbFlavor dbFlavor) => dbFlavor switch
