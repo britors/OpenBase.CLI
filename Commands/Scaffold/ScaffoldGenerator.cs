@@ -19,6 +19,11 @@ public sealed partial class ScaffoldGenerator(ScaffoldContext ctx)
     private const string I8  = "        ";
     private const string I12 = "            ";
 
+    private EntityProperty? PkProperty => ctx.Properties.FirstOrDefault(p => p.IsPrimaryKey);
+    private string KeyType => PkProperty?.CsType ?? "int";
+    private string KeyName => PkProperty?.Name ?? "Id";
+    private string KeyTypeAndName => $"{KeyType} {KeyName}";
+
     public IEnumerable<(string Path, string Content)> GetFiles() =>
         DomainFiles()
             .Concat(ApplicationFiles())
@@ -65,7 +70,7 @@ public sealed partial class ScaffoldGenerator(ScaffoldContext ctx)
 
 
     private string EntityPropertyDeclarations() =>
-        string.Join($"\n{I4}", ctx.Properties.Select(PropertyDeclaration));
+        string.Join($"\n{I4}", ctx.Properties.Where(p => p.Name != KeyName).Select(PropertyDeclaration));
 
     private static string PropertyDeclaration(EntityProperty p) =>
         p.IsStringType && p.IsRequired
@@ -73,22 +78,23 @@ public sealed partial class ScaffoldGenerator(ScaffoldContext ctx)
             : $"public {p.ActualCsType} {p.Name} {{ get; init; }}";
 
     private string CreateParams() =>
-        string.Join(", ", ctx.Properties.Select(p => $"{p.ActualCsType} {p.Name}"));
+        string.Join(", ", ctx.Properties.Where(p => p.Name != KeyName).Select(p => $"{p.ActualCsType} {p.Name}"));
 
     private string IdAndPropertiesParams() =>
-        ctx.Properties.Count == 0 ? IntId : $"{IntId}, {CreateParams()}";
+        ctx.Properties.Count == 0 ? $"{KeyType} {KeyName}" : $"{KeyType} {KeyName}, {CreateParams()}";
 
     private string EfPropertyBlocks()
     {
-        if (ctx.Properties.Count == 0) return string.Empty;
-        return $"\n\n{I8}" + string.Join($"\n\n{I8}", ctx.Properties.Select(BuildEfBlock));
+        var props = ctx.Properties.Where(p => p.Name != KeyName).ToList();
+        if (props.Count == 0) return string.Empty;
+        return $"\n\n{I8}" + string.Join($"\n\n{I8}", props.Select(BuildEfBlock));
     }
 
     private string BuildEfBlock(EntityProperty p)
     {
         var sb = new StringBuilder();
         sb.Append($"builder.Property(x => x.{p.Name})");
-        sb.Append($"\n{I12}.HasColumnName(\"{p.Name}\")");
+        sb.Append($"\n{I12}.HasColumnName(\"{p.DbColumnName ?? p.Name}\")");
         if (p.IsStringType) sb.Append($"\n{I12}.HasMaxLength(255)");
         if (p.CsType == "JsonDocument" && ctx.DbFlavor == DbFlavor.Postgres)
             sb.Append($"\n{I12}.HasColumnType(\"jsonb\")");
@@ -164,7 +170,7 @@ public sealed partial class ScaffoldGenerator(ScaffoldContext ctx)
 
     private string UpdateValidatorRules()
     {
-        var rules = new List<string> { $"RuleFor(x => x.Id).NotEmpty().NotNull();" };
+        var rules = new List<string> { $"RuleFor(x => x.{KeyName}).NotEmpty().NotNull();" };
         rules.AddRange(ctx.Properties.Where(p => p.IsStringType).Select(BuildUpdateStringRule));
         return string.Join($"\n\n{I8}", rules);
     }
@@ -192,7 +198,9 @@ public sealed partial class ScaffoldGenerator(ScaffoldContext ctx)
             p.Name == overridePropName ? overrideValue : DbPropertyTypes.GetTestValue(p)));
 
     private string IdAndPropertiesTestArgs() =>
-        ctx.Properties.Count == 0 ? "1" : $"1, {CreateTestArgs()}";
+        ctx.Properties.Count == 0 ? DefaultTestValue : $"{DefaultTestValue}, {CreateTestArgs()}";
+
+    private string DefaultTestValue => DbPropertyTypes.GetTestValue(new EntityProperty(KeyName, KeyType, true));
 
     private string HandlerTestAssertions(string resultVar) =>
         string.Join($"\n{I8}", ctx.Properties
@@ -244,20 +252,21 @@ public sealed partial class ScaffoldGenerator(ScaffoldContext ctx)
     {
         var sb = new StringBuilder();
         sb.Append("[Fact]");
-        sb.Append($"\n{I4}public void Validate_IsValid_WhenIdAndPropertiesAreValid()");
+        sb.Append($"\n{I4}public void Validate_IsValid_When{KeyName}AndPropertiesAreValid()");
         sb.Append($"\n{I4}{{");
         sb.Append($"\n{I8}var result = _validator.Validate(new Update{ctx.Entity}Command({IdAndPropertiesTestArgs()}));");
         sb.Append($"\n{I8}Assert.True(result.IsValid);");
         sb.Append($"\n{I4}}}");
 
-        var idZeroArgs = ctx.Properties.Count == 0 ? "0" : $"0, {CreateTestArgs()}";
-        AppendValidatorFact(sb, "Validate_IsInvalid_WhenIdIsZero",
-            $"Update{ctx.Entity}Command({idZeroArgs})", "Id");
+        var zeroVal = KeyType == "string" ? "\"\"" : "0";
+        var idZeroArgs = ctx.Properties.Count == 0 ? zeroVal : $"{zeroVal}, {CreateTestArgs()}";
+        AppendValidatorFact(sb, $"Validate_IsInvalid_When{KeyName}IsZeroOrEmpty",
+            $"Update{ctx.Entity}Command({idZeroArgs})", KeyName);
 
         foreach (var name in ctx.Properties.Where(p => p.IsStringType).Select(p => p.Name))
         {
             AppendValidatorFact(sb, $"Validate_IsInvalid_When{name}Exceeds255Characters",
-                $"Update{ctx.Entity}Command(1, {CreateTestArgsOverride(name, "new string('a', 256)")})", name);
+                $"Update{ctx.Entity}Command({DefaultTestValue}, {CreateTestArgsOverride(name, "new string('a', 256)")})", name);
         }
 
         return sb.ToString();
@@ -274,21 +283,22 @@ public sealed partial class ScaffoldGenerator(ScaffoldContext ctx)
         sb.Append($"\n{I4}}}");
     }
 
-    private static string BuildIdValidatorTestMethods(string typeName)
+    private string BuildIdValidatorTestMethods(string typeName)
     {
         var sb = new StringBuilder();
         sb.Append("[Fact]");
-        sb.Append($"\n{I4}public void Validate_IsValid_WhenIdIsProvided()");
+        sb.Append($"\n{I4}public void Validate_IsValid_When{KeyName}IsProvided()");
         sb.Append($"\n{I4}{{");
-        sb.Append($"\n{I8}var result = _validator.Validate(new {typeName}(1));");
+        sb.Append($"\n{I8}var result = _validator.Validate(new {typeName}({DefaultTestValue}));");
         sb.Append($"\n{I8}Assert.True(result.IsValid);");
         sb.Append($"\n{I4}}}");
         sb.Append($"\n\n{I4}[Fact]");
-        sb.Append($"\n{I4}public void Validate_IsInvalid_WhenIdIsZero()");
+        sb.Append($"\n{I4}public void Validate_IsInvalid_When{KeyName}IsZeroOrEmpty()");
         sb.Append($"\n{I4}{{");
-        sb.Append($"\n{I8}var result = _validator.Validate(new {typeName}(0));");
+        var zeroVal = KeyType == "string" ? "\"\"" : "0";
+        sb.Append($"\n{I8}var result = _validator.Validate(new {typeName}({zeroVal}));");
         sb.Append($"\n{I8}Assert.False(result.IsValid);");
-        sb.Append($"\n{I8}Assert.Contains(result.Errors, e => e.PropertyName == \"Id\");");
+        sb.Append($"\n{I8}Assert.Contains(result.Errors, e => e.PropertyName == \"{KeyName}\");");
         sb.Append($"\n{I4}}}");
         return sb.ToString();
     }

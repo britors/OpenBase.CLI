@@ -100,12 +100,25 @@ public class ScaffoldGeneratorTests
     }
 
     [Fact]
-    public void GetFiles_EfConfigurationHasPluralTableName()
+    public void GetFiles_EfConfiguration_IncludesSchema_WhenProvided()
     {
-        var files = MakeGenerator("Produto").GetFiles().ToList();
+        var ctx = new ScaffoldContext("Produto", "MyApp", "/sol") { Schema = "comercial" };
+        var generator = new ScaffoldGenerator(ctx);
+        var files = generator.GetFiles().ToList();
         var config = files.First(f => f.Path.EndsWith("ProdutoConfiguration.cs"));
 
-        Assert.Contains("\"Produtos\"", config.Content);
+        Assert.Contains("builder.ToTable(\"Produtos\", \"comercial\");", config.Content);
+    }
+
+    [Fact]
+    public void GetFiles_EfConfiguration_DoesNotIncludeSchema_WhenEmpty()
+    {
+        var ctx = new ScaffoldContext("Produto", "MyApp", "/sol") { Schema = "" };
+        var generator = new ScaffoldGenerator(ctx);
+        var files = generator.GetFiles().ToList();
+        var config = files.First(f => f.Path.EndsWith("ProdutoConfiguration.cs"));
+
+        Assert.Contains("builder.ToTable(\"Produtos\");", config.Content);
     }
 
     [Fact]

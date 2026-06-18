@@ -12,7 +12,15 @@ public sealed partial class ScaffoldGenerator
             RepositoryTemplate());
     }
 
-    private string EfConfigurationTemplate() => $$"""
+    private string EfConfigurationTemplate()
+    {
+        var toTable = string.IsNullOrWhiteSpace(ctx.Schema)
+            ? $"builder.ToTable(\"{ctx.TableName ?? ctx.EPlural}\");"
+            : $"builder.ToTable(\"{ctx.TableName ?? ctx.EPlural}\", \"{ctx.Schema}\");";
+
+        var pkColName = PkProperty?.DbColumnName ?? KeyName;
+
+        return $$"""
         using Microsoft.EntityFrameworkCore;
         using Microsoft.EntityFrameworkCore.Metadata.Builders;
         using {{ctx.NS}}.Domain.Entities;
@@ -23,14 +31,15 @@ public sealed partial class ScaffoldGenerator
         {
             public void Configure(EntityTypeBuilder<{{ctx.Entity}}> builder)
             {
-                builder.ToTable("{{ctx.TableName ?? ctx.EPlural}}");
+                {{toTable}}
 
-                builder.HasKey(x => x.Id);
+                builder.HasKey(x => x.{{KeyName}});
 
-                builder.Property(x => x.Id).HasColumnName("Id");{{EfPropertyBlocks()}}
+                builder.Property(x => x.{{KeyName}}).HasColumnName("{{pkColName}}");{{EfPropertyBlocks()}}
             }
         }
         """;
+    }
 
     private string RepositoryTemplate() => $$"""
         using {{ctx.NS}}.Domain.Entities;

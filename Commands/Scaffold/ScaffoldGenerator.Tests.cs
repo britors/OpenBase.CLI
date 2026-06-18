@@ -51,7 +51,7 @@ public sealed partial class ScaffoldGenerator
             [Fact]
             public async Task FindByArgumentsPagedAsync_ReturnsResult_WhenNoFilterProvided()
             {
-                var entities = new List<{{ctx.Entity}}> { new() { Id = 1, {{EntityTestInitializer()}} } };
+                var entities = new List<{{ctx.Entity}}> { new() { {{KeyName}} = {{DefaultTestValue}}, {{EntityTestInitializer()}} } };
                 _{{ctx.ECamel}}RepositoryMock
                     .Setup(r => r.CountAsync(It.IsAny<CancellationToken>(), It.IsAny<Expression<Func<{{ctx.Entity}}, bool>>?>()))
                     .ReturnsAsync(1);
@@ -68,7 +68,7 @@ public sealed partial class ScaffoldGenerator
             [Fact]
             public async Task FindByArgumentsPagedAsync_ReturnsResult_WhenFilterProvided()
             {
-                var entities = new List<{{ctx.Entity}}> { new() { Id = 1, {{EntityTestInitializer()}} } };
+                var entities = new List<{{ctx.Entity}}> { new() { {{KeyName}} = {{DefaultTestValue}}, {{EntityTestInitializer()}} } };
                 _{{ctx.ECamel}}RepositoryMock
                     .Setup(r => r.CountAsync(It.IsAny<CancellationToken>(), It.IsAny<Expression<Func<{{ctx.Entity}}, bool>>?>()))
                     .ReturnsAsync(1);
@@ -110,7 +110,7 @@ public sealed partial class ScaffoldGenerator
             public async Task Handle_ReturnsResponse_WhenEntityIs{{testVerb}}()
             {
                 var command = new {{verb}}{{ctx.Entity}}Command({{commandArgs}});
-                var entity = new {{ctx.Entity}} { Id = 1, {{EntityTestInitializer()}} };
+                var entity = new {{ctx.Entity}} { {{KeyName}} = {{DefaultTestValue}}, {{EntityTestInitializer()}} };
                 var response = new {{verb}}{{ctx.Entity}}Response({{IdAndPropertiesTestArgs()}});
 
                 _mapperMock.Setup(m => m.Map<{{ctx.Entity}}>(command)).Returns(entity);
@@ -119,7 +119,7 @@ public sealed partial class ScaffoldGenerator
 
                 var result = await _handler.Handle(command, CancellationToken.None);
 
-                Assert.Equal(1, result.Id);
+                Assert.Equal({{DefaultTestValue}}, result.{{KeyName}});
                 {{HandlerTestAssertions("result")}}
             }
         }
@@ -148,8 +148,8 @@ public sealed partial class ScaffoldGenerator
             [Fact]
             public async Task Handle_ReturnsSuccess_WhenEntityIsDeleted()
             {
-                var command = new Delete{{ctx.Entity}}Command(1);
-                _{{ctx.ECamel}}DomainServiceMock.Setup(s => s.RemoveByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+                var command = new Delete{{ctx.Entity}}Command({{DefaultTestValue}});
+                _{{ctx.ECamel}}DomainServiceMock.Setup(s => s.RemoveByIdAsync({{DefaultTestValue}}, It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
                 var result = await _handler.Handle(command, CancellationToken.None);
 
@@ -159,8 +159,9 @@ public sealed partial class ScaffoldGenerator
             [Fact]
             public async Task Handle_ReturnsFailure_WhenEntityNotFound()
             {
-                var command = new Delete{{ctx.Entity}}Command(999);
-                _{{ctx.ECamel}}DomainServiceMock.Setup(s => s.RemoveByIdAsync(999, It.IsAny<CancellationToken>())).ReturnsAsync(false);
+                var zeroVal = {{ (KeyType == "string" ? "\"\"" : "0") }};
+                var command = new Delete{{ctx.Entity}}Command(zeroVal);
+                _{{ctx.ECamel}}DomainServiceMock.Setup(s => s.RemoveByIdAsync(zeroVal, It.IsAny<CancellationToken>())).ReturnsAsync(false);
 
                 var result = await _handler.Handle(command, CancellationToken.None);
 
@@ -195,14 +196,14 @@ public sealed partial class ScaffoldGenerator
             [Fact]
             public async Task Handle_ReturnsResponse_WhenEntityIsFound()
             {
-                var query = new Find{{ctx.Entity}}ByIdQuery(1);
+                var query = new Find{{ctx.Entity}}ByIdQuery({{DefaultTestValue}});
                 var response = new {{ctx.Entity}}Response({{IdAndPropertiesTestArgs()}});
 
                 _mapperMock.Setup(m => m.Map<{{ctx.Entity}}Response>(It.IsAny<object>())).Returns(response);
 
                 var result = await _handler.Handle(query, CancellationToken.None);
 
-                Assert.Equal(1, result.Id);
+                Assert.Equal({{DefaultTestValue}}, result.{{KeyName}});
             }
         }
         """;
@@ -381,8 +382,8 @@ public sealed partial class ScaffoldGenerator
             [Fact]
             public async Task DeleteAsync_SendsCommand_ToMediator()
             {
-                var request = new Delete{{ctx.Entity}}Request(1);
-                var command = new Delete{{ctx.Entity}}Command(1);
+                var request = new Delete{{ctx.Entity}}Request({{DefaultTestValue}});
+                var command = new Delete{{ctx.Entity}}Command({{DefaultTestValue}});
                 _mapperMock.Setup(m => m.Map<Delete{{ctx.Entity}}Command>(request)).Returns(command);
 
                 await _service.DeleteAsync(request, CancellationToken.None);
@@ -393,8 +394,8 @@ public sealed partial class ScaffoldGenerator
             [Fact]
             public async Task GetByIdAsync_SendsQuery_ToMediator()
             {
-                var request = new Find{{ctx.Entity}}ByIdRequest(1);
-                var query = new Find{{ctx.Entity}}ByIdQuery(1);
+                var request = new Find{{ctx.Entity}}ByIdRequest({{DefaultTestValue}});
+                var query = new Find{{ctx.Entity}}ByIdQuery({{DefaultTestValue}});
                 _mapperMock.Setup(m => m.Map<Find{{ctx.Entity}}ByIdQuery>(request)).Returns(query);
 
                 await _service.GetByIdAsync(request, CancellationToken.None);

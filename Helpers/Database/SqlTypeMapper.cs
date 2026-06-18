@@ -64,15 +64,17 @@ public static class SqlTypeMapper
         return TypeMap.TryGetValue(t, out var csType) ? csType : CsString;
     }
 
-    public static string ToPascalCase(string columnName)
+    public static string ToPascalCase(string input)
     {
-        if (columnName.Contains('_'))
+        if (string.IsNullOrWhiteSpace(input)) return input;
+
+        if (input.Contains('_'))
         {
-            return string.Concat(columnName
+            return string.Concat(input
                 .Split('_', StringSplitOptions.RemoveEmptyEntries)
-                .Select(w => char.ToUpperInvariant(w[0]) + w[1..]));
+                .Select(w => char.ToUpperInvariant(w[0]) + w[1..].ToLowerInvariant()));
         }
 
-        return char.ToUpperInvariant(columnName[0]) + columnName[1..];
+        return char.ToUpperInvariant(input[0]) + input[1..].ToLowerInvariant();
     }
 }

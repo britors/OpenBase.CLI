@@ -61,6 +61,8 @@ public class ScaffoldCommand(
 
         var dbFlavor = dbFlavorDetector.Detect(solutionDir);
 
+        settings.Entity = SqlTypeMapper.ToPascalCase(settings.Entity);
+
         if (settings.Update)
             return ExecuteUpdate(settings, solutionDir, rootNamespace, dbFlavor);
 
@@ -70,7 +72,7 @@ public class ScaffoldCommand(
         var collected = CollectProperties(solutionDir, rootNamespace, dbFlavor, mode.Value, settings.Schema, settings.Table);
         if (collected is null) return 1;
 
-        var (properties, modelFirstTableName) = collected.Value;
+        var (properties, modelFirstTableName, modelFirstSchema) = collected.Value;
 
         if (console.Profile.Capabilities.Interactive && !console.Confirm(SR.Current.ProceedWithScaffold, defaultValue: true))
             return 0;
@@ -84,6 +86,7 @@ public class ScaffoldCommand(
             DbFlavor = dbFlavor,
             TestsPath = testsPath,
             TableName = modelFirstTableName,
+            Schema = modelFirstSchema,
             UseJwt = useJwt
         };
 
@@ -142,15 +145,15 @@ public class ScaffoldCommand(
         DbContextEditor.EmptyMigrationUpMethod(content);
 
 
-    private (IReadOnlyList<EntityProperty> Properties, string? TableName)? CollectProperties(
+    private (IReadOnlyList<EntityProperty> Properties, string? TableName, string? Schema)? CollectProperties(
         string solutionDir, string rootNamespace, DbFlavor dbFlavor, ScaffoldMode mode,
         string? schemaOverride, string? tableOverride)
     {
         if (mode != ScaffoldMode.ModelFirst)
-            return (propertyCollector.Collect(dbFlavor), null);
+            return (propertyCollector.Collect(dbFlavor), null, null);
 
         var result = modelFirstCollector.Collect(solutionDir, rootNamespace, dbFlavor, schemaOverride, tableOverride);
-        return result is null ? null : (result.Value.Properties, result.Value.TableName);
+        return result is null ? null : (result.Value.Properties, result.Value.TableName, result.Value.Schema);
     }
 
     private ScaffoldMode? DetermineScaffoldMode(string? modeFlag)
@@ -232,7 +235,7 @@ public class ScaffoldCommand(
         var result = modelFirstCollector.Collect(solutionDir, rootNamespace, dbFlavor);
         if (result is null) return 1;
 
-        var (newProperties, tableName) = result.Value;
+        var (newProperties, tableName, schema) = result.Value;
         var diff = ScaffoldDiff.Compute(oldProperties, newProperties);
 
         if (!diff.HasChanges)
@@ -264,6 +267,7 @@ public class ScaffoldCommand(
             DbFlavor = dbFlavor,
             TestsPath = testsPath,
             TableName = tableName,
+            Schema = schema,
             UseJwt = useJwt
         };
 
