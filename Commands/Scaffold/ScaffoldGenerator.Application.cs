@@ -110,7 +110,7 @@ public sealed partial class ScaffoldGenerator
                 IMapper mapper)
             : IRequestHandler<{{verb}}{{ctx.Entity}}Command, {{verb}}{{ctx.Entity}}Response>
         {
-            public async Task<{{verb}}{{verb}}{{ctx.Entity}}Response>
+            public async Task<{{verb}}{{ctx.Entity}}Response>
                 Handle({{verb}}{{ctx.Entity}}Command request, CancellationToken cancellationToken)
             {
                 var {{ctx.ECamel}} = mapper.Map<{{ctx.Entity}}>(request);
