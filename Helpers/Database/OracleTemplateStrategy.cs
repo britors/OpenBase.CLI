@@ -6,7 +6,7 @@ public sealed class OracleTemplateStrategy : IDbTemplateStrategy
 {
     private const string OracleShortName     = "openbasenet-oracle";
     private const string OracleConnectionKey = "OpenBaseOracle";
-    private const string OracleDefaultServer = "localhost:1521/XEPDB1";
+    private const string OracleDefaultServer = "localhost:1521";
 
     public string ShortName     => OracleShortName;
     public string ConnectionKey => OracleConnectionKey;
