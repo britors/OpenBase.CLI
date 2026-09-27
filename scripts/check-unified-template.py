@@ -142,7 +142,7 @@ with tempfile.TemporaryDirectory(prefix='openbase-cli-e2e-') as temp:
     api = target / m['projects']['api']
     assert json.loads((api.parent / 'appsettings.json').read_text())['ConnectionStrings']['Default'] == ''
     sid = ET.parse(api).find('.//UserSecretsId').text
-    stored = json.loads((root / 'appdata' / 'Microsoft' / 'UserSecrets' / sid / 'secrets.json').read_text())
+    stored = json.loads((root / 'appdata' / 'Microsoft' / 'UserSecrets' / sid / 'secrets.json').read_text(encoding='utf-8-sig'))
     assert 'ConnectionStrings:Default' in stored and 'e2e-only' in stored['ConnectionStrings:Default']
     for p in target.rglob('*'):
         if p.is_file() and p.suffix in ('.json', '.cs', '.csproj'):
