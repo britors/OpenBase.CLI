@@ -25,7 +25,7 @@ public class HelpCommand : Command<HelpSettings>
         table.AddRow("[blue]build[/]", SR.Current.HelpBuildDesc, "openbase [green]build[/]\nopenbase [green]build --configuration Release[/]\nopenbase [green]build --no-restore[/]");
         table.AddRow("[blue]run[/]", SR.Current.HelpRunDesc, "openbase [green]run[/]\nopenbase [green]run --configuration Release[/]\nopenbase [green]run --no-build[/]");
         table.AddRow("[blue]install[/]", SR.Current.HelpInstallDesc, "openbase [green]install[/]");
-        table.AddRow("[blue]new[/]", SR.Current.HelpNewDesc, "openbase [green]new --type api --template sqlserver --name MeuProjeto[/]\nopenbase [green]new --type api --template pgsql --name MeuProjeto[/]\nopenbase [green]new --type api --template oracle --name MeuProjeto[/]");
+        table.AddRow("[blue]new[/]", SR.Current.HelpNewDesc, "openbase [green]new --database sqlserver --name MeuProjeto[/]\nopenbase [green]new --database postgres --name MeuProjeto[/]\nopenbase [green]new --database oracle --name MeuProjeto[/]");
         table.AddRow("[blue]scaffold[/]", SR.Current.HelpScaffoldDesc, "openbase [green]scaffold --entity Produto[/]\nopenbase [green]scaffold --entity Produto --update[/]");
         table.AddRow("[blue]specialist[/]", SR.Current.HelpSpecialistDesc, "openbase [green]specialist --entity Produto[/]");
         table.AddRow("[blue]procedure[/]", SR.Current.HelpProcedureDesc, "openbase [green]procedure --name GetOrderById[/]\nopenbase [green]procedure --name GetOrderById --schema dbo[/]");

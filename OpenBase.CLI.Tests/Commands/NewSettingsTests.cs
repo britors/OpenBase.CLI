@@ -1,58 +1,48 @@
 using OpenBase.CLI.Commands;
-using OpenBase.CLI.Localization;
-using Spectre.Console.Cli;
+using OpenBase.CLI.Helpers.Creation;
 
 namespace OpenBase.CLI.Tests.Commands;
 
 public class NewSettingsTests
 {
-    private static NewSettings Valid(string name = "MeuProjeto", string template = "sqlserver") =>
-        new() { Name = name, TemplateName = template, Type = "api" };
-
-    [Fact]
-    public void Validate_EmptyName_ReturnsError()
-    {
-        var settings = Valid(name: "");
-        var result = settings.Validate();
-        Assert.False(result.Successful);
-        Assert.Contains("--name", result.Message);
-    }
-
-    [Fact]
-    public void Validate_WhitespaceName_ReturnsError()
-    {
-        var settings = Valid(name: "   ");
-        var result = settings.Validate();
-        Assert.False(result.Successful);
-        Assert.Contains("--name", result.Message);
-    }
+    [Theory]
+    [InlineData("postgres", "postgres")]
+    [InlineData("POSTGRES", "postgres")]
+    [InlineData("pgsql", "postgres")]
+    [InlineData("postgresql", "postgres")]
+    [InlineData("sqlserver", "sqlserver")]
+    [InlineData("oracle", "oracle")]
+    public void SelectsCanonicalDatabase(string input, string expected)
+        => Assert.Equal(expected, new NewSettings { Name = "Acme.Customers", Databases = [input] }.SelectDatabase());
 
     [Theory]
-    [InlineData("Meu Projeto")]
-    [InlineData("proj&eto")]
-    [InlineData("proj|eto")]
-    [InlineData("proj;eto")]
-    [InlineData("proj`eto")]
-    [InlineData("proj$eto")]
-    [InlineData("proj(eto")]
-    [InlineData("proj)eto")]
-    public void Validate_InvalidCharsInName_ReturnsError(string name)
-    {
-        var settings = Valid(name: name);
-        var result = settings.Validate();
-        Assert.False(result.Successful);
-        Assert.Equal(SR.Current.ProjectNameInvalid, result.Message);
-    }
+    [InlineData("", "INPUT_REQUIRED")]
+    [InlineData("A-B", "NAME_INVALID")]
+    [InlineData("1Api", "NAME_INVALID")]
+    [InlineData("Acme.class", "NAME_INVALID")]
+    [InlineData("@class", "NAME_INVALID")]
+    [InlineData("Api\n", "NAME_INVALID")]
+    [InlineData("A;touch bad", "NAME_INVALID")]
+    public void RejectsInvalidNames(string name, string error)
+        => Assert.Equal(error, Assert.Throws<CliException>(() => new NewSettings { Name = name }.SelectDatabase()).Code);
+
+    [Fact]
+    public void RepeatedAliasesAgree()
+        => Assert.Equal("postgres", new NewSettings { Name = "A", Databases = ["PGSQL", "postgres"], Templates = ["postgresql"] }.SelectDatabase());
 
     [Theory]
-    [InlineData("MeuProjeto")]
-    [InlineData("meu-projeto")]
-    [InlineData("meu_projeto")]
-    [InlineData("Projeto123")]
-    public void Validate_ValidName_ReturnsSuccess(string name)
-    {
-        var settings = Valid(name: name);
-        var result = settings.Validate();
-        Assert.True(result.Successful);
-    }
+    [InlineData("sql")]
+    [InlineData("mssql")]
+    [InlineData("0")]
+    [InlineData("sqlite")]
+    public void RejectsUnsupportedDatabases(string input)
+        => Assert.Equal("DATABASE_UNSUPPORTED", Assert.Throws<CliException>(() => new NewSettings { Name = "A", Databases = [input] }.SelectDatabase()).Code);
+
+    [Fact]
+    public void RejectsConflictingRepeatedOptions()
+        => Assert.Equal("ARGUMENT_CONFLICT", Assert.Throws<CliException>(() => new NewSettings { Name = "A", Databases = ["oracle", "postgres"] }.SelectDatabase()).Code);
+
+    [Fact]
+    public void RejectsConflictingLegacyOption()
+        => Assert.Equal("ARGUMENT_CONFLICT", Assert.Throws<CliException>(() => new NewSettings { Name = "A", Databases = ["oracle"], Templates = ["pgsql"] }.SelectDatabase()).Code);
 }

@@ -1,27 +1,24 @@
 # OpenBase CLI — bash/zsh shell integration
-# After `openbase new`, automatically changes into the created project directory.
-#
-# Install (bash):  add to ~/.bashrc
-# Install (zsh):   add to ~/.zshrc
-#
+# Source this file from ~/.bashrc or ~/.zshrc.
 openbase() {
     command openbase "$@"
     local _exit=$?
-    if [ $_exit -eq 0 ] && [ "${1:-}" = "new" ]; then
-        local i=1 name=""
-        while [ $i -le $# ]; do
-            local arg
-            arg=$(eval "echo \${$i}")
-            if [ "$arg" = "--name" ] || [ "$arg" = "-n" ]; then
-                i=$((i + 1))
-                name=$(eval "echo \${$i}")
-                break
-            fi
-            i=$((i + 1))
+    if [ "$_exit" -eq 0 ] && [ "${1:-}" = "new" ]; then
+        local name="" output=""
+        while [ "$#" -gt 0 ]; do
+            case "$1" in
+                -n|--name) [ "$#" -ge 2 ] || break; name=$2; shift ;;
+                -o|--output) [ "$#" -ge 2 ] || break; output=$2; shift ;;
+                --name=*) name=${1#*=} ;;
+                --output=*) output=${1#*=} ;;
+                --json) return "$_exit" ;;
+            esac
+            shift
         done
-        if [ -n "$name" ] && [ -d "$name" ]; then
-            cd "$name" || true
+        local destination=${output:-$name}
+        if [ -n "$destination" ] && [ -d "$destination" ]; then
+            cd -- "$destination" || return 1
         fi
     fi
-    return $_exit
+    return "$_exit"
 }

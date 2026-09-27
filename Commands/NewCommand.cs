@@ -1,15 +1,8 @@
 using System.ComponentModel;
-using System.Reflection;
+using System.Data.Common;
 using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
-using OpenBase.CLI.Commands.Scaffold;
-using OpenBase.CLI.Helpers.Database;
+using OpenBase.CLI.Helpers.Creation;
 using OpenBase.CLI.Helpers.Execution;
-using OpenBase.CLI.Helpers.Interactive;
-using OpenBase.CLI.Helpers.IO;
-using OpenBase.CLI.Localization;
-using OpenBase.CLI.Models;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -17,374 +10,117 @@ namespace OpenBase.CLI.Commands;
 
 public class NewSettings : CommandSettings
 {
-    [CommandOption("-t|--type <TIPO>")]
-    [Description("O tipo do template [api]")]
-    [DefaultValue("api")]
+    [CommandOption("-t|--type <TYPE>")]
+    [Description("Tipo de projeto: api")]
     public string Type { get; set; } = "api";
-
+    [CommandOption("-d|--database <DATABASE>")]
+    [Description("postgres, sqlserver ou oracle (pgsql/postgresql são aliases)")]
+    public string[] Databases { get; set; } = [];
     [CommandOption("-s|--template <TEMPLATE>")]
-    [Description("O nome do template [sqlserver|pgsql|oracle]")]
-    public string? TemplateName { get; set; }
-
-    [CommandOption("-n|--name <NOME>")]
-    [Description("O nome do projeto a ser criado")]
-    public string Name { get; set; } = string.Empty;
-
-    [CommandOption("--db-server <SERVIDOR>")]
-    [Description("Servidor do banco de dados (pula o prompt interativo)")]
+    [Description("Alias legado de --database; será removido em uma major futura")]
+    public string[] Templates { get; set; } = [];
+    [CommandOption("-n|--name <NAME>")]
+    public string Name { get; set; } = "";
+    [CommandOption("-o|--output <PATH>")]
+    public string? Output { get; set; }
+    [CommandOption("--non-interactive")]
+    public bool NonInteractive { get; set; }
+    [CommandOption("--json")]
+    public bool Json { get; set; }
+    [CommandOption("--db-server <SERVER>")]
     public string? DbServer { get; set; }
-
-    [CommandOption("--db-name <NOME>")]
-    [Description("Nome do banco de dados (pula o prompt interativo)")]
+    [CommandOption("--db-name <NAME>")]
     public string? DbName { get; set; }
-
-    [CommandOption("--db-user <USUARIO>")]
-    [Description("Usuário do banco de dados (pula o prompt interativo)")]
+    [CommandOption("--db-user <USER>")]
     public string? DbUser { get; set; }
-
-    [CommandOption("--db-password <SENHA>")]
-    [Description("Senha do banco de dados (pula o prompt interativo)")]
+    [CommandOption("--db-password <PASSWORD>")]
+    [Description("Grava somente em User Secrets; prefira configurar segredos fora da linha de comando")]
     public string? DbPassword { get; set; }
-
-    [CommandOption("--mediatr-license <LICENCA>")]
-    [Description("Licença do MediatR (pula o prompt interativo)")]
+    [CommandOption("--mediatr-license <LICENSE>")]
     public string? MediatrLicense { get; set; }
-
-    [CommandOption("--automapper-license <LICENCA>")]
-    [Description("Licença do AutoMapper (pula o prompt interativo)")]
+    [CommandOption("--automapper-license <LICENSE>")]
     public string? AutomapperLicense { get; set; }
 
-    public override ValidationResult Validate()
+    public string? SelectDatabase()
     {
-        if (string.IsNullOrWhiteSpace(Name))
-            return ValidationResult.Error(SR.Current.NameParamRequired);
-
-        var invalidChars = Path.GetInvalidFileNameChars()
-            .Concat([' ', '&', '|', ';', '`', '$', '(', ')'])
-            .ToArray();
-
-        return Name.IndexOfAny(invalidChars) >= 0
-            ? ValidationResult.Error(SR.Current.ProjectNameInvalid)
-            : ValidationResult.Success();
+        if (string.IsNullOrWhiteSpace(Name)) throw new CliException("INPUT_REQUIRED", "Informe --name.");
+        if (!Identifiers.IsName(Name)) throw new CliException("NAME_INVALID", "Use um nome C# válido, sem palavras reservadas.");
+        if (!Type.Equals("api", StringComparison.OrdinalIgnoreCase)) throw new CliException("TYPE_UNSUPPORTED", "Somente --type api é suportado.");
+        var values = Databases.Concat(Templates).Select(Identifiers.Database).Distinct().ToArray();
+        if (values.Length > 1) throw new CliException("ARGUMENT_CONFLICT", "As opções de banco devem indicar o mesmo provider.");
+        return values.FirstOrDefault();
     }
 }
 
-public class NewCommand : AsyncCommand<NewSettings>
+public class NewCommand(IDotNetRunner runner, IAnsiConsole console) : AsyncCommand<NewSettings>
 {
-    private static readonly Dictionary<string, IDbTemplateStrategy> TemplateMap = new(StringComparer.OrdinalIgnoreCase)
+    protected override async Task<int> ExecuteAsync(CommandContext context, NewSettings settings, CancellationToken cancellationToken)
     {
-        { "api:sqlserver", new SqlServerTemplateStrategy() },
-        { "api:pgsql",     new PostgresTemplateStrategy()  },
-        { "api:oracle",    new OracleTemplateStrategy()    },
-    };
-
-    private const string JsonSectionConnectionStrings = "ConnectionStrings";
-    private const string JsonKeyLicenseKey            = "LicenseKey";
-    private const string ApiSourceDir                 = "src";
-    private const string ApiProjectDir               = "OpenBaseNET.Presentation.Api";
-
-    private static readonly string[] AppSettingsFiles = ["appsettings.json", "appsettings.Development.json"];
-    private static readonly string[] MediatRKeys      = ["Mediatr", "Mediator"];
-    private static readonly string[] AutoMapperKeys   = ["Automapper", "AutoMapper"];
-
-    private readonly IDotNetRunner _dotNetRunner;
-    private readonly IAnsiConsole _console;
-    private readonly IProjectConfigurator _configurator;
-    private readonly IFileWriter _fileWriter;
-    private readonly IDbSchemaReader _dbSchemaReader;
-
-    public NewCommand(IDotNetRunner dotNetRunner, IAnsiConsole console, IProjectConfigurator configurator, IFileWriter fileWriter, IDbSchemaReader dbSchemaReader)
-    {
-        _dotNetRunner = dotNetRunner;
-        _console = console;
-        _configurator = configurator;
-        _fileWriter = fileWriter;
-        _dbSchemaReader = dbSchemaReader;
-    }
-
-    private const int RequiredSdkMajorVersion = 10;
-
-    protected override async Task<int> ExecuteAsync(
-        CommandContext context,
-        NewSettings settings,
-        CancellationToken cancellationToken)
-    {
-        if (!_dotNetRunner.IsSdkVersionSufficient(RequiredSdkMajorVersion))
-        {
-            _console.MarkupLine(SR.Current.SdkIncompatible);
-            _console.MarkupLine(string.Format(SR.Current.SdkUpdateRequired, RequiredSdkMajorVersion));
-            return 1;
-        }
-
-        var templateName = settings.TemplateName;
-        if (string.IsNullOrWhiteSpace(templateName))
-        {
-            templateName = await _console.PromptAsync(
-                new SelectionPrompt<string>()
-                    .Title(SR.Current.ApiDatabasePrompt)
-                    .AddChoices("sqlserver", "pgsql", "oracle"), cancellationToken);
-        }
-
-        var key = $"{settings.Type}:{templateName}";
-
-        if (!TemplateMap.TryGetValue(key, out var strategy))
-        {
-            _console.MarkupLine(string.Format(SR.Current.InvalidTypeCombination, settings.Type, settings.TemplateName));
-            _console.MarkupLine(SR.Current.AvailableCombinations);
-            return 1;
-        }
-
-        var overrides = new ProjectSetupOverrides(
-            settings.MediatrLicense,
-            settings.AutomapperLicense,
-            settings.DbServer,
-            settings.DbName,
-            settings.DbUser,
-            settings.DbPassword);
-
-        var config = _configurator.Collect(strategy, settings.Name, overrides);
-
-        var (success, error) = await _console.Status()
-            .Spinner(Spinner.Known.Dots)
-            .StartAsync(
-                string.Format(SR.Current.CreatingProject, settings.Name),
-                _ => _dotNetRunner.RunAsync(
-                    $"new {strategy.ShortName} -n {settings.Name} -o {settings.Name}", cancellationToken));
-
-        if (!success)
-        {
-            _console.MarkupLine(SR.Current.CreateProjectFailed);
-            if (!string.IsNullOrWhiteSpace(error))
-                _console.MarkupLine($"[grey]{Markup.Escape(error)}[/]");
-            return 1;
-        }
-
-        UpdateAppSettings(settings.Name, strategy, config, _fileWriter);
-        WriteMetadata(settings.Name, key, _fileWriter);
-        _console.MarkupLine($"[grey]  cd {Markup.Escape(settings.Name)}[/]");
-        _console.MarkupLine("[grey]  dotnet run --project src/...[/]");
-        _console.MarkupLine(SR.Current.ShellIntegrationHint);
-
-        var connectionString = strategy.BuildConnectionString(config.DbName, config.DbServer, config.DbUser, config.DbPassword);
-        await RunBulkImportAsync(settings.Name, connectionString, strategy.DbFlavor, cancellationToken);
-        return 0;
-    }
-
-    private async Task RunBulkImportAsync(
-        string projectName,
-        string connectionString,
-        DbFlavor dbFlavor,
-        CancellationToken cancellationToken)
-    {
-        if (!_console.Profile.Capabilities.Interactive) return;
-
-        var connected = _console.Status().Spinner(Spinner.Known.Dots)
-            .Start(SR.Current.TestingDbConnection,
-                _ => _dbSchemaReader.TryConnect(connectionString, dbFlavor));
-
-        if (!connected)
-        {
-            _console.MarkupLine(SR.Current.DbConnectionFailed);
-            return;
-        }
-
-        _console.MarkupLine(SR.Current.DbConnectionSuccess);
-
-        if (!await _console.ConfirmAsync(SR.Current.ImportFullModelPrompt, defaultValue: false, cancellationToken))
-            return;
-
-        var tables = _console.Status().Spinner(Spinner.Known.Dots)
-            .Start(SR.Current.ListingTables,
-                _ => _dbSchemaReader.ListTables(connectionString, dbFlavor));
-
-        if (tables.Count == 0)
-        {
-            _console.MarkupLine(SR.Current.NoTablesFound);
-            return;
-        }
-
-        _console.MarkupLine(string.Format(SR.Current.TablesFound, tables.Count));
-        _console.WriteLine();
-
-        var toScaffold = await CollectEntitiesToScaffoldAsync(tables, cancellationToken);
-
-        if (toScaffold.Count == 0) return;
-
-        await ScaffoldEntitiesAsync(toScaffold, projectName, connectionString, dbFlavor, cancellationToken);
-    }
-
-    private async Task<List<(DbTableInfo Table, string EntityName)>> CollectEntitiesToScaffoldAsync(
-        IReadOnlyList<DbTableInfo> tables,
-        CancellationToken cancellationToken)
-    {
-        var result = new List<(DbTableInfo, string)>();
-
-        foreach (var table in tables)
-        {
-            var name = (await _console.AskAsync<string>(
-                string.Format(SR.Current.TableEntityNamePrompt, Markup.Escape(table.Schema), Markup.Escape(table.TableName)),
-                cancellationToken)).Trim();
-
-            if (string.IsNullOrWhiteSpace(name) || !char.IsUpper(name[0]) || !name.All(char.IsLetterOrDigit))
-            {
-                _console.MarkupLine(SR.Current.TableSkipped);
-                continue;
-            }
-
-            result.Add((table, name));
-        }
-
-        return result;
-    }
-
-    private async Task ScaffoldEntitiesAsync(
-        List<(DbTableInfo Table, string EntityName)> toScaffold,
-        string projectName,
-        string connectionString,
-        DbFlavor dbFlavor,
-        CancellationToken cancellationToken)
-    {
-        var bulk = new BulkImportContext(
-            projectName,
-            Path.GetFullPath(projectName),
-            connectionString,
-            dbFlavor,
-            _fileWriter.FindSolutionFile(Path.GetFullPath(projectName)));
-
-        ScaffoldContext? lastCtx = null;
-
-        foreach (var (table, entityName) in toScaffold)
-        {
-            var ctx = await ScaffoldSingleEntityAsync(table, entityName, bulk, cancellationToken);
-            if (ctx is not null) lastCtx = ctx;
-        }
-
-        if (lastCtx is null) return;
-
-        _console.MarkupLine(string.Format(SR.Current.BulkScaffoldSuccess, toScaffold.Count));
-
-        new EfMigrationRunner(_dotNetRunner, _fileWriter, _console)
-            .RunBulkReconciliationMigration(lastCtx, "InitialModel");
-    }
-
-    private async Task<ScaffoldContext?> ScaffoldSingleEntityAsync(
-        DbTableInfo table,
-        string entityName,
-        BulkImportContext bulk,
-        CancellationToken cancellationToken)
-    {
-        IReadOnlyList<EntityProperty> properties;
+        var warnings = new List<Notice>();
+        string? root = null;
+        var stage = "validation";
         try
         {
-            properties = _dbSchemaReader.ReadColumns(bulk.ConnectionString, table.Schema, table.TableName, bulk.DbFlavor);
+            cancellationToken.ThrowIfCancellationRequested();
+            var database = settings.SelectDatabase();
+            if (settings.Templates.Length > 0) warnings.Add(new("DEPRECATED_OPTION", "Use --database em vez de --template."));
+            if (settings.MediatrLicense is not null || settings.AutomapperLicense is not null)
+                warnings.Add(new("IGNORED_LICENSE", "O template único não utiliza as opções de licença legadas."));
+            if (database is null)
+            {
+                if (settings.Json || settings.NonInteractive || !console.Profile.Capabilities.Interactive)
+                    throw new CliException("INPUT_REQUIRED", "Informe --database postgres|sqlserver|oracle.");
+                database = await console.PromptAsync(new SelectionPrompt<string>().Title("Banco de dados:").AddChoices("postgres", "sqlserver", "oracle"), cancellationToken);
+            }
+            root = Path.GetFullPath(settings.Output ?? settings.Name);
+            if (File.Exists(root) || Directory.Exists(root) && Directory.EnumerateFileSystemEntries(root).Any())
+                throw new CliException("DESTINATION_NOT_EMPTY", "O destino deve ser uma pasta vazia ou inexistente.");
+            if (!runner.IsSdkVersionSufficient(10)) throw new CliException("SDK_INCOMPATIBLE", "Instale um SDK .NET 10 estável ou superior.", 3);
+            var version = await runner.GetInstalledTemplateVersionAsync(PackageIds.Unified, cancellationToken);
+            if (version is null) throw new CliException("TEMPLATE_NOT_INSTALLED", "Execute openbase install para instalar o template compatível.", 3);
+            if (!new PackageVersion(version).Compatible) throw new CliException("TEMPLATE_VERSION_UNSUPPORTED", "Este CLI requer o template 11.x (manifesto v2).", 3);
+            var probe = await runner.RunAsync(new[] { "new", "openbasenet", "--name", settings.Name, "--output", root, "--database", database, "--dry-run" }, cancellationToken);
+            if (!probe.Success) throw new CliException("TEMPLATE_CAPABILITY_UNAVAILABLE", "O template instalado não aceita o contrato de criação.", 3);
+            cancellationToken.ThrowIfCancellationRequested();
+            stage = "generation";
+            var result = await runner.RunAsync(new[] { "new", "openbasenet", "--name", settings.Name, "--output", root, "--database", database }, cancellationToken);
+            if (!result.Success) throw new CliException("GENERATION_FAILED", "Falha na geração. Arquivos parciais foram preservados.", 4);
+            stage = "manifest";
+            var manifest = GeneratedManifest.Read(root, database, settings.Name, version);
+            if (settings.DbServer is not null || settings.DbName is not null || settings.DbUser is not null || settings.DbPassword is not null)
+            {
+                stage = "configuration";
+                var secret = JsonSerializer.Serialize(new Dictionary<string, string>
+                {
+                    [$"ConnectionStrings:{manifest.ConnectionKey}"] = BuildConnectionString(database, settings)
+                });
+                // dotnet user-secrets accepts a JSON dictionary on stdin: credentials never enter child argv or logs.
+                var config = await runner.RunAsync(new[] { "user-secrets", "set", "--project", manifest.ApiProject }, cancellationToken, secret);
+                if (!config.Success) throw new CliException("CONFIGURATION_FAILED", "Projeto gerado; configuração de User Secrets falhou.", 4);
+            }
+            return CommandResult.Write(console, settings.Json, "new", new { projectRoot = root, manifestPath = Path.Combine(root, ".openbase.json") }, warnings: warnings);
         }
-        catch (Exception ex)
-        {
-            _console.MarkupLine(string.Format(SR.Current.ErrorReadingTable, Markup.Escape(ex.Message)));
-            return null;
-        }
+        catch (OperationCanceledException)
+        { return Fail(new("CANCELLED", "Operação cancelada.", 130)); }
+        catch (CliException e) { return Fail(e); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or System.ComponentModel.Win32Exception)
+        { return Fail(new("CREATION_FAILED", "Não foi possível concluir a criação.", 4)); }
 
-        if (properties.Count == 0)
+        int Fail(CliException error)
         {
-            _console.MarkupLine(string.Format(SR.Current.NoColumnsFound, Markup.Escape(table.Schema), Markup.Escape(table.TableName)));
-            return null;
+            if (stage != "validation") warnings.Add(new("PARTIAL_OUTPUT", $"Pasta: {root}. Etapa interrompida: {stage}. Arquivos preservados."));
+            return CommandResult.Write(console, settings.Json, "new", error: error, warnings: warnings);
         }
+    }
 
-        var ctx = new ScaffoldContext(entityName, bulk.ProjectName, bulk.SolutionDir)
+    public static string BuildConnectionString(string database, NewSettings settings)
+    {
+        DbConnectionStringBuilder builder = database switch
         {
-            Properties = properties,
-            DbFlavor   = bulk.DbFlavor,
-            TableName  = table.TableName,
+            "postgres" => new Npgsql.NpgsqlConnectionStringBuilder { Host = settings.DbServer ?? "localhost", Database = settings.DbName ?? settings.Name, Username = settings.DbUser ?? "", Password = settings.DbPassword ?? "" },
+            "sqlserver" => new Microsoft.Data.SqlClient.SqlConnectionStringBuilder { DataSource = settings.DbServer ?? ".", InitialCatalog = settings.DbName ?? settings.Name, UserID = settings.DbUser ?? "", Password = settings.DbPassword ?? "", IntegratedSecurity = string.IsNullOrEmpty(settings.DbUser), TrustServerCertificate = true },
+            _ => new Oracle.ManagedDataAccess.Client.OracleConnectionStringBuilder { DataSource = (settings.DbServer ?? "localhost:1521").Contains('/') ? settings.DbServer : $"{settings.DbServer ?? "localhost:1521"}/{settings.DbName ?? settings.Name}", UserID = settings.DbUser ?? "", Password = settings.DbPassword ?? "" }
         };
-
-        foreach (var (path, content) in new ScaffoldGenerator(ctx).GetFiles())
-        {
-            try
-            {
-                _fileWriter.EnsureDirectory(Path.GetDirectoryName(path)!);
-                if (!_fileWriter.FileExists(path))
-                    _fileWriter.WriteAllText(path, content);
-            }
-            catch { /* continue on individual file error */ }
-        }
-
-        new DbContextEditor(_fileWriter).InjectDbSet(ctx);
-
-        if (bulk.SlnFile is not null && _fileWriter.FileExists(ctx.TestsCsprojPath))
-            await _dotNetRunner.RunAsync($"sln \"{bulk.SlnFile}\" add \"{ctx.TestsCsprojPath}\"", cancellationToken);
-
-        return ctx;
-    }
-
-    public static void WriteMetadata(string projectName, string template, IFileWriter fileWriter)
-    {
-        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "unknown";
-        var metadata = new OpenBaseMetadata("OpenBase CLI", template, version, DateTimeOffset.UtcNow);
-        var json = JsonSerializer.Serialize(metadata, OpenBaseMetadataContext.Default.OpenBaseMetadata);
-        fileWriter.WriteAllText(Path.Combine(projectName, ".openbase.json"), json);
-    }
-
-    public static void UpdateAppSettings(string projectName, IDbTemplateStrategy strategy, ProjectSetupConfig config, IFileWriter fileWriter)
-    {
-        var basePath = Path.Combine(projectName, ApiSourceDir, ApiProjectDir);
-        var connectionString = strategy.BuildConnectionString(config.DbName, config.DbServer, config.DbUser, config.DbPassword);
-
-        foreach (var fileName in AppSettingsFiles)
-        {
-            var path = Path.Combine(basePath, fileName);
-            if (!fileWriter.FileExists(path)) continue;
-
-            var updated = ApplyConfigToJson(fileWriter.ReadAllText(path), strategy.ConnectionKey, connectionString, config);
-            fileWriter.WriteAllText(path, updated);
-        }
-    }
-
-    public static string ApplyConfigToJson(string jsonContent, string connectionKey, string connectionString, ProjectSetupConfig config)
-    {
-        JsonNode? json;
-        try { json = JsonNode.Parse(jsonContent); }
-        catch (JsonException) { return jsonContent; }
-        if (json is null) return jsonContent;
-
-        if (json[JsonSectionConnectionStrings] is JsonObject connStrings)
-            connStrings[connectionKey] = connectionString;
-        else
-            json[JsonSectionConnectionStrings] = new JsonObject { [connectionKey] = connectionString };
-
-        SetLicenseKey(json, MediatRKeys,    config.MediatrLicense);
-        SetLicenseKey(json, AutoMapperKeys, config.AutomapperLicense);
-
-        return json.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
-    }
-
-    private static void SetLicenseKey(JsonNode json, string[] keyVariants, string licenseKey)
-    {
-        foreach (var key in keyVariants)
-        {
-            if (json[key] is JsonObject node)
-            {
-                node[JsonKeyLicenseKey] = licenseKey;
-                return;
-            }
-        }
-
-        json[keyVariants[0]] = new JsonObject { [JsonKeyLicenseKey] = licenseKey };
+        return builder.ConnectionString;
     }
 }
-
-internal sealed record BulkImportContext(
-    string ProjectName,
-    string SolutionDir,
-    string ConnectionString,
-    DbFlavor DbFlavor,
-    string? SlnFile);
-
-public sealed record OpenBaseMetadata(
-    [property: JsonPropertyName("createdBy")]  string CreatedBy,
-    [property: JsonPropertyName("template")]   string Template,
-    [property: JsonPropertyName("version")]    string Version,
-    [property: JsonPropertyName("createdAt")]  DateTimeOffset CreatedAt);
-
-[JsonSerializable(typeof(OpenBaseMetadata))]
-[JsonSourceGenerationOptions(WriteIndented = true)]
-internal sealed partial class OpenBaseMetadataContext : JsonSerializerContext { }

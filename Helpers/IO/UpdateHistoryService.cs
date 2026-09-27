@@ -11,10 +11,9 @@ public sealed class UpdateHistoryService : IUpdateHistoryService
 
     public UpdateHistoryService(string? historyFilePath = null)
     {
-        _historyFilePath = historyFilePath ?? Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            ".openbase",
-            "update-history.json");
+        var stateDirectory = Environment.GetEnvironmentVariable("OPENBASE_STATE_HOME")
+            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".openbase");
+        _historyFilePath = historyFilePath ?? Path.Combine(stateDirectory, "update-history.json");
     }
 
     public async Task AddEntryAsync(UpdateHistoryEntry entry, CancellationToken cancellationToken)
@@ -45,7 +44,7 @@ public sealed class UpdateHistoryService : IUpdateHistoryService
             var json = await File.ReadAllTextAsync(_historyFilePath, cancellationToken);
             return JsonSerializer.Deserialize<List<UpdateHistoryEntry>>(json, JsonOptions) ?? [];
         }
-        catch
+        catch (JsonException)
         {
             return [];
         }

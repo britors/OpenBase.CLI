@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using OpenBase.CLI.Helpers.Creation;
 using OpenBase.CLI.Helpers.Execution;
 using OpenBase.CLI.Helpers.IO;
 using OpenBase.CLI.Localization;
@@ -9,8 +10,10 @@ namespace OpenBase.CLI.Commands;
 
 public class HistorySettings : CommandSettings
 {
+    [CommandOption("--json")]
+    public bool Json { get; set; }
     [CommandOption("--type")]
-    [Description("Filtra por componente: cli, sqlserver, postgres")]
+    [Description("Filtra por componente: template, cli, sqlserver, postgres, oracle")]
     public string? Type { get; set; }
 
     [CommandOption("--clear")]
@@ -24,6 +27,8 @@ public class HistoryCommand : AsyncCommand<HistorySettings>
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             [PackageIds.Cli]       = "CLI",
+            [PackageIds.Unified] = "OpenBaseNET",
+            [PackageIds.Oracle] = "Oracle",
             [PackageIds.SqlServer] = "SQLServer",
             [PackageIds.Postgres]  = "Postgres",
         };
@@ -45,6 +50,7 @@ public class HistoryCommand : AsyncCommand<HistorySettings>
         if (settings.Clear)
         {
             await _historyService.ClearHistoryAsync(cancellationToken);
+            if (settings.Json) return CommandResult.Write(_console, true, "history", new { cleared = true });
             _console.MarkupLine(SR.Current.HistoryCleared);
             return 0;
         }
@@ -54,11 +60,12 @@ public class HistoryCommand : AsyncCommand<HistorySettings>
         if (!string.IsNullOrWhiteSpace(settings.Type) &&
             !PackageIds.TypeToId.TryGetValue(settings.Type, out component))
         {
-            _console.MarkupLine(string.Format(SR.Current.InvalidTypeHistory, Markup.Escape(settings.Type)));
-            return 1;
+            return CommandResult.Write(_console, settings.Json, "history", error: new CliException("COMPONENT_UNSUPPORTED", "Use template, cli, postgres, sqlserver ou oracle."));
         }
 
         var entries = await _historyService.GetHistoryAsync(component, cancellationToken);
+
+        if (settings.Json) return CommandResult.Write(_console, true, "history", new { entries });
 
         if (entries.Count == 0)
         {

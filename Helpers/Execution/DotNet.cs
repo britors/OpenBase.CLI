@@ -57,29 +57,49 @@ public static class DotNet
         return envPath ?? fileName;
     }
 
-    public static async Task<(bool Success, string Error)> RunAsync(string arguments, CancellationToken cancellationToken)
+    public static Task<(bool Success, string Error)> RunAsync(string arguments, CancellationToken cancellationToken)
+        => RunProcessAsync(new ProcessStartInfo(GetDotnetPath(), arguments), cancellationToken);
+
+    public static Task<(bool Success, string Error)> RunAsync(IReadOnlyList<string> arguments,
+        CancellationToken cancellationToken, string? standardInput = null)
     {
-        var psi = new ProcessStartInfo(GetDotnetPath(), arguments)
-        {
-            CreateNoWindow = true,
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true
-        };
+        var psi = new ProcessStartInfo(GetDotnetPath());
+        foreach (var arg in arguments) psi.ArgumentList.Add(arg);
+        return RunProcessAsync(psi, cancellationToken, standardInput);
+    }
 
+    private static async Task<(bool Success, string Error)> RunProcessAsync(ProcessStartInfo psi,
+        CancellationToken token, string? standardInput = null)
+    {
+        token.ThrowIfCancellationRequested();
+        psi.CreateNoWindow = true;
+        psi.UseShellExecute = false;
+        psi.RedirectStandardOutput = true;
+        psi.RedirectStandardError = true;
+        psi.RedirectStandardInput = standardInput is not null;
+        psi.Environment["DOTNET_CLI_UI_LANGUAGE"] = "en-US";
         using var process = Process.Start(psi);
-        if (process == null)
-            return (false, "Não foi possível iniciar o processo dotnet.");
-
-        var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
-        var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
-        await Task.WhenAll(process.WaitForExitAsync(cancellationToken), stdoutTask, stderrTask);
-
-        var stderr = (await stderrTask).Trim();
-        var stdout = (await stdoutTask).Trim();
-
-        var error = string.IsNullOrEmpty(stderr) ? stdout : stderr;
-        return (process.ExitCode == 0, error);
+        if (process is null) return (false, "Não foi possível iniciar dotnet.");
+        var stdout = process.StandardOutput.ReadToEndAsync();
+        var stderr = process.StandardError.ReadToEndAsync();
+        try
+        {
+            if (standardInput is not null)
+            {
+                await process.StandardInput.WriteAsync(standardInput.AsMemory(), token);
+                process.StandardInput.Close();
+            }
+            await process.WaitForExitAsync(token);
+            await Task.WhenAll(stdout, stderr);
+            return (process.ExitCode == 0, string.IsNullOrWhiteSpace(stderr.Result) ? stdout.Result.Trim() : stderr.Result.Trim());
+        }
+        catch (OperationCanceledException)
+        {
+            if (!process.HasExited) process.Kill(entireProcessTree: true);
+            await process.WaitForExitAsync(CancellationToken.None);
+            await Task.WhenAll(stdout, stderr);
+            throw;
+        }
     }
 
     public static async Task<int> RunLiveAsync(string arguments, CancellationToken cancellationToken)
@@ -140,38 +160,14 @@ public static class DotNet
 
     public static async Task<string?> GetInstalledToolVersionAsync(string packageId, CancellationToken cancellationToken)
     {
-        var psi = new ProcessStartInfo(GetDotnetPath(), "tool list -g")
-        {
-            CreateNoWindow = true,
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-        };
-
-        using var process = Process.Start(psi);
-        if (process == null) return null;
-
-        var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
-        await process.WaitForExitAsync(cancellationToken);
-
-        return ParseToolVersion(output, packageId);
+        var result = await RunAsync(new[] { "tool", "list", "-g" }, cancellationToken);
+        return result.Success ? ParseToolVersion(result.Error, packageId) : null;
     }
 
     public static async Task<string?> GetInstalledTemplateVersionAsync(string packageId, CancellationToken cancellationToken)
     {
-        var psi = new ProcessStartInfo(GetDotnetPath(), "new uninstall")
-        {
-            CreateNoWindow = true,
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-        };
-
-        using var process = Process.Start(psi);
-        if (process == null) return null;
-
-        var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
-        await process.WaitForExitAsync(cancellationToken);
-
-        return ParseTemplateVersion(output, packageId);
+        var result = await RunAsync(new[] { "new", "uninstall" }, cancellationToken);
+        return result.Success ? ParseTemplateVersion(result.Error, packageId) : null;
     }
 
     public static string? ParseToolVersion(string output, string packageId)
@@ -196,6 +192,7 @@ public static class DotNet
             for (var j = i + 1; j < Math.Min(i + 6, lines.Length); j++)
             {
                 var trimmed = lines[j].Trim();
+                if (trimmed.Length > 0 && lines[j].TakeWhile(char.IsWhiteSpace).Count() <= lines[i].TakeWhile(char.IsWhiteSpace).Count()) break;
                 if (trimmed.StartsWith("Version:", StringComparison.OrdinalIgnoreCase))
                     return trimmed["Version:".Length..].Trim();
                 if (trimmed.StartsWith("Versão:", StringComparison.OrdinalIgnoreCase))

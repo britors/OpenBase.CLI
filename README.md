@@ -63,38 +63,88 @@ Press `Ctrl+C` to stop the application.
 
 ---
 
-### 3. Install the templates
+### 3. Install the unified template (11.x preview)
+
+This branch implements creation/package management for OpenBaseNET's manifest v2.
+Scaffold, specialist, procedure and extensions still support **legacy projects only**;
+commands that would modify a v2 project are blocked until their migration is complete.
+This preview does not announce full ecosystem support or publish packages automatically.
 
 ```bash
-openbase install
+# Stable compatible version, once published on NuGet:
+openbase install --json
+# Explicit preview selection, once published:
+openbase install --prerelease --json
+# Currently, build the package in OpenBaseNET and install that exact local artifact:
+openbase install --package /path/to/w3ti.OpenBaseNET.Template.11.0.0-preview.1.nupkg --json
 ```
+
+Requires .NET SDK 10 stable (or later). The unified package is
+`w3ti.OpenBaseNET.Template`; this CLI accepts its 11.x line, including explicitly
+selected previews. Version queries use NuGet's v3 index and pin the selected version.
+`--version` requires an exact SemVer; a newer incompatible major is never selected.
+`update` targets the unified template by default and refuses implicit downgrades:
+
+```bash
+openbase update --prerelease --json
+openbase version restore 11.0.0-preview.1 --type template --json
+openbase version show --json
+openbase history --type template --json
+# Explicit legacy package and CLI operations remain available:
+openbase install --type oracle
+openbase update --type cli
+openbase version restore 2.0.0 --type postgres
+```
+
+`--type sqlserver|postgres|oracle` always identifies the historical package, not a
+variant of the new one. These packages are not removed automatically. Installing or
+updating a template does not migrate existing application code, layout or databases.
+History defaults to `~/.openbase`; `OPENBASE_STATE_HOME` can isolate automation state.
 
 ### 4. Create a new project
 
 ```bash
-# SQL Server
-openbase new --type api --template sqlserver --name MyProject
-
-# PostgreSQL
-openbase new --type api --template pgsql --name MyProject
-
-# Oracle
-openbase new --type api --template oracle --name MyProject
+openbase new -n MyApi -d postgres
+openbase new -n MyApi -d sqlserver --non-interactive
+openbase new -n Acme.Customers -d oracle -o "Acme Customers" --json
 ```
 
-The wizard will prompt for project configuration:
+`-d/--database` accepts `postgres`, `sqlserver`, `oracle`, case-insensitively;
+`pgsql` and `postgresql` normalize to `postgres`. `-s/--template` remains an alias
+with a deprecation warning. Repeated options must agree after normalization.
+`-t/--type` accepts only `api`. The project name must be a C# identifier or dotted
+namespace, without reserved keywords or `@`; the output path may contain spaces.
+The destination must be empty or absent; no overwrite option is provided.
 
+Only the database engine is prompted for, and only in an interactive terminal.
+`--json` implies non-interactive mode. Creation requires no database server,
+credentials, license, connection test or import. It does not install tools, restore,
+build or apply migrations. If the template is missing, run `openbase install` first.
+
+The CLI invokes `dotnet new openbasenet --name ... --output ... --database ...` with
+separate arguments. It preserves the template-generated `.openbase.json` and validates
+its version, layout, project paths and selected adapter before optional configuration.
+The manifest locates the API even when the project or directory name changes.
+
+Legacy `--db-server`, `--db-name`, `--db-user`, `--db-password` opt into development
+configuration in [User Secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets),
+using JSON on the child process's stdin. `appsettings.json` remains unchanged.
+Prefer configuring secrets outside command-line arguments. License options are accepted
+and ignored with a warning that never includes their values. No credentials or raw child
+output are included in JSON responses.
+
+`--json` emits exactly one protocol-v1 document on stdout, with `ok`, `data`, `error`
+and `warnings`. Exit codes: 0 success, 2 input/manifest error, 3 missing or incompatible
+prerequisite, 4 execution failure, 130 cancellation. Partial generation/configuration
+reports the output folder and interrupted stage; existing files are preserved.
+The wider capabilities, discovery and migrations protocol is tracked separately.
+
+Validate creation against the real template package (Linux and Windows):
+
+```bash
+dotnet test -c Release
+python scripts/check-unified-template.py --package /path/to/package.nupkg --template-root /path/to/OpenBaseNET
 ```
-Project configuration
-
-MediatR license (leave blank if you don't have one): <your-license>
-AutoMapper license (leave blank if you don't have one): <your-license>
-Database server [.]: .
-Database user:
-Database password:
-```
-
-The settings are automatically written to the `appsettings.json` and `appsettings.Development.json` files of the generated project.
 
 ### 5. Shell integration (optional)
 

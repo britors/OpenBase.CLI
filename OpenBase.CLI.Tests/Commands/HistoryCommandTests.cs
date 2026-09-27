@@ -50,12 +50,12 @@ public class HistoryCommandTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_InvalidType_ReturnsOne()
+    public async Task ExecuteAsync_InvalidType_ReturnsTwo()
     {
         var result = await ((ICommand<HistorySettings>)CreateCommand())
             .ExecuteAsync(CommandTestHelper.CreateContext("history"), new HistorySettings { Type = "invalido" }, CancellationToken.None);
 
-        Assert.Equal(1, result);
+        Assert.Equal(2, result);
     }
 
     [Theory]
