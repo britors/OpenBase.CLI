@@ -105,7 +105,9 @@ with tempfile.TemporaryDirectory(prefix='openbase-cli-e2e-') as temp:
         destination = root / f'{database} CLI with spaces'
         direct = root / f'{database} dotnet with spaces'
         result = invoke(['new', '-n', 'Acme.Customers', '-d', database, '-o', str(destination), '--non-interactive'])
-        assert result['data']['projectRoot'] == str(destination)
+        # Windows may expand the runner's 8.3 temp path; compare the actual directory.
+        reported_root = Path(result['data']['projectRoot'])
+        assert reported_root.is_absolute() and reported_root.samefile(destination)
         run(['dotnet', 'new', 'openbasenet', '--name', 'Acme.Customers', '--database', database, '--output', str(direct)])
         files = {p.relative_to(destination) for p in destination.rglob('*') if p.is_file()}
         assert files == {p.relative_to(direct) for p in direct.rglob('*') if p.is_file()}
