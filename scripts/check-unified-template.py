@@ -54,8 +54,12 @@ with tempfile.TemporaryDirectory(prefix='openbase-cli-e2e-') as temp:
         def terminal_case(cancel):
             master, slave = pty.openpty()
             destination = root / ('terminal-cancel' if cancel else 'terminal-create')
+            # Emulate a user's terminal; CI detection intentionally suppresses prompts even in a PTY.
+            terminal_env = dict(env, TERM='xterm')
+            terminal_env.pop('CI', None)
+            terminal_env.pop('GITHUB_ACTIONS', None)
             child = subprocess.Popen(['dotnet', str(cli), 'new', '-n', 'TerminalApi', '-o', str(destination)],
-                                     stdin=slave, stdout=slave, stderr=slave, cwd=root, env=dict(env, TERM='xterm'),
+                                     stdin=slave, stdout=slave, stderr=slave, cwd=root, env=terminal_env,
                                      start_new_session=True)
             os.close(slave)
             captured = b''
@@ -63,7 +67,10 @@ with tempfile.TemporaryDirectory(prefix='openbase-cli-e2e-') as temp:
                 until = time.monotonic() + 30
                 while b'Banco de dados' not in captured and time.monotonic() < until:
                     if select.select([master], [], [], 0.1)[0]:
-                        captured += os.read(master, 65536)
+                        try:
+                            captured += os.read(master, 65536)
+                        except OSError:
+                            break
                 assert b'Banco de dados' in captured, captured
                 if cancel:
                     child.send_signal(signal.SIGINT)

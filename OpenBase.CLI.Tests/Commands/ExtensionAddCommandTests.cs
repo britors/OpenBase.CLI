@@ -8,6 +8,8 @@ namespace OpenBase.CLI.Tests.Commands;
 
 public class ExtensionAddCommandTests
 {
+    private static readonly string ProjectDir = Path.Combine(Path.GetTempPath(), "extension-fixture");
+    private static readonly string ProjectFile = Path.Combine(ProjectDir, "MyApp.csproj");
     private readonly Mock<ICsprojLocator> _csprojLocator = new();
     private readonly Mock<ICsprojPackageReader> _packageReader = new();
     private readonly Mock<IProjectLocator> _projectLocator = new();
@@ -67,8 +69,8 @@ public class ExtensionAddCommandTests
     [Fact]
     public async Task Execute_ExtensionAlreadyInstalled_ReturnsZero()
     {
-        _csprojLocator.Setup(l => l.Find(It.IsAny<string>())).Returns("/proj/MyApp.csproj");
-        _registry.Setup(r => r.IsInstalled("/proj", "jwt", null)).Returns(true);
+        _csprojLocator.Setup(l => l.Find(It.IsAny<string>())).Returns(ProjectFile);
+        _registry.Setup(r => r.IsInstalled(ProjectDir, "jwt", null)).Returns(true);
 
         var result = await Run(BuildSettings("jwt"));
 
@@ -79,7 +81,7 @@ public class ExtensionAddCommandTests
     [Fact]
     public async Task Execute_UnknownExtension_ReturnsOne()
     {
-        _csprojLocator.Setup(l => l.Find(It.IsAny<string>())).Returns("/proj/MyApp.csproj");
+        _csprojLocator.Setup(l => l.Find(It.IsAny<string>())).Returns(ProjectFile);
 
         var result = await Run(BuildSettings("unknown"));
 
@@ -90,7 +92,7 @@ public class ExtensionAddCommandTests
     [Fact]
     public async Task Execute_InvalidProvider_ReturnsOne()
     {
-        _csprojLocator.Setup(l => l.Find(It.IsAny<string>())).Returns("/proj/MyApp.csproj");
+        _csprojLocator.Setup(l => l.Find(It.IsAny<string>())).Returns(ProjectFile);
         _handler.Setup(h => h.Name).Returns("cache");
         _handler.Setup(h => h.SupportedProviders).Returns(["redis", "memory"]);
         _handler.Setup(h => h.Apply(It.IsAny<ExtensionContext>()))
@@ -105,7 +107,7 @@ public class ExtensionAddCommandTests
     [Fact]
     public async Task Execute_HandlerFails_ReturnsOne()
     {
-        _csprojLocator.Setup(l => l.Find(It.IsAny<string>())).Returns("/proj/MyApp.csproj");
+        _csprojLocator.Setup(l => l.Find(It.IsAny<string>())).Returns(ProjectFile);
         _handler.Setup(h => h.Name).Returns("jwt");
         _handler.Setup(h => h.SupportedProviders).Returns([]);
         _handler.Setup(h => h.Apply(It.IsAny<ExtensionContext>()))
@@ -120,7 +122,7 @@ public class ExtensionAddCommandTests
     [Fact]
     public async Task Execute_Success_RegistersExtensionAndReturnsZero()
     {
-        _csprojLocator.Setup(l => l.Find(It.IsAny<string>())).Returns("/proj/MyApp.csproj");
+        _csprojLocator.Setup(l => l.Find(It.IsAny<string>())).Returns(ProjectFile);
         _handler.Setup(h => h.Name).Returns("jwt");
         _handler.Setup(h => h.SupportedProviders).Returns([]);
         _handler.Setup(h => h.Apply(It.IsAny<ExtensionContext>()))
@@ -129,14 +131,14 @@ public class ExtensionAddCommandTests
         var result = await Run(BuildSettings("jwt"), _handler.Object);
 
         Assert.Equal(0, result);
-        _registry.Verify(r => r.Register("/proj",
+        _registry.Verify(r => r.Register(ProjectDir,
             It.Is<ExtensionEntry>(e => e.Name == "jwt" && e.Provider == null)), Times.Once);
     }
 
     [Fact]
     public async Task Execute_ValidProvider_PassesProviderToHandler()
     {
-        _csprojLocator.Setup(l => l.Find(It.IsAny<string>())).Returns("/proj/MyApp.csproj");
+        _csprojLocator.Setup(l => l.Find(It.IsAny<string>())).Returns(ProjectFile);
         _handler.Setup(h => h.Name).Returns("cache");
         _handler.Setup(h => h.SupportedProviders).Returns(["redis", "memory"]);
         _handler.Setup(h => h.Apply(It.IsAny<ExtensionContext>()))
@@ -146,15 +148,15 @@ public class ExtensionAddCommandTests
 
         Assert.Equal(0, result);
         _handler.Verify(h => h.Apply(It.Is<ExtensionContext>(c => c.Provider == "redis")), Times.Once);
-        _registry.Verify(r => r.Register("/proj",
+        _registry.Verify(r => r.Register(ProjectDir,
             It.Is<ExtensionEntry>(e => e.Name == "cache" && e.Provider == "redis")), Times.Once);
     }
 
     [Fact]
     public async Task Execute_PassesInstalledPackagesToHandler()
     {
-        _csprojLocator.Setup(l => l.Find(It.IsAny<string>())).Returns("/proj/MyApp.csproj");
-        _packageReader.Setup(r => r.ReadPackages("/proj/MyApp.csproj"))
+        _csprojLocator.Setup(l => l.Find(It.IsAny<string>())).Returns(ProjectFile);
+        _packageReader.Setup(r => r.ReadPackages(ProjectFile))
                       .Returns(["Microsoft.AspNetCore.Authentication.JwtBearer"]);
         _handler.Setup(h => h.Name).Returns("jwt");
         _handler.Setup(h => h.SupportedProviders).Returns([]);

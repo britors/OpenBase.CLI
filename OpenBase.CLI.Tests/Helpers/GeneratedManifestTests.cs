@@ -35,7 +35,7 @@ public sealed class GeneratedManifestTests : IDisposable
     }
     [Fact]
     public void ResolvesRenamedApiWithSpacesAndMissingMigrationsDirectory()
-        => Assert.Equal(Path.Combine(root, "src/Any Api/Any.Api.csproj"), Read().ApiProject);
+        => Assert.Equal(Path.Combine(root, "src", "Any Api", "Any.Api.csproj"), Read().ApiProject);
     [Theory]
     [InlineData("../outside.csproj")]
     [InlineData("/absolute.csproj")]
