@@ -10,7 +10,8 @@ public static class Identifiers
 
     public static string Database(string value)
     {
-        if (string.IsNullOrWhiteSpace(value) || value.StartsWith('-'))
+        // Spectre 0.55 supplies this sentinel for a missing array-option value.
+        if (string.IsNullOrWhiteSpace(value) || value.StartsWith('-') || value == "__default_command")
             throw new CliException("ARGUMENT_INVALID", "Informe um valor para a opção de banco.");
         return value.ToLowerInvariant() switch
         {

@@ -11,11 +11,11 @@ function openbase
         set -l output ""
         for i in (seq (count $argv))
             set -l next (math $i + 1)
-            if test $argv[$i] = "--name" -o $argv[$i] = "-n"
+            if contains -- $argv[$i] --name -n
                 if test $next -le (count $argv)
                     set project_name $argv[$next]
                 end
-            else if test $argv[$i] = "--output" -o $argv[$i] = "-o"
+            else if contains -- $argv[$i] --output -o
                 if test $next -le (count $argv)
                     set output $argv[$next]
                 end
