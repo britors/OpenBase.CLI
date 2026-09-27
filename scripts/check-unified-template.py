@@ -22,7 +22,8 @@ with tempfile.TemporaryDirectory(prefix='openbase-cli-e2e-') as temp:
     root = Path(temp)
     env = dict(os.environ, DOTNET_CLI_HOME=str(root / 'dotnet'), APPDATA=str(root / 'appdata'),
                OPENBASE_STATE_HOME=str(root / 'state'), DOTNET_NOLOGO='1', DOTNET_SKIP_FIRST_TIME_EXPERIENCE='1',
-               DOTNET_CLI_TELEMETRY_OPTOUT='1', DOTNET_CLI_UI_LANGUAGE='en-US')
+               DOTNET_CLI_TELEMETRY_OPTOUT='1', DOTNET_CLI_UI_LANGUAGE='en-US',
+               MSBUILDDISABLENODEREUSE='1', DOTNET_CLI_USE_MSBUILD_SERVER='0')
     for p in ('dotnet', 'appdata', 'state'):
         (root / p).mkdir()
 
@@ -115,7 +116,7 @@ with tempfile.TemporaryDirectory(prefix='openbase-cli-e2e-') as temp:
             assert normalized(destination / relative) == normalized(direct / relative), relative
         manifest = json.loads((destination / '.openbase.json').read_text())
         assert manifest['database'] == database and manifest['schemaVersion'] == 2
-        run(['dotnet', 'build', manifest['solution'], '-c', 'Release'], cwd=destination)
+        run(['dotnet', 'build', manifest['solution'], '-c', 'Release', '--disable-build-servers'], cwd=destination)
         run(['dotnet', 'test', 'tests/Acme.Customers.Tests.Unit', '-c', 'Release', '--no-build'], cwd=destination)
         occupied = invoke(['new', '-n', 'Acme.Customers', '-d', database, '-o', str(destination)], 2)
         assert occupied['error']['code'] == 'DESTINATION_NOT_EMPTY'
@@ -124,11 +125,12 @@ with tempfile.TemporaryDirectory(prefix='openbase-cli-e2e-') as temp:
         print(f'{database}: CLI/direct files match, build and unit tests passed', flush=True)
 
     cases = json.loads((contracts / 'creation-cases.json').read_text())['cases']
-    for case in cases:
+    for case_index, case in enumerate(cases):
         expected = case['expected']
         if expected.get('prompt'):
             continue  # interactive terminal covered below on POSIX
-        target = root / case['name']
+        # Case variants must use distinct directories on case-insensitive filesystems.
+        target = root / f"{case_index}-{case['name']}"
         result = invoke([*case['arguments'], '-o', str(target)], expected['exitCode'])
         if expected['exitCode'] == 0:
             assert json.loads((target / '.openbase.json').read_text())['database'] == expected['database']
