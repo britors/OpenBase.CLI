@@ -6,7 +6,7 @@ namespace OpenBase.CLI.Helpers.Execution;
 // SemVer ordering; numeric prerelease identifiers compare numerically, releases sort last.
 public sealed record PackageVersion(string Value) : IComparable<PackageVersion>
 {
-    private static readonly Regex Pattern = new(@"\A(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?\z");
+    private static readonly Regex Pattern = new(@"\A(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?\z", RegexOptions.NonBacktracking, TimeSpan.FromSeconds(1));
     public static bool IsValid(string? value) => value is not null && Pattern.IsMatch(value);
     public bool Preview => Pattern.Match(Value).Groups[4].Success;
     public bool Compatible => IsValid(Value) && Pattern.Match(Value).Groups[1].Value == "11";

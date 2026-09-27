@@ -80,8 +80,9 @@ public static class DotNet
         psi.Environment["DOTNET_CLI_UI_LANGUAGE"] = "en-US";
         using var process = Process.Start(psi);
         if (process is null) return (false, "Não foi possível iniciar dotnet.");
-        var stdout = process.StandardOutput.ReadToEndAsync();
-        var stderr = process.StandardError.ReadToEndAsync();
+        // Keep draining both pipes after cancellation kills the child process.
+        var stdout = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
+        var stderr = process.StandardError.ReadToEndAsync(CancellationToken.None);
         try
         {
             if (standardInput is not null)

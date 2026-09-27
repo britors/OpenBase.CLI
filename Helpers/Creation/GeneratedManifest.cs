@@ -44,7 +44,7 @@ public sealed record GeneratedManifest(string ApiProject, string ConnectionKey)
             var infrastructure = Resolve(root, Text(projects, "infrastructure"));
             Require(migration.StartsWith(Path.GetDirectoryName(infrastructure)! + Path.DirectorySeparatorChar, PathComparison));
             var key = Text(persistence, "connectionStringName");
-            Require(Regex.IsMatch(key, @"\A[A-Za-z_][A-Za-z0-9_.-]*\z"));
+            Require(Regex.IsMatch(key, @"\A[A-Za-z_][A-Za-z0-9_.-]*\z", RegexOptions.NonBacktracking, TimeSpan.FromSeconds(1)));
             // Generated variants have unconditional references. Do not infer an engine from conditional MSBuild text.
             var references = XDocument.Load(infrastructure).Descendants("PackageReference").ToArray();
             var drivers = new Dictionary<string, string> { ["Npgsql.EntityFrameworkCore.PostgreSQL"] = "postgres", ["Microsoft.EntityFrameworkCore.SqlServer"] = "sqlserver", ["Oracle.EntityFrameworkCore"] = "oracle" };
