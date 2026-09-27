@@ -32,7 +32,8 @@ jobs:
           name: unified-template
           path: template-source/artifacts/packages/*.nupkg
 
-  build-and-test:
+  platform-tests:
+    name: build-and-test (${{ matrix.os }})
     needs: template-package
     strategy:
       fail-fast: false
@@ -67,3 +68,15 @@ jobs:
         with:
           name: cli-tests-${{ matrix.os }}
           path: artifacts/results/*.trx
+
+  # Preserve the required check name configured in main's branch protection.
+  build-and-test:
+    needs: [template-package, platform-tests]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require package and both platform validations
+        env:
+          PACKAGE_RESULT: ${{ needs.template-package.result }}
+          TEST_RESULT: ${{ needs.platform-tests.result }}
+        run: test "$PACKAGE_RESULT" = success && test "$TEST_RESULT" = success
