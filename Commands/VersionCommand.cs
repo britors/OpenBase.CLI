@@ -1,4 +1,5 @@
 using System.Reflection;
+using OpenBase.CLI.Helpers.Creation;
 using System.Runtime.InteropServices;
 using OpenBase.CLI.Helpers;
 using OpenBase.CLI.Helpers.Execution;
@@ -10,6 +11,8 @@ namespace OpenBase.CLI.Commands;
 
 public class VersionSettings : CommandSettings
 {
+    [CommandOption("--json")]
+    public bool Json { get; set; }
 }
 
 public class VersionCommand(
@@ -35,6 +38,8 @@ public class VersionCommand(
                 ? await dotNetRunner.GetInstalledToolVersionAsync(id, cancellationToken)
                 : await dotNetRunner.GetInstalledTemplateVersionAsync(id, cancellationToken);
         }
+
+        if (settings.Json) return CommandResult.Write(console, true, "version.show", new { cliVersion = assemblyVersion, dotnetVersion, packages = installedVersions });
 
         ConsoleBanner.Print(console);
 

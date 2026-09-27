@@ -5,28 +5,8 @@ namespace OpenBase.CLI.Tests.Helpers;
 public class DotNetTests
 {
     [Fact]
-    public void TemplatePackages_HasThreeEntries()
-    {
-        Assert.Equal(3, DotNet.TemplatePackages.Length);
-    }
-
-    [Fact]
-    public void TemplatePackages_ContainsSqlServerTemplate()
-    {
-        Assert.Contains("w3ti.OpenBaseNET.SQLServer.Template", DotNet.TemplatePackages);
-    }
-
-    [Fact]
-    public void TemplatePackages_ContainsPostgresTemplate()
-    {
-        Assert.Contains("w3ti.OpenBaseNET.Postgres.Template", DotNet.TemplatePackages);
-    }
-
-    [Fact]
-    public void TemplatePackages_ContainsOracleTemplate()
-    {
-        Assert.Contains("w3ti.OpenBaseNET.Oracle.Template", DotNet.TemplatePackages);
-    }
+    public void DefaultTemplates_OnlyIncludesUnifiedPackage()
+        => Assert.Equal(new[] { PackageIds.Unified }, DotNet.TemplatePackages);
 
     [Theory]
     [InlineData("10.0.100", 10, true)]

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using OpenBase.CLI.Helpers.Creation;
 using OpenBase.CLI.Commands;
 using OpenBase.CLI.Commands.Extension;
 using OpenBase.CLI.Commands.Extension.DomainEvents;
@@ -20,7 +21,8 @@ SR.Configure();
 var services = new ServiceCollection();
 services.AddSingleton<IAnsiConsole>(AnsiConsole.Console);
 services.AddSingleton<IDotNetRunner, DotNetRunner>();
-services.AddSingleton<ITemplatePackageRunner, TemplatePackageRunner>();
+services.AddSingleton<IPackageCatalog, PackageCatalog>();
+services.AddSingleton<PackageOperations>();
 services.AddSingleton<IUpdateHistoryService, UpdateHistoryService>();
 services.AddSingleton<IProjectLocator, ProjectLocator>();
 services.AddSingleton<IFileWriter, FileWriter>();
@@ -52,6 +54,15 @@ var app = new CommandApp(registrar);
 app.Configure(config =>
 {
     config.SetApplicationName("openbase");
+    config.UseStrictParsing();
+    config.SetExceptionHandler((error, _) => CommandResult.Write(AnsiConsole.Console,
+        args.Contains("--json"), args.FirstOrDefault() ?? "help", error: error switch
+        {
+            CliException known => known,
+            OperationCanceledException => new CliException("CANCELLED", "Operação cancelada.", 130),
+            CommandParseException => new CliException("ARGUMENT_INVALID", "Argumentos inválidos. Consulte --help."),
+            _ => new CliException("EXECUTION_FAILED", "A operação falhou.", 4)
+        }));
 
     config.AddCommand<BuildCommand>(BuildCmd)
         .WithDescription(SR.Current.CmdBuildDescription)
@@ -74,7 +85,7 @@ app.Configure(config =>
 
     config.AddCommand<NewCommand>("new")
         .WithDescription(SR.Current.CmdNewDescription)
-        .WithExample("new", TypeOpt, "api", "--template", "sqlserver", "--name", "MeuProjeto");
+        .WithExample("new", "--database", "postgres", "--name", "MeuProjeto");
 
     config.AddCommand<ScaffoldCommand>("scaffold")
         .WithDescription(SR.Current.CmdScaffoldDescription)
@@ -126,4 +137,25 @@ app.Configure(config =>
     });
 });
 
-return await app.RunAsync(args);
+using var cancellation = new CancellationTokenSource();
+Console.CancelKeyPress += (_, e) => { e.Cancel = true; cancellation.Cancel(); };
+// The legacy generators do not understand the new layout yet (#13).
+if (args.FirstOrDefault() is "scaffold" or "specialist" or "procedure" or "extension")
+{
+    for (var dir = new DirectoryInfo(Environment.CurrentDirectory); dir is not null; dir = dir.Parent)
+    {
+        var manifest = Path.Combine(dir.FullName, ".openbase.json");
+        if (!File.Exists(manifest)) continue;
+        try
+        {
+            using var document = System.Text.Json.JsonDocument.Parse(File.ReadAllText(manifest));
+            if (document.RootElement.TryGetProperty("schemaVersion", out _))
+                return CommandResult.Write(AnsiConsole.Console, args.Contains("--json"), args[0],
+                    error: new CliException("CAPABILITY_UNAVAILABLE", "Este gerador ainda suporta somente o layout legado.", 3));
+        }
+        catch (System.Text.Json.JsonException)
+        { return CommandResult.Write(AnsiConsole.Console, args.Contains("--json"), args[0], error: new CliException("MANIFEST_INVALID", "Manifesto inválido.")); }
+        break;
+    }
+}
+return await app.RunAsync(args, cancellation.Token);

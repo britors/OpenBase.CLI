@@ -11,6 +11,8 @@ namespace OpenBase.CLI.Tests.Commands;
 
 public class ExtensionListCommandTests
 {
+    private static readonly string ProjectDir = Path.Combine(Path.GetTempPath(), "extension-fixture");
+    private static readonly string ProjectFile = Path.Combine(ProjectDir, "MyApp.csproj");
     private readonly Mock<ICsprojLocator> _csprojLocator = new();
     private readonly Mock<IProjectLocator> _projectLocator = new();
     private readonly Mock<IExtensionRegistry> _registry = new();
@@ -78,11 +80,11 @@ public class ExtensionListCommandTests
     [Fact]
     public async Task Execute_CsprojFallback_QueriesRegistryWithProjectDir()
     {
-        _csprojLocator.Setup(c => c.Find(It.IsAny<string>())).Returns("/proj/MyApp.csproj");
+        _csprojLocator.Setup(c => c.Find(It.IsAny<string>())).Returns(ProjectFile);
 
         await Run();
 
-        _registry.Verify(r => r.GetAll("/proj"), Times.Once);
+        _registry.Verify(r => r.GetAll(ProjectDir), Times.Once);
     }
 
     [Fact]

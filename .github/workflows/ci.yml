@@ -2,31 +2,81 @@ name: CI
 
 on:
   push:
-    branches: [dev]
+    branches: [dev, 'feat/**']
   pull_request:
     branches: [main]
 
 permissions: {}
 
 jobs:
-  build-and-test:
+  template-package:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        with:
+          repository: britors/OpenBaseNET
+          ref: c890607e249ae304f8c911b7f6fd75c93b5fc7aa
+          path: template-source
+      - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - run: python scripts/pack-template.py --version 11.0.0-preview.1
+        working-directory: template-source
+      - uses: actions/upload-artifact@v4
+        with:
+          name: unified-template
+          path: template-source/artifacts/packages/*.nupkg
 
-      - name: Restore
-        run: dotnet restore
+  platform-tests:
+    name: build-and-test (${{ matrix.os }})
+    needs: template-package
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: britors/OpenBaseNET
+          ref: c890607e249ae304f8c911b7f6fd75c93b5fc7aa
+          path: artifacts/template-source
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - uses: actions/download-artifact@v4
+        with:
+          name: unified-template
+          path: artifacts/packages
+      - run: dotnet restore
+      - run: dotnet build --no-restore --configuration Release
+      - run: dotnet test --no-build --configuration Release --logger trx --results-directory artifacts/results
+      - run: python scripts/check-unified-template.py --package artifacts/packages/w3ti.OpenBaseNET.Template.11.0.0-preview.1.nupkg --template-root artifacts/template-source
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cli-tests-${{ matrix.os }}
+          path: artifacts/results/*.trx
 
-      - name: Build
-        run: dotnet build --no-restore --configuration Release
-
-      - name: Test
-        run: dotnet test --no-build --configuration Release --verbosity normal
+  # Preserve the required check name configured in main's branch protection.
+  build-and-test:
+    needs: [template-package, platform-tests]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require package and both platform validations
+        env:
+          PACKAGE_RESULT: ${{ needs.template-package.result }}
+          TEST_RESULT: ${{ needs.platform-tests.result }}
+        run: test "$PACKAGE_RESULT" = success && test "$TEST_RESULT" = success
